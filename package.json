@@ -1,0 +1,14 @@
+{
+  "name": "sapcyti-api-tools",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev tooling for SAPCyTI Backend (commitlint + husky)",
+  "scripts": {
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "husky": "^9.0.0"
+  }
+}
