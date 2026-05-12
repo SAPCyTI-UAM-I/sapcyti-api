@@ -10,7 +10,7 @@ Backend API for the SAPCyTI graduate program management portal. Built as a **mod
 
 - **Pattern:** Modular Monolith + Hexagonal Architecture
 - **Design:** Domain-Driven Design (Bounded Contexts)
-- **Full documentation:** [Architecture.md](../Docs/Design/Architecture.md)
+- **Full documentation:** If you have the monorepo layout, see [`../Docs/Design/Architecture.md`](../Docs/Design/Architecture.md). Otherwise use the architecture document from the **SAPCyTI documentation** repository your team links to this project.
 
 ## Tech Stack
 
@@ -29,26 +29,74 @@ Backend API for the SAPCyTI graduate program management portal. Built as a **mod
 
 See [PREREQUISITES.md](PREREQUISITES.md) for required tools and versions.
 
-## Quick Start
+## Run locally
 
-```bash
-# 1. Start PostgreSQL
+You need **Docker Desktop** (or compatible engine), **Java 21**, and **Maven** (or use the included **`./mvnw`** / **`mvnw.cmd`** wrapper).
+
+### 1. Start PostgreSQL (development)
+
+The compose file maps the database to host port **5433** so it does not clash with another PostgreSQL often bound to **5432** on Windows.
+
+```powershell
 docker compose -f docker-compose.dev.yml up -d
+```
 
-# 2. Copy environment file
-cp .env.example .env
+Wait a few seconds for the container to become ready. Default credentials match [`docker-compose.dev.yml`](docker-compose.dev.yml): user `sapcyti`, password `sapcyti_dev_pass`, database `sapcyti_dev`.
 
-# 3. Install dev tools (commitlint + husky)
+### 2. Environment variables
+
+[`application.yml`](src/main/resources/application.yml) supplies defaults aligned with the compose file. You only need to set the **Spring profile** for local development:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE = "dev"
+```
+
+Optional overrides (for example if you change the compose port or credentials):
+
+| Variable | Example |
+|----------|---------|
+| `DB_URL` | `jdbc:postgresql://localhost:5433/sapcyti_dev` |
+| `DB_USER` | `sapcyti` |
+| `DB_PASS` | `sapcyti_dev_pass` |
+| `SERVER_PORT` | `8080` |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:4200` (comma-separated for several origins) |
+
+If you previously set `DB_*` globally to wrong values, clear them in the current shell: `Remove-Item Env:DB_URL, Env:DB_USER, Env:DB_PASS -ErrorAction SilentlyContinue`.
+
+Reference template: [`.env.example`](.env.example) (Spring Boot does not load `.env` automatically; copy values into your shell or IDE run configuration).
+
+### 3. Optional: commit hooks
+
+```powershell
 npm install
+```
 
-# 4. Build
-mvn clean compile
+### 4. Build and run
 
-# 5. Run
-mvn spring-boot:run
+```powershell
+.\mvnw.cmd clean verify
+$env:SPRING_PROFILES_ACTIVE = "dev"
+.\mvnw.cmd spring-boot:run
+```
 
-# 6. Verify
-curl http://localhost:8080/actuator/health
+On Linux or macOS use `./mvnw` instead of `.\mvnw.cmd`.
+
+### 5. Verify
+
+Open [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) or run:
+
+```powershell
+Invoke-WebRequest -Uri http://localhost:8080/actuator/health -UseBasicParsing
+```
+
+Stop the API with `Ctrl+C`. Stop the database with `docker compose -f docker-compose.dev.yml down`.
+
+## Quick Start (summary)
+
+```powershell
+docker compose -f docker-compose.dev.yml up -d
+$env:SPRING_PROFILES_ACTIVE = "dev"
+.\mvnw.cmd spring-boot:run
 ```
 
 ## Development
@@ -84,8 +132,12 @@ src/main/java/mx/uam/sapcyti/
 ├── identity/               # Identity & Access bounded context (future)
 ├── academic/               # Academic Management bounded context (future)
 ├── offering/               # Academic Offering bounded context (future)
-└── enrollment/             # Enrollment bounded context (future)
+├── enrollment/             # Enrollment bounded context (future)
+├── audit/                  # Audit bounded context (future)
+└── shared/                 # Tenant filter, CORS, cross-cutting config
 ```
+
+See [`src/README.md`](src/README.md) for the full hexagonal layout and dependency rules.
 
 ## Contributing
 
