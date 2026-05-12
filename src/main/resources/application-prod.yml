@@ -1,0 +1,9 @@
+logging:
+  level:
+    root: WARN
+    mx.uam.sapcyti: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: never
