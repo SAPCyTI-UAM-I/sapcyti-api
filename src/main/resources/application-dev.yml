@@ -1,0 +1,10 @@
+# Local development — run with SPRING_PROFILES_ACTIVE=dev and PostgreSQL from docker-compose.dev.yml
+logging:
+  level:
+    root: INFO
+    mx.uam.sapcyti: DEBUG
+
+management:
+  endpoint:
+    health:
+      show-details: always
