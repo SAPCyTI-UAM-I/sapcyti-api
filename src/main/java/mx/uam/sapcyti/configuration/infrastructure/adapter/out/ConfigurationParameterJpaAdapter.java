@@ -68,6 +68,12 @@ public class ConfigurationParameterJpaAdapter
         return jpaRepository
             .existsByGraduateProgram_IdAndKey(graduateProgramId, key);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByGraduateProgramId(Long graduateProgramId) {
+        return jpaRepository.countByGraduateProgram_Id(graduateProgramId);
+    }
 }
 
 /**
@@ -94,4 +100,6 @@ interface SpringDataConfigurationParameterRepository
 
     boolean existsByGraduateProgram_IdAndKey(
         Long graduateProgramId, String key);
+
+    long countByGraduateProgram_Id(Long graduateProgramId);
 }
