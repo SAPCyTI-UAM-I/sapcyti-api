@@ -2,6 +2,7 @@ package mx.uam.sapcyti.shared.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,6 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
  * until full authentication is configured in Phase 6 (risk R-3.1).
  */
 @Configuration
+@Profile("!docker")
 @EnableWebSecurity
 @EnableMethodSecurity
 public class MethodSecurityConfig {
