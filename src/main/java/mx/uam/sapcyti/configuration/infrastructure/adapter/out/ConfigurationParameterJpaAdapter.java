@@ -2,16 +2,14 @@ package mx.uam.sapcyti.configuration.infrastructure.adapter.out;
 
 import java.util.List;
 import java.util.Optional;
-
+import mx.uam.sapcyti.configuration.domain.model.ConfigurationParameter;
+import mx.uam.sapcyti.configuration.domain.port.out.ConfigurationParameterRepositoryPort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-
-import mx.uam.sapcyti.configuration.domain.model.ConfigurationParameter;
-import mx.uam.sapcyti.configuration.domain.port.out.ConfigurationParameterRepositoryPort;
 
 /**
  * JPA-based adapter that implements {@link ConfigurationParameterRepositoryPort}.
@@ -24,10 +22,10 @@ import mx.uam.sapcyti.configuration.domain.port.out.ConfigurationParameterReposi
 public class ConfigurationParameterJpaAdapter
         implements ConfigurationParameterRepositoryPort {
 
-    private final SpringDataConfigurationParameterRepository jpaRepository;
+    private final SpringDataConfigParamRepository jpaRepository;
 
     public ConfigurationParameterJpaAdapter(
-            SpringDataConfigurationParameterRepository jpaRepository) {
+            SpringDataConfigParamRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 
@@ -42,23 +40,21 @@ public class ConfigurationParameterJpaAdapter
     public Optional<ConfigurationParameter> findByGraduateProgramIdAndKey(
             Long graduateProgramId, String key) {
         return jpaRepository
-            .findByGraduateProgram_IdAndKey(graduateProgramId, key);
+                .findByProgramIdAndKey(graduateProgramId, key);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ConfigurationParameter> findAllByGraduateProgramId(
             Long graduateProgramId) {
-        return jpaRepository
-            .findAllByGraduateProgram_Id(graduateProgramId);
+        return jpaRepository.findAllByProgramId(graduateProgramId);
     }
 
     @Override
     @Transactional
     public void deleteByGraduateProgramIdAndKey(
             Long graduateProgramId, String key) {
-        jpaRepository
-            .deleteByGraduateProgram_IdAndKey(graduateProgramId, key);
+        jpaRepository.deleteByProgramIdAndKey(graduateProgramId, key);
     }
 
     @Override
@@ -66,7 +62,7 @@ public class ConfigurationParameterJpaAdapter
     public boolean existsByGraduateProgramIdAndKey(
             Long graduateProgramId, String key) {
         return jpaRepository
-            .existsByGraduateProgram_IdAndKey(graduateProgramId, key);
+                .existsByProgramIdAndKey(graduateProgramId, key);
     }
 
     @Override

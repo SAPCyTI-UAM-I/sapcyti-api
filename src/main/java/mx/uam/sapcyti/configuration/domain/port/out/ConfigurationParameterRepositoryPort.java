@@ -2,7 +2,6 @@ package mx.uam.sapcyti.configuration.domain.port.out;
 
 import java.util.List;
 import java.util.Optional;
-
 import mx.uam.sapcyti.configuration.domain.model.ConfigurationParameter;
 
 /**
@@ -32,7 +31,7 @@ public interface ConfigurationParameterRepositoryPort {
      * @return the parameter, or empty if not found
      */
     Optional<ConfigurationParameter> findByGraduateProgramIdAndKey(
-        Long graduateProgramId, String key);
+            Long graduateProgramId, String key);
 
     /**
      * Returns all configuration parameters for a graduate program.
@@ -41,7 +40,7 @@ public interface ConfigurationParameterRepositoryPort {
      * @return list of parameters for the program
      */
     List<ConfigurationParameter> findAllByGraduateProgramId(
-        Long graduateProgramId);
+            Long graduateProgramId);
 
     /**
      * Deletes a configuration parameter by program id and key.
@@ -50,7 +49,7 @@ public interface ConfigurationParameterRepositoryPort {
      * @param key               the parameter key
      */
     void deleteByGraduateProgramIdAndKey(
-        Long graduateProgramId, String key);
+            Long graduateProgramId, String key);
 
     /**
      * Checks whether a parameter with the given key exists for a program.

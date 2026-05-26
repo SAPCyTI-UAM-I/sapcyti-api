@@ -2,7 +2,6 @@ package mx.uam.sapcyti.configuration.domain.port.out;
 
 import java.util.List;
 import java.util.Optional;
-
 import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
 
 /**
