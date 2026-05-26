@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Optional;
-
+import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,8 +14,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-
-import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
 
 /**
  * Adapter test for {@link GraduateProgramJpaAdapter}.
@@ -41,7 +39,7 @@ class GraduateProgramJpaAdapterTest {
     void setUp() {
         // Clean slate for each test
         entityManager.getEntityManager()
-            .createQuery("DELETE FROM GraduateProgram").executeUpdate();
+                .createQuery("DELETE FROM GraduateProgram").executeUpdate();
         entityManager.flush();
         entityManager.clear();
     }
@@ -51,7 +49,7 @@ class GraduateProgramJpaAdapterTest {
     void shouldSaveAndFindById() {
         // given
         GraduateProgram program = new GraduateProgram(
-            "Ciencias y Tecnologías de la Información", "CBI");
+                "Ciencias y Tecnologías de la Información", "CBI");
 
         // when
         GraduateProgram saved = adapter.save(program);
@@ -63,7 +61,7 @@ class GraduateProgramJpaAdapterTest {
         Optional<GraduateProgram> found = adapter.findById(saved.getId());
         assertThat(found).isPresent();
         assertThat(found.get().getName())
-            .isEqualTo("Ciencias y Tecnologías de la Información");
+                .isEqualTo("Ciencias y Tecnologías de la Información");
         assertThat(found.get().getDivision()).isEqualTo("CBI");
     }
 
@@ -72,11 +70,11 @@ class GraduateProgramJpaAdapterTest {
     void shouldFindAll() {
         // given
         entityManager.persist(
-            new GraduateProgram("PCyTI", "CBI"));
+                new GraduateProgram("PCyTI", "CBI"));
         entityManager.persist(
-            new GraduateProgram("Energía y Medio Ambiente", "CBI"));
+                new GraduateProgram("Energía y Medio Ambiente", "CBI"));
         entityManager.persist(
-            new GraduateProgram("Ciencias Sociales", "CSH"));
+                new GraduateProgram("Ciencias Sociales", "CSH"));
         entityManager.flush();
         entityManager.clear();
 
@@ -120,7 +118,7 @@ class GraduateProgramJpaAdapterTest {
     void shouldDeleteById() {
         // given
         GraduateProgram program = entityManager.persist(
-            new GraduateProgram("PCyTI", "CBI"));
+                new GraduateProgram("PCyTI", "CBI"));
         entityManager.flush();
         Long id = program.getId();
         entityManager.clear();
