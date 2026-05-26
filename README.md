@@ -99,6 +99,118 @@ $env:SPRING_PROFILES_ACTIVE = "dev"
 .\mvnw.cmd spring-boot:run
 ```
 
+## Docker (API image)
+
+Multi-stage image for Compose and CI (`SPEC-009`). The **`docker`** Spring profile connects to PostgreSQL hostname `db` on port **5432** inside the network (not `localhost`).
+
+### Build image
+
+From the repository root (`sapcyti-api/`):
+
+```powershell
+docker build -t sapcyti-api:local .
+```
+
+### Environment templates
+
+| File | Purpose |
+|------|---------|
+| [`.env.docker.example`](.env.docker.example) | Local full stack (SPEC-010) — includes smoke-only `SMOKE_COORDINATOR_PASSWORD` |
+| [`.env.preprod.example`](.env.preprod.example) | On-prem preprod placeholders — **no** smoke credentials |
+| [`.env.example`](.env.example) | Host JVM + `docker-compose.dev.yml` (port **5433**) |
+
+Copy the relevant example to `.env` for Compose; Spring Boot does not load `.env` automatically when you run the JAR outside Compose.
+
+### Run API container with ephemeral Postgres
+
+Useful to verify the image before the full stack ([`docker-compose.yml`](docker-compose.yml) is SPEC-010):
+
+```powershell
+docker network create sapcyti-smoke-net 2>$null
+docker run -d --name sapcyti-smoke-db --network sapcyti-smoke-net `
+  -e POSTGRES_DB=sapcyti_dev -e POSTGRES_USER=sapcyti -e POSTGRES_PASSWORD=sapcyti_dev_pass `
+  postgres:16-alpine
+docker run -d --name sapcyti-smoke-api --network sapcyti-smoke-net -p 8080:8080 `
+  -e DB_URL=jdbc:postgresql://sapcyti-smoke-db:5432/sapcyti_dev `
+  -e DB_USER=sapcyti -e DB_PASS=sapcyti_dev_pass `
+  -e CORS_ALLOWED_ORIGINS=http://localhost `
+  sapcyti-api:local
+```
+
+Wait for Flyway and health (start period up to ~60s), then:
+
+```powershell
+Invoke-WebRequest -Uri http://localhost:8080/actuator/health -UseBasicParsing
+```
+
+Smoke CRUD against protected endpoints uses HTTP Basic (`coordinator` / password from `SMOKE_COORDINATOR_PASSWORD`, default `changeme` in `.env.docker.example` only). **Do not enable the `docker` profile in production** — see [TECH_DEBT.md](TECH_DEBT.md).
+
+Cleanup:
+
+```powershell
+docker rm -f sapcyti-smoke-api sapcyti-smoke-db
+docker network rm sapcyti-smoke-net
+```
+
+> **Note:** [`docker-compose.dev.yml`](docker-compose.dev.yml) remains the database-only workflow for `mvn spring-boot:run` on the host (port **5433**). It is unchanged by containerized API packaging.
+
+## Full Docker Compose stack (SPEC-010)
+
+Requires **`sapcyti-spa`** as a sibling directory (`../sapcyti-spa` relative to this repo).
+
+### 1. Environment file
+
+```powershell
+Copy-Item .env.docker.example .env
+```
+
+`.env` is gitignored; values match [`.env.docker.example`](.env.docker.example).
+
+### 2. Start stack
+
+```powershell
+docker compose -f docker-compose.yml up --build
+```
+
+| URL | Purpose |
+|-----|---------|
+| [http://localhost](http://localhost) | SPA (Nginx `edge`) — default `EDGE_HTTP_PORT=80` |
+| [http://localhost:8888](http://localhost:8888) | Example if port 80 is blocked on Windows (`EDGE_HTTP_PORT=8888` in `.env`) |
+| [http://localhost/api/](http://localhost/api/) | API via reverse proxy |
+| [http://localhost/api/actuator/health](http://localhost/api/actuator/health) | Health via proxy (E5.3) |
+| [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | Health direct on API (debug) |
+
+PostgreSQL is **not** published on the host (internal `db:5432` only). Host port **5433** remains for [`docker-compose.dev.yml`](docker-compose.dev.yml) only.
+
+### 3. Smoke verification
+
+After all services are healthy:
+
+```powershell
+.\scripts\smoke-stack.ps1
+# If edge is not on port 80:
+$env:SMOKE_BASE_URL = "http://localhost:8888"
+.\scripts\smoke-stack.ps1
+```
+
+POSIX (Git Bash / WSL):
+
+```bash
+chmod +x scripts/smoke-stack.sh
+./scripts/smoke-stack.sh
+```
+
+Uses HTTP Basic `coordinator` / `SMOKE_COORDINATOR_PASSWORD` from `.env` (SPEC-009 `docker` profile).
+
+### 4. Clean restart
+
+```powershell
+docker compose -f docker-compose.yml down -v
+docker compose -f docker-compose.yml up --build
+```
+
+Enable [Docker BuildKit](https://docs.docker.com/build/buildkit/) for faster rebuilds (`$env:DOCKER_BUILDKIT=1` on Windows).
+
 ## Development
 
 ```bash

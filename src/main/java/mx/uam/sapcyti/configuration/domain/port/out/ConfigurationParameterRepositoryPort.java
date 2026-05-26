@@ -61,4 +61,12 @@ public interface ConfigurationParameterRepositoryPort {
      */
     boolean existsByGraduateProgramIdAndKey(
         Long graduateProgramId, String key);
+
+    /**
+     * Counts configuration parameters for a graduate program.
+     *
+     * @param graduateProgramId the program id
+     * @return number of parameters for the program
+     */
+    long countByGraduateProgramId(Long graduateProgramId);
 }

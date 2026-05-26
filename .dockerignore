@@ -1,0 +1,20 @@
+# Keep Docker build context small (SPEC-009)
+target/
+.git/
+.github/
+.idea/
+*.iml
+.vscode/
+node_modules/
+npm-debug.log
+
+# Local env files — never bake secrets into the image
+.env
+.env.local
+.env.*.local
+
+# Docs and dev-only compose (not needed for the image)
+*.md
+!README.md
+docker-compose*.yml
+scripts/
