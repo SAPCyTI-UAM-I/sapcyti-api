@@ -51,8 +51,26 @@ public class GraduateProgramJpaAdapter implements GraduateProgramRepositoryPort 
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean existsByNameAndIdNot(String name, Long excludeId) {
+        return jpaRepository.existsByNameAndIdNot(name, excludeId);
+    }
+
+    @Override
     @Transactional
     public void deleteById(Long id) {
         jpaRepository.deleteById(id);
     }
+}
+
+/**
+ * Spring Data repository — internal to the infrastructure layer.
+ * Not exposed to the domain; only used by {@link GraduateProgramJpaAdapter}.
+ */
+interface SpringDataGraduateProgramRepository
+        extends JpaRepository<GraduateProgram, Long> {
+
+    boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
 }

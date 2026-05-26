@@ -118,4 +118,13 @@ public class GraduateProgram {
     public List<ConfigurationParameter> getConfigurationParameters() {
         return Collections.unmodifiableList(configurationParameters);
     }
+
+    /**
+     * Adds a configuration parameter to this aggregate.
+     *
+     * @param parameter the parameter to add; must belong to this program
+     */
+    public void addConfigurationParameter(ConfigurationParameter parameter) {
+        configurationParameters.add(parameter);
+    }
 }

@@ -64,4 +64,38 @@ public class ConfigurationParameterJpaAdapter
         return jpaRepository
                 .existsByProgramIdAndKey(graduateProgramId, key);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countByGraduateProgramId(Long graduateProgramId) {
+        return jpaRepository.countByGraduateProgram_Id(graduateProgramId);
+    }
+}
+
+/**
+ * Spring Data repository — internal to the infrastructure layer.
+ * Not exposed to the domain; only used by
+ * {@link ConfigurationParameterJpaAdapter}.
+ */
+interface SpringDataConfigurationParameterRepository
+        extends JpaRepository<ConfigurationParameter, Long> {
+
+    Optional<ConfigurationParameter> findByGraduateProgram_IdAndKey(
+        Long graduateProgramId, String key);
+
+    List<ConfigurationParameter> findAllByGraduateProgram_Id(
+        Long graduateProgramId);
+
+    @Modifying
+    @Query("DELETE FROM ConfigurationParameter cp "
+         + "WHERE cp.graduateProgram.id = :programId "
+         + "AND cp.key = :key")
+    void deleteByGraduateProgram_IdAndKey(
+        @Param("programId") Long graduateProgramId,
+        @Param("key") String key);
+
+    boolean existsByGraduateProgram_IdAndKey(
+        Long graduateProgramId, String key);
+
+    long countByGraduateProgram_Id(Long graduateProgramId);
 }

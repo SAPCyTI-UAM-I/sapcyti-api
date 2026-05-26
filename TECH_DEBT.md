@@ -4,7 +4,7 @@
 
 | ID | Description | Priority | Rationale | Impact | Target Iteration |
 |----|-------------|----------|-----------|--------|-----------------|
-| — | — | — | — | — | — |
+| TD-009-1 | `DockerSecurityConfig` exposes HTTP Basic with in-memory `coordinator` user (`@Profile("docker")`) for stack smoke scripts | Medium | `@PreAuthorize` blocks CRUD until Phase 6 JWT; smoke needs a principal | Must not ship with `SPRING_PROFILES_ACTIVE=docker` in preprod/prod | Phase 6 |
 
 ## Priority Levels
 
