@@ -2,7 +2,7 @@ name: Merge & Deploy — Backend
 
 on:
   push:
-    branches: [develop, main, 'release/*']
+    branches: [main, 'release/*']
 
 permissions:
   contents: read
