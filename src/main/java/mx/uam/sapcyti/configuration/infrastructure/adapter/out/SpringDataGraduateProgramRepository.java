@@ -13,4 +13,6 @@ interface SpringDataGraduateProgramRepository
         extends JpaRepository<GraduateProgram, Long> {
 
     boolean existsByName(String name);
+
+    boolean existsByNameAndIdNot(String name, Long id);
 }

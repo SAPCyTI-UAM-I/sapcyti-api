@@ -48,4 +48,8 @@ interface SpringDataConfigParamRepository
     boolean existsByProgramIdAndKey(
             @Param("programId") Long graduateProgramId,
             @Param("key") String key);
+
+    @Query("SELECT COUNT(cp) FROM ConfigurationParameter cp "
+            + "WHERE cp.graduateProgram.id = :programId")
+    long countByProgramId(@Param("programId") Long graduateProgramId);
 }
