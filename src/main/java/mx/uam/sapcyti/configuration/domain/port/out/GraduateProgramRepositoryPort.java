@@ -2,7 +2,6 @@ package mx.uam.sapcyti.configuration.domain.port.out;
 
 import java.util.List;
 import java.util.Optional;
-
 import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
 
 /**
@@ -46,6 +45,15 @@ public interface GraduateProgramRepositoryPort {
      * @return true if a program with that name exists
      */
     boolean existsByName(String name);
+
+    /**
+     * Checks whether another program (different id) has the given name.
+     *
+     * @param name      the program name to check
+     * @param excludeId the program id to exclude from the check
+     * @return true if another program with that name exists
+     */
+    boolean existsByNameAndIdNot(String name, Long excludeId);
 
     /**
      * Deletes a graduate program by its id.

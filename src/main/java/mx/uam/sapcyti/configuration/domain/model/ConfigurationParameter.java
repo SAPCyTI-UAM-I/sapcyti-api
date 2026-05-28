@@ -1,7 +1,5 @@
 package mx.uam.sapcyti.configuration.domain.model;
 
-import java.util.regex.Pattern;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -12,6 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.util.regex.Pattern;
 
 /**
  * Value Object (persisted as Entity with surrogate id) — Program Configuration (BC-04).
@@ -31,14 +30,14 @@ import jakarta.persistence.UniqueConstraint;
  */
 @Entity
 @Table(name = "configuration_parameters",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uq_configuration_parameters_program_key",
-        columnNames = {"graduate_program_id", "param_key"}))
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_configuration_parameters_program_key",
+                columnNames = {"graduate_program_id", "param_key"}))
 public class ConfigurationParameter {
 
     /** UPPER_SNAKE_CASE pattern: starts with uppercase letter, then uppercase, digits, or underscores. */
     private static final Pattern KEY_PATTERN =
-        Pattern.compile("^[A-Z][A-Z0-9_]*$");
+            Pattern.compile("^[A-Z][A-Z0-9_]*$");
 
     private static final int KEY_MAX_LENGTH = 100;
     private static final int VALUE_MAX_LENGTH = 500;
@@ -81,7 +80,7 @@ public class ConfigurationParameter {
                                   String description) {
         if (graduateProgram == null) {
             throw new IllegalArgumentException(
-                "Graduate program is required");
+                    "Graduate program is required");
         }
         this.graduateProgram = graduateProgram;
         setKey(key);
@@ -110,16 +109,16 @@ public class ConfigurationParameter {
     public void setKey(String key) {
         if (key == null || key.isBlank()) {
             throw new IllegalArgumentException(
-                "Parameter key is required");
+                    "Parameter key is required");
         }
         if (key.length() > KEY_MAX_LENGTH) {
             throw new IllegalArgumentException(
-                "Parameter key must not exceed "
-                    + KEY_MAX_LENGTH + " characters");
+                    "Parameter key must not exceed "
+                            + KEY_MAX_LENGTH + " characters");
         }
         if (!KEY_PATTERN.matcher(key).matches()) {
             throw new IllegalArgumentException(
-                "Key must be in UPPER_SNAKE_CASE format");
+                    "Key must be in UPPER_SNAKE_CASE format");
         }
         this.key = key;
     }
@@ -137,12 +136,12 @@ public class ConfigurationParameter {
     public void setValue(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(
-                "Parameter value is required");
+                    "Parameter value is required");
         }
         if (value.length() > VALUE_MAX_LENGTH) {
             throw new IllegalArgumentException(
-                "Parameter value must not exceed "
-                    + VALUE_MAX_LENGTH + " characters");
+                    "Parameter value must not exceed "
+                            + VALUE_MAX_LENGTH + " characters");
         }
         this.value = value;
     }
@@ -160,8 +159,8 @@ public class ConfigurationParameter {
         if (description != null
                 && description.length() > DESCRIPTION_MAX_LENGTH) {
             throw new IllegalArgumentException(
-                "Description must not exceed "
-                    + DESCRIPTION_MAX_LENGTH + " characters");
+                    "Description must not exceed "
+                            + DESCRIPTION_MAX_LENGTH + " characters");
         }
         this.description = description;
     }

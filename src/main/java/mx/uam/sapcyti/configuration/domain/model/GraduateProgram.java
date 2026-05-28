@@ -1,9 +1,5 @@
 package mx.uam.sapcyti.configuration.domain.model;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,6 +9,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Aggregate Root — Program Configuration (BC-04).
@@ -26,10 +25,10 @@ import jakarta.persistence.UniqueConstraint;
  */
 @Entity
 @Table(
-    name = "graduate_programs",
-    uniqueConstraints = @UniqueConstraint(
-        name = "uq_graduate_program_name",
-        columnNames = {"name"}))
+        name = "graduate_programs",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uq_graduate_program_name",
+                columnNames = {"name"}))
 public class GraduateProgram {
 
     @Id
@@ -46,7 +45,7 @@ public class GraduateProgram {
                cascade = CascadeType.ALL,
                orphanRemoval = true)
     private List<ConfigurationParameter> configurationParameters =
-        new ArrayList<>();
+            new ArrayList<>();
 
     // --- JPA requires a no-arg constructor ---
     protected GraduateProgram() {
@@ -85,7 +84,7 @@ public class GraduateProgram {
         }
         if (name.length() > 200) {
             throw new IllegalArgumentException(
-                "Program name must not exceed 200 characters");
+                    "Program name must not exceed 200 characters");
         }
         this.name = name.trim();
     }
@@ -106,7 +105,7 @@ public class GraduateProgram {
         }
         if (division.length() > 100) {
             throw new IllegalArgumentException(
-                "Division must not exceed 100 characters");
+                    "Division must not exceed 100 characters");
         }
         this.division = division.trim();
     }
@@ -118,5 +117,14 @@ public class GraduateProgram {
      */
     public List<ConfigurationParameter> getConfigurationParameters() {
         return Collections.unmodifiableList(configurationParameters);
+    }
+
+    /**
+     * Adds a configuration parameter to this aggregate.
+     *
+     * @param parameter the parameter to add; must belong to this program
+     */
+    public void addConfigurationParameter(ConfigurationParameter parameter) {
+        configurationParameters.add(parameter);
     }
 }

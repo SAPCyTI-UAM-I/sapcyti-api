@@ -1,0 +1,21 @@
+package mx.uam.sapcyti.audit.domain.model;
+
+/**
+ * Well-known audit actions emitted by other Bounded Contexts.
+ */
+public enum KnownAuditActions {
+    LOGIN_SUCCESS,
+    LOGIN_FAILED,
+    PASSWORD_RESET_REQUESTED,
+    PASSWORD_CHANGED,
+    RBAC_VIOLATION_DETECTED,
+    USER_CREATED,
+    STUDENT_REGISTERED,
+    PROFESSOR_REGISTERED,
+    ACADEMIC_OFFER_UPLOADED,
+    ENROLLMENT_PERIOD_OPENED,
+    COURSES_SELECTED,
+    ENROLLMENT_APPROVED_BY_ADVISOR,
+    ENROLLMENT_REJECTED_BY_ADVISOR,
+    ENROLLMENT_FINALIZED
+}
