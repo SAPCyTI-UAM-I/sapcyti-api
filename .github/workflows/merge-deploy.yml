@@ -79,11 +79,10 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ github.sha }}
             ghcr.io/${{ github.repository }}:latest
 
-  # deploy:
-  #   name: Deploy to Server
-  #   runs-on: ubuntu-latest
-  #   needs: docker-build
-  #   if: github.ref == 'refs/heads/main'
-  #   steps:
-  #     - name: Deploy via SSH
-  #       run: echo "TODO — Deploy to on-premise server (Iteration 2)"
+  deploy:
+    name: Deploy to Server
+    needs: docker-build
+    # Trigger deployment for branches that successfully built Docker images
+    if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release/') || github.ref == 'refs/heads/main'
+    uses: gabbo0709/sapcyti-infra/.github/workflows/deploy.yml@main
+    secrets: inherit
