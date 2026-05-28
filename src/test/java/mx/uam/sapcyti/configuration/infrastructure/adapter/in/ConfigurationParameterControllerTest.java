@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.ActiveProfiles;
 
 import mx.uam.sapcyti.configuration.application.command.SetConfigurationParameterCommand;
 import mx.uam.sapcyti.configuration.domain.exception.ConfigurationParameterNotFoundException;
@@ -34,6 +35,7 @@ import mx.uam.sapcyti.configuration.infrastructure.mapper.ConfigurationParameter
 import mx.uam.sapcyti.shared.config.MethodSecurityConfig;
 import mx.uam.sapcyti.shared.web.GlobalExceptionHandler;
 
+@ActiveProfiles("test")
 @WebMvcTest(ConfigurationParameterController.class)
 @Import({MethodSecurityConfig.class, GlobalExceptionHandler.class})
 class ConfigurationParameterControllerTest {
