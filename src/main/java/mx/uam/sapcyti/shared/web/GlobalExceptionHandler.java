@@ -14,6 +14,8 @@ import jakarta.validation.ConstraintViolationException;
 import mx.uam.sapcyti.configuration.domain.exception.ConfigurationParameterNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.DuplicateGraduateProgramNameException;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidCredentialsException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidRefreshTokenException;
 
 /**
  * Unified JSON error responses for REST APIs (SPEC-007).
@@ -84,6 +86,22 @@ public class GlobalExceptionHandler {
             .body(new ErrorResponse(
                 "CONFLICT",
                 DuplicateGraduateProgramNameException.MESSAGE));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException ex) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponse("UNAUTHORIZED", InvalidCredentialsException.MESSAGE));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshToken(
+            InvalidRefreshTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponse("UNAUTHORIZED", InvalidRefreshTokenException.MESSAGE));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

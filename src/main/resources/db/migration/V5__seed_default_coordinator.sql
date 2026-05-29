@@ -7,7 +7,7 @@ VALUES ('Ciencias y Tecnologías de la Información', 'CBI')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO users (email, password_hash, role, active, graduate_program_id)
-SELECT 'coordinator@uam.mx', '$2a$10$8.UnVuG9HHgffUDAlk8qfOuVGkqRzgVymGe07xd00DMxs.TVuHOn2', 'COORDINATOR', TRUE, id
+SELECT 'coordinator@uam.mx', '$2a$10$SMG1pcfDl1qA5njpC0LHhOk1xDimOF54/nw/MChk.6NBAERCu3ok6', 'COORDINATOR', TRUE, id
 FROM graduate_programs 
 WHERE name = 'Ciencias y Tecnologías de la Información'
 ON CONFLICT (email) DO NOTHING;

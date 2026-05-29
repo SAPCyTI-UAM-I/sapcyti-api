@@ -3,6 +3,7 @@ package mx.uam.sapcyti.identity.infrastructure.adapter.in;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import mx.uam.sapcyti.identity.domain.exception.InvalidRefreshTokenException;
 import mx.uam.sapcyti.identity.domain.port.in.AuthInputPort;
 import mx.uam.sapcyti.identity.infrastructure.adapter.in.dto.AuthResponse;
 import mx.uam.sapcyti.identity.infrastructure.adapter.in.dto.LoginRequest;
@@ -47,14 +48,22 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@CookieValue(name = "refreshToken") String refreshToken) {
+    public ResponseEntity<AuthResponse> refresh(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new InvalidRefreshTokenException();
+        }
         AuthResponse authResponse = authInputPort.refresh(refreshToken);
         return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@CookieValue(name = "refreshToken") String refreshToken, HttpServletResponse response) {
-        authInputPort.logout(refreshToken);
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            authInputPort.logout(refreshToken);
+        }
         
         ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)

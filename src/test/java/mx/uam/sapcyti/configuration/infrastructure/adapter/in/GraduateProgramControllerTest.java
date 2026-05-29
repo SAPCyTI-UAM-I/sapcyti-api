@@ -33,11 +33,12 @@ import mx.uam.sapcyti.configuration.infrastructure.adapter.in.dto.GraduateProgra
 import mx.uam.sapcyti.configuration.infrastructure.adapter.in.dto.GraduateProgramResponse;
 import mx.uam.sapcyti.configuration.infrastructure.mapper.GraduateProgramMapper;
 import mx.uam.sapcyti.shared.config.MethodSecurityConfig;
+import mx.uam.sapcyti.shared.config.TestSecurityConfig;
 import mx.uam.sapcyti.shared.web.GlobalExceptionHandler;
 
 @ActiveProfiles("test")
 @WebMvcTest(GraduateProgramController.class)
-@Import({MethodSecurityConfig.class, GlobalExceptionHandler.class})
+@Import({MethodSecurityConfig.class, TestSecurityConfig.class, GlobalExceptionHandler.class})
 class GraduateProgramControllerTest {
 
     @Autowired

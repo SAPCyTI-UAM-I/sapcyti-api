@@ -9,6 +9,8 @@ import static org.mockito.Mockito.*;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import mx.uam.sapcyti.identity.domain.exception.InvalidCredentialsException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidRefreshTokenException;
 import mx.uam.sapcyti.identity.domain.model.RefreshToken;
 import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.identity.domain.model.User;
@@ -73,8 +75,8 @@ class AuthServiceTest {
         when(userRepository.findByEmail("test@uam.mx")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login(command))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Invalid credentials");
+                .isInstanceOf(InvalidCredentialsException.class)
+                .hasMessage(InvalidCredentialsException.MESSAGE);
     }
 
     @Test
@@ -118,7 +120,7 @@ class AuthServiceTest {
         when(refreshTokenRepository.findByTokenHash(tokenHash)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.refresh(refreshTokenPlain))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Invalid refresh token");
+                .isInstanceOf(InvalidRefreshTokenException.class)
+                .hasMessage(InvalidRefreshTokenException.MESSAGE);
     }
 }

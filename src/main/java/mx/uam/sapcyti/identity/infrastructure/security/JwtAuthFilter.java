@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 @Component
-@Profile("!docker & !test")
+@Profile("!test")
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
 

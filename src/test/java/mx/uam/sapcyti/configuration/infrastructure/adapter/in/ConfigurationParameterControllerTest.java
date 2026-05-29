@@ -33,11 +33,12 @@ import mx.uam.sapcyti.configuration.domain.port.in.SetConfigurationParameterInpu
 import mx.uam.sapcyti.configuration.infrastructure.adapter.in.dto.ConfigurationParameterResponse;
 import mx.uam.sapcyti.configuration.infrastructure.mapper.ConfigurationParameterMapper;
 import mx.uam.sapcyti.shared.config.MethodSecurityConfig;
+import mx.uam.sapcyti.shared.config.TestSecurityConfig;
 import mx.uam.sapcyti.shared.web.GlobalExceptionHandler;
 
 @ActiveProfiles("test")
 @WebMvcTest(ConfigurationParameterController.class)
-@Import({MethodSecurityConfig.class, GlobalExceptionHandler.class})
+@Import({MethodSecurityConfig.class, TestSecurityConfig.class, GlobalExceptionHandler.class})
 class ConfigurationParameterControllerTest {
 
     @Autowired

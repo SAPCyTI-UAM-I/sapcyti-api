@@ -91,6 +91,37 @@ Invoke-WebRequest -Uri http://localhost:8080/actuator/health -UseBasicParsing
 
 Stop the API with `Ctrl+C`. Stop the database with `docker compose -f docker-compose.dev.yml down`.
 
+## Authentication API (SPEC-012 — handoff for SPA)
+
+JWT login is available for local development after PostgreSQL is running and Flyway has applied migrations (including seed user `coordinator@uam.mx` / `password`).
+
+**Base URLs:** host JVM `http://localhost:8080` (or `SERVER_PORT`); Docker stack maps API to **`http://localhost:8081`** (`sapcyti-infra/local-dev/docker-compose.stack.yml`).
+
+| Endpoint | Method | Auth | Notes |
+|----------|--------|------|-------|
+| `/api/auth/login` | POST | None | Body: `{ "email", "password", "rememberMe", "deviceInfo?" }` |
+| `/api/auth/refresh` | POST | Cookie `refreshToken` | Returns new `accessToken` |
+| `/api/auth/logout` | POST | Cookie `refreshToken` | Revokes refresh session |
+
+**Login response (200):** `{ "accessToken", "expiresIn": 900, "role" }` plus `Set-Cookie: refreshToken=...; HttpOnly; Path=/api/auth; SameSite=Strict`.
+
+**Protected APIs:** send `Authorization: Bearer {accessToken}`.
+
+**CORS (SPA on port 4200):** set `CORS_ALLOWED_ORIGINS=http://localhost:4200` (stack `.env` also includes `http://localhost:8888` for the Nginx edge).
+
+**JWT keys (dev):** bundled under `src/main/resources/jwt/`. Regenerate with:
+
+```powershell
+.\scripts\generate-jwt-keys.ps1
+```
+
+**Example login:**
+
+```powershell
+$body = '{"email":"coordinator@uam.mx","password":"password","rememberMe":false}'
+Invoke-RestMethod -Uri http://localhost:8080/api/auth/login -Method POST -ContentType "application/json" -Body $body
+```
+
 ## Quick Start (summary)
 
 ```powershell

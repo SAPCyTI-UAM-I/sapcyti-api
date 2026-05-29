@@ -5,6 +5,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import mx.uam.sapcyti.identity.domain.exception.InvalidCredentialsException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidRefreshTokenException;
 import mx.uam.sapcyti.identity.domain.model.RefreshToken;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.domain.port.in.AuthInputPort;
@@ -30,7 +32,7 @@ public class AuthService implements AuthInputPort {
         User user = userRepository.findByEmail(command.getEmail())
                 .filter(User::isActive)
                 .filter(u -> passwordEncoder.matches(command.getPassword(), u.getPasswordHash()))
-                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+                .orElseThrow(InvalidCredentialsException::new);
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshTokenPlain = UUID.randomUUID().toString();
@@ -64,11 +66,11 @@ public class AuthService implements AuthInputPort {
         RefreshToken entity = refreshTokenRepository.findByTokenHash(tokenHash)
                 .filter(t -> !t.isRevoked())
                 .filter(t -> !t.isExpired())
-                .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
+                .orElseThrow(InvalidRefreshTokenException::new);
 
         User user = entity.getUser();
         if (!user.isActive()) {
-            throw new RuntimeException("User is deactivated");
+            throw new InvalidCredentialsException();
         }
 
         String newAccessToken = jwtService.generateAccessToken(user);
