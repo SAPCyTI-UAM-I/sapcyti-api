@@ -93,7 +93,21 @@ Stop the API with `Ctrl+C`. Stop the database with `docker compose -f docker-com
 
 ## Authentication API (SPEC-012 — handoff for SPA)
 
-JWT login is available for local development after PostgreSQL is running and Flyway has applied migrations (including seed user `coordinator@uam.mx` / `password`).
+JWT login is available for local development after PostgreSQL is running and Flyway has applied migrations (seed users — password **`password`** for all):
+
+| Role | Email |
+|------|-------|
+| SYSTEM_ADMIN | `system_admin@uam.mx` |
+| COORDINATOR | `coordinator@uam.mx` |
+| ASSISTANT | `assistant@uam.mx` |
+| PROFESSOR | `professor@uam.mx` |
+| STUDENT | `student@uam.mx` |
+| SPEAKER | `speaker@uam.mx` |
+
+| Doc | Audience |
+|-----|----------|
+| [Frontend API contract](../Docs/implementation/guides/frontend-auth-api-contract.md) | SPA / SPEC-013 |
+| [Login flow & tenant](../Docs/implementation/guides/authentication-login-flow.md) | Full stack |
 
 **Base URLs:** host JVM `http://localhost:8080` (or `SERVER_PORT`); Docker stack maps API to **`http://localhost:8081`** (`sapcyti-infra/local-dev/docker-compose.stack.yml`).
 

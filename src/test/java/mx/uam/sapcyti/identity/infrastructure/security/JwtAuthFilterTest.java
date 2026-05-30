@@ -1,15 +1,17 @@
 package mx.uam.sapcyti.identity.infrastructure.security;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.impl.DefaultClaims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.Map;
 import mx.uam.sapcyti.identity.application.service.JwtService;
+import mx.uam.sapcyti.shared.tenant.TenantContext;
+import mx.uam.sapcyti.shared.tenant.TenantFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,24 +37,29 @@ class JwtAuthFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthFilter(jwtService);
+        filter = new JwtAuthFilter(jwtService, new ObjectMapper());
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        filterChain = spy(new MockFilterChain());
+        filterChain = new MockFilterChain();
         SecurityContextHolder.clearContext();
+        TenantContext.clear();
     }
 
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
+        TenantContext.clear();
     }
 
     @Test
-    @DisplayName("should set authentication context when token is valid")
-    void shouldSetAuthContextWhenTokenValid() throws ServletException, IOException {
+    @DisplayName("should set authentication and tenant from JWT claim")
+    void shouldSetAuthContextAndTenantFromClaim() throws ServletException, IOException {
         request.addHeader("Authorization", "Bearer valid-token");
 
-        DefaultClaims claims = new DefaultClaims(Map.of("sub", "123", "role", "STUDENT"));
+        DefaultClaims claims = new DefaultClaims(Map.of(
+                "sub", "123",
+                "role", "STUDENT",
+                "graduateProgramId", 7));
         when(jwtService.validateToken("valid-token")).thenReturn(claims);
 
         filter.doFilterInternal(request, response, filterChain);
@@ -61,8 +68,43 @@ class JwtAuthFilterTest {
         assertThat(SecurityContextHolder.getContext().getAuthentication().getName()).isEqualTo("123");
         assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
                 .extracting("authority").containsExactly("ROLE_STUDENT");
-        
-        verify(filterChain).doFilter(request, response);
+        assertThat(TenantContext.get()).isEqualTo(7L);
+        assertThat(response.getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("should return 403 when header does not match claim")
+    void shouldRejectMismatchedHeader() throws ServletException, IOException {
+        request.addHeader("Authorization", "Bearer valid-token");
+        request.addHeader(TenantFilter.HEADER_GRADUATE_ID, "99");
+
+        DefaultClaims claims = new DefaultClaims(Map.of(
+                "sub", "123",
+                "role", "COORDINATOR",
+                "graduateProgramId", 7));
+        when(jwtService.validateToken("valid-token")).thenReturn(claims);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        assertThat(response.getStatus()).isEqualTo(403);
+        assertThat(response.getContentAsString()).contains("FORBIDDEN");
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+        assertThat(TenantContext.get()).isNull();
+    }
+
+    @Test
+    @DisplayName("SYSTEM_ADMIN may override tenant via header")
+    void systemAdminHeaderOverride() throws ServletException, IOException {
+        request.addHeader("Authorization", "Bearer admin-token");
+        request.addHeader(TenantFilter.HEADER_GRADUATE_ID, "42");
+
+        DefaultClaims claims = new DefaultClaims(Map.of("sub", "1", "role", "SYSTEM_ADMIN"));
+        when(jwtService.validateToken("admin-token")).thenReturn(claims);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        assertThat(TenantContext.get()).isEqualTo(42L);
+        assertThat(response.getStatus()).isEqualTo(200);
     }
 
     @Test
@@ -71,7 +113,7 @@ class JwtAuthFilterTest {
         filter.doFilterInternal(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verify(filterChain).doFilter(request, response);
+        assertThat(TenantContext.get()).isNull();
     }
 
     @Test
@@ -84,6 +126,6 @@ class JwtAuthFilterTest {
         filter.doFilterInternal(request, response, filterChain);
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
-        verify(filterChain).doFilter(request, response);
+        assertThat(TenantContext.get()).isNull();
     }
 }

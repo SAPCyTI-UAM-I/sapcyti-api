@@ -13,6 +13,7 @@ import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.infrastructure.adapter.in.dto.LoginRequest;
 import mx.uam.sapcyti.identity.infrastructure.adapter.out.repository.SpringDataUserRepository;
+import mx.uam.sapcyti.shared.tenant.TenantFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,7 +49,8 @@ class AuthLoginIT {
     void seedUser() {
         userRepository.deleteAll();
 
-        GraduateProgram program = programAdapter.save(new GraduateProgram("PCyTI Test", "CBI"));
+        String programName = "PCyTI Test " + System.nanoTime();
+        GraduateProgram program = programAdapter.save(new GraduateProgram(programName, "CBI"));
 
         String hash = new BCryptPasswordEncoder().encode(PASSWORD);
         User user = new User("coordinator@uam.mx", hash, RoleType.COORDINATOR, program.getId());
@@ -93,7 +95,7 @@ class AuthLoginIT {
     @Test
     @DisplayName("protected endpoint requires JWT")
     void protectedEndpointRequiresAuth() throws Exception {
-        mockMvc.perform(get("/api/graduate-programs"))
+        mockMvc.perform(get("/api/programs"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("UNAUTHORIZED"));
     }
@@ -116,8 +118,33 @@ class AuthLoginIT {
                 .get("accessToken")
                 .asText();
 
-        mockMvc.perform(get("/api/graduate-programs")
+        mockMvc.perform(get("/api/programs")
                         .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("mismatched X-Graduate-Id returns 403")
+    void rejectsMismatchedTenantHeader() throws Exception {
+        LoginRequest request = LoginRequest.builder()
+                .email("coordinator@uam.mx")
+                .password(PASSWORD)
+                .build();
+
+        MvcResult login = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String accessToken = objectMapper.readTree(login.getResponse().getContentAsString())
+                .get("accessToken")
+                .asText();
+
+        mockMvc.perform(get("/api/programs")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .header(TenantFilter.HEADER_GRADUATE_ID, "99999"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("FORBIDDEN"));
     }
 }
