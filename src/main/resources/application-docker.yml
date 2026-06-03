@@ -15,6 +15,10 @@ logging:
     root: INFO
     mx.uam.sapcyti: INFO
 
+jwt:
+  private-key-path: classpath:jwt/dev-private.pem
+  public-key-path: classpath:jwt/dev-public.pem
+
 management:
   endpoint:
     health:

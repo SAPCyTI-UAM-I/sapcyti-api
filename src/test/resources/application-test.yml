@@ -8,3 +8,7 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+
+jwt:
+  private-key-path: classpath:jwt/dev-private.pem
+  public-key-path: classpath:jwt/dev-public.pem

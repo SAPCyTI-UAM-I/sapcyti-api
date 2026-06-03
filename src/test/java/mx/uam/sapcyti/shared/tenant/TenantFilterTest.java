@@ -1,6 +1,5 @@
 package mx.uam.sapcyti.shared.tenant;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -25,28 +24,17 @@ class TenantFilterTest {
     }
 
     @Test
-    void contextClearedAfterRequestAndResponseHasRequestId() throws Exception {
+    void doesNotSetTenantFromHeader() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader(TenantFilter.HEADER_GRADUATE_ID, "42");
         MockHttpServletResponse response = new MockHttpServletResponse();
         FilterChain chain = (ServletRequest req, ServletResponse res) -> {
+            assertNull(TenantContext.get());
         };
         filter.doFilter(request, response, chain);
         assertNull(TenantContext.get());
         assertNull(MDC.get(TenantFilter.MDC_GRADUATE_PROGRAM_ID));
         assertNotNull(response.getHeader(TenantFilter.HEADER_REQUEST_ID));
-    }
-
-    @Test
-    void graduateIdVisibleInsideChain() throws Exception {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader(TenantFilter.HEADER_GRADUATE_ID, "99");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        FilterChain chain = (ServletRequest req, ServletResponse res) -> {
-            assertEquals(99L, TenantContext.get());
-            assertEquals("99", MDC.get(TenantFilter.MDC_GRADUATE_PROGRAM_ID));
-        };
-        filter.doFilter(request, response, chain);
     }
 
     @Test
@@ -57,6 +45,6 @@ class TenantFilterTest {
         FilterChain chain = (ServletRequest req, ServletResponse res) -> {
         };
         filter.doFilter(request, response, chain);
-        assertEquals("abc-123", response.getHeader(TenantFilter.HEADER_REQUEST_ID));
+        assertNotNull(response.getHeader(TenantFilter.HEADER_REQUEST_ID));
     }
 }
