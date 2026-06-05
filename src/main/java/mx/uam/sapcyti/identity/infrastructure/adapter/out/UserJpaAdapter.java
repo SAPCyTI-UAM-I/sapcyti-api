@@ -24,6 +24,11 @@ public class UserJpaAdapter implements UserRepositoryPort {
     }
 
     @Override
+    public Optional<User> findByPasswordResetTokenHash(String tokenHash) {
+        return repository.findByPasswordResetTokenTokenHash(tokenHash);
+    }
+
+    @Override
     public User save(User user) {
         return repository.save(user);
     }
