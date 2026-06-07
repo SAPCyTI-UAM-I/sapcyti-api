@@ -8,6 +8,14 @@ spring:
       ddl-auto: create-drop
   flyway:
     enabled: false
+  mail:
+    host: localhost
+    port: 1025
+
+app:
+  password-reset:
+    base-url: http://localhost:4200
+    ttl-minutes: 30
 
 jwt:
   private-key-path: classpath:jwt/dev-private.pem

@@ -117,6 +117,36 @@ JWT login is available for local development after PostgreSQL is running and Fly
 | `/api/auth/refresh` | POST | Cookie `refreshToken` | Returns new `accessToken` |
 | `/api/auth/logout` | POST | Cookie `refreshToken` | Revokes refresh session |
 
+**Password recovery (SPEC-015 — HU-02):**
+
+| Endpoint | Method | Auth | Notes |
+|----------|--------|------|-------|
+| `/api/auth/forgot-password` | POST | None | Body: `{ "email" }` — always **200** with generic message (no email enumeration) |
+| `/api/auth/reset-password` | POST | None | Body: `{ "token", "newPassword" }` — **200** on success; **400** for invalid/expired/used token |
+
+Forgot response (200): `{ "message": "If an account with that email exists, a recovery email has been sent" }` (English via `Accept-Language: en`; Spanish by default).
+
+Reset errors (400): `{ "error": "INVALID_TOKEN" | "EXPIRED_TOKEN" | "TOKEN_USED", "message": "..." }`.
+
+**Mail (dev):** defaults to `localhost:1025` (MailHog). Set `PASSWORD_RESET_BASE_URL` to the SPA origin (default `http://localhost:4200`) so reset links point to `/auth/reset-password?token=...`.
+
+### MailHog (password recovery emails)
+
+MailHog is **not** part of the Java API — it is a dev-only SMTP sink in [`sapcyti-infra/local-dev`](../sapcyti-infra/local-dev/).
+
+| Mode | Start MailHog | API SMTP target | Inbox UI |
+|------|---------------|-----------------|----------|
+| JVM on host (`SPRING_PROFILES_ACTIVE=dev`) | `docker compose -f ../sapcyti-infra/local-dev/docker-compose.db.yml up -d` | `localhost:1025` (defaults) | [http://localhost:8025](http://localhost:8025) |
+| Full Docker stack | `docker compose -f ../sapcyti-infra/local-dev/docker-compose.stack.yml up -d` | `mailhog:1025` (via `.env`) | [http://localhost:8025](http://localhost:8025) |
+
+Example forgot-password + check inbox:
+
+```powershell
+$body = '{"email":"student@uam.mx"}'
+Invoke-RestMethod -Uri http://localhost:8080/api/auth/forgot-password -Method POST -ContentType "application/json" -Body $body
+# Open http://localhost:8025 — click the message and use the reset link
+```
+
 **Login response (200):** `{ "accessToken", "expiresIn": 900, "role" }` plus `Set-Cookie: refreshToken=...; HttpOnly; Path=/api/auth; SameSite=Strict`.
 
 **Protected APIs:** send `Authorization: Bearer {accessToken}`.

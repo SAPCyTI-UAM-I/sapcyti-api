@@ -14,8 +14,11 @@ import jakarta.validation.ConstraintViolationException;
 import mx.uam.sapcyti.configuration.domain.exception.ConfigurationParameterNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.DuplicateGraduateProgramNameException;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
+import mx.uam.sapcyti.identity.domain.exception.ExpiredResetTokenException;
 import mx.uam.sapcyti.identity.domain.exception.InvalidCredentialsException;
 import mx.uam.sapcyti.identity.domain.exception.InvalidRefreshTokenException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidResetTokenException;
+import mx.uam.sapcyti.identity.domain.exception.UsedResetTokenException;
 
 /**
  * Unified JSON error responses for REST APIs (SPEC-007).
@@ -102,6 +105,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.UNAUTHORIZED)
             .body(new ErrorResponse("UNAUTHORIZED", InvalidRefreshTokenException.MESSAGE));
+    }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidResetToken(
+            InvalidResetTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("INVALID_TOKEN", InvalidResetTokenException.MESSAGE));
+    }
+
+    @ExceptionHandler(ExpiredResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredResetToken(
+            ExpiredResetTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("EXPIRED_TOKEN", ExpiredResetTokenException.MESSAGE));
+    }
+
+    @ExceptionHandler(UsedResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleUsedResetToken(
+            UsedResetTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("TOKEN_USED", UsedResetTokenException.MESSAGE));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
