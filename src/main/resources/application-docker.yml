@@ -6,14 +6,12 @@ spring:
     url: ${DB_URL:jdbc:postgresql://db:5432/sapcyti_dev}
     username: ${DB_USER:sapcyti}
     password: ${DB_PASS}
-
-server:
-  port: ${SERVER_PORT:8080}
-
-spring:
   mail:
     host: ${SMTP_HOST:mailhog}
     port: ${SMTP_PORT:1025}
+
+server:
+  port: ${SERVER_PORT:8080}
 
 app:
   password-reset:
