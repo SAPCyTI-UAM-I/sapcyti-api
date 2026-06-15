@@ -1,5 +1,7 @@
 package mx.uam.sapcyti.academic.infrastructure.adapter.in;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 @RestController
 @RequestMapping("/api/professors")
 @RequiredArgsConstructor
+@Tag(name = "Professors", description = "Professor registration and lookup (coordinator-only).")
 public class ProfessorController {
 
     private final RegisterProfessorUseCase registerProfessorUseCase;
@@ -34,6 +37,13 @@ public class ProfessorController {
 
     @PostMapping
     @PreAuthorize("hasRole('COORDINATOR')")
+    @Operation(
+            summary = "Register a new professor",
+            description = """
+                    Registers a professor and creates the associated user account. The server auto-generates a secure \
+                    random password (12 characters); there is no separate "generate password" endpoint. The password \
+                    is stored BCrypt-hashed and the plaintext is returned exactly once in the `generatedPassword` \
+                    field of this response. It is never returned by the list or get-by-id endpoints.""")
     public ResponseEntity<ProfessorResponse> register(
             @Valid @RequestBody RegisterProfessorRequest request) {
         RegisterProfessorUseCase.RegisterProfessorResult result =
@@ -48,6 +58,7 @@ public class ProfessorController {
 
     @GetMapping
     @PreAuthorize("hasRole('COORDINATOR')")
+    @Operation(summary = "List professors", description = "Returns a paginated list of professors. The generated password is never included.")
     public Page<ProfessorResponse> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -60,6 +71,7 @@ public class ProfessorController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('COORDINATOR')")
+    @Operation(summary = "Get a professor by id", description = "Returns a single professor. The generated password is never included.")
     public ProfessorResponse getById(@PathVariable Long id) {
         return mapper.toResponse(getProfessorUseCase.execute(id));
     }
