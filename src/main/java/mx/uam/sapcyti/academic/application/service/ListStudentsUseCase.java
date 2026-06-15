@@ -40,7 +40,7 @@ public class ListStudentsUseCase {
         return items;
     }
 
-    private static StudentListItem toListItem(Student student, String email) {
+    static StudentListItem toListItem(Student student, String email) {
         return StudentListItem.builder()
                 .id(student.getId())
                 .enrollmentId(student.getEnrollmentId())

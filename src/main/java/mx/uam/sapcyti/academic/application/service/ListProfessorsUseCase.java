@@ -36,7 +36,7 @@ public class ListProfessorsUseCase {
         return items;
     }
 
-    private static ProfessorListItem toListItem(Professor professor, String email) {
+    static ProfessorListItem toListItem(Professor professor, String email) {
         return ProfessorListItem.builder()
                 .id(professor.getId())
                 .employeeNumber(professor.getEmployeeNumber())

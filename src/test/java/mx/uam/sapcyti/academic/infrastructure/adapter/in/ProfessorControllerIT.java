@@ -3,6 +3,7 @@ package mx.uam.sapcyti.academic.infrastructure.adapter.in;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -91,6 +92,7 @@ class ProfessorControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/api/professors/")))
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.employeeNumber").value("30568"))
                 .andExpect(jsonPath("$.email").value("humberto.cervantes@uam.mx"))
@@ -236,6 +238,39 @@ class ProfessorControllerIT {
                         .content(objectMapper.writeValueAsString(sampleRequest())))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("GET by id returns professor without generatedPassword")
+    void getById() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/professors")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long professorId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        mockMvc.perform(get("/api/professors/{id}", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.employeeNumber").value("30568"))
+                .andExpect(jsonPath("$.generatedPassword").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("GET unknown professor returns 404")
+    void getByIdNotFound() throws Exception {
+        mockMvc.perform(get("/api/professors/{id}", 999_999L)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Professor not found"));
     }
 
     @Test
