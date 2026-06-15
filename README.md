@@ -83,7 +83,13 @@ On Linux or macOS use `./mvnw` instead of `.\mvnw.cmd`.
 
 ### 5. Verify
 
-Open [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) or run:
+| URL | Purpose |
+|-----|---------|
+| [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | Health check |
+| [http://localhost:8080/docs](http://localhost:8080/docs) | Swagger UI (OpenAPI) |
+| [http://localhost:8080/api-docs](http://localhost:8080/api-docs) | OpenAPI JSON |
+
+Or run:
 
 ```powershell
 Invoke-WebRequest -Uri http://localhost:8080/actuator/health -UseBasicParsing
