@@ -19,5 +19,7 @@ public record StudentResponse(
         LocalDate admissionDate,
         Long advisorId,
         Long graduateProgramId,
+        Long userId,
+        boolean active,
         String generatedPassword) {
 }

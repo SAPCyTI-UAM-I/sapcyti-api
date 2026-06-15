@@ -14,6 +14,7 @@ public interface StudentMapper {
     RegisterStudentCommand toCommand(RegisterStudentRequest request);
 
     @Mapping(target = "generatedPassword", source = "generatedPassword")
+    @Mapping(target = "active", constant = "true")
     StudentResponse toResponse(RegisterStudentUseCase.RegisterStudentResult result);
 
     @Mapping(target = "generatedPassword", ignore = true)

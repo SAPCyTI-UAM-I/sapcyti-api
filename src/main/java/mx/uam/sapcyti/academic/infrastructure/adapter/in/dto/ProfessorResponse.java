@@ -11,5 +11,7 @@ public record ProfessorResponse(
         String firstLastName,
         String secondLastName,
         Long graduateProgramId,
+        Long userId,
+        boolean active,
         String generatedPassword) {
 }

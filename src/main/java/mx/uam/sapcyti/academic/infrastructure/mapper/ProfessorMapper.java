@@ -14,6 +14,7 @@ public interface ProfessorMapper {
     RegisterProfessorCommand toCommand(RegisterProfessorRequest request);
 
     @Mapping(target = "generatedPassword", source = "generatedPassword")
+    @Mapping(target = "active", constant = "true")
     ProfessorResponse toResponse(RegisterProfessorUseCase.RegisterProfessorResult result);
 
     @Mapping(target = "generatedPassword", ignore = true)

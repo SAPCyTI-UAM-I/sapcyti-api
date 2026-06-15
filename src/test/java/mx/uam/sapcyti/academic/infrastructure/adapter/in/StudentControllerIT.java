@@ -105,6 +105,8 @@ class StudentControllerIT {
                 .andExpect(jsonPath("$.enrollmentId").value("2123803361"))
                 .andExpect(jsonPath("$.email").value("paulina.valencia@uam.mx"))
                 .andExpect(jsonPath("$.advisorId").value(advisorId.intValue()))
+                .andExpect(jsonPath("$.userId").isNumber())
+                .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.generatedPassword").isNotEmpty())
                 .andReturn();
 
@@ -359,8 +361,11 @@ class StudentControllerIT {
                         .header("Authorization", "Bearer " + coordinatorToken())
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].enrollmentId").value("2123803361"))
-                .andExpect(jsonPath("$[0].generatedPassword").doesNotExist());
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].enrollmentId").value("2123803361"))
+                .andExpect(jsonPath("$.content[0].userId").isNumber())
+                .andExpect(jsonPath("$.content[0].active").value(true))
+                .andExpect(jsonPath("$.content[0].generatedPassword").doesNotExist());
     }
 
     private RegisterStudentRequest sampleRequest() {

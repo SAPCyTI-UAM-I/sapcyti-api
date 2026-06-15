@@ -32,9 +32,7 @@ public class GetStudentUseCase {
             throw new StudentNotFoundException();
         }
 
-        String email = userRepository.findById(student.getUserId())
-                .map(User::getEmail)
-                .orElse(null);
-        return ListStudentsUseCase.toListItem(student, email);
+        User user = userRepository.findById(student.getUserId()).orElse(null);
+        return ListStudentsUseCase.toListItem(student, user);
     }
 }

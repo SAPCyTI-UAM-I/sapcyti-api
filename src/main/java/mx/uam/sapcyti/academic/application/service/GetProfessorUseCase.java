@@ -32,9 +32,7 @@ public class GetProfessorUseCase {
             throw new ProfessorNotFoundException();
         }
 
-        String email = userRepository.findById(professor.getUserId())
-                .map(User::getEmail)
-                .orElse(null);
-        return ListProfessorsUseCase.toListItem(professor, email);
+        User user = userRepository.findById(professor.getUserId()).orElse(null);
+        return ListProfessorsUseCase.toListItem(professor, user);
     }
 }
