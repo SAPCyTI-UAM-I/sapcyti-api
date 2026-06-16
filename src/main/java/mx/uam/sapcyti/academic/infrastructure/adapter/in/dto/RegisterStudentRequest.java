@@ -41,8 +41,21 @@ public class RegisterStudentRequest {
     @NotBlank(message = "Nationality is required")
     private String nationality;
 
+    @NotNull(message = "Birth date is required")
+    private LocalDate birthDate;
+
+    @NotBlank(message = "Phone is required")
+    @Size(max = 20, message = "Phone must be at most 20 characters")
+    private String phone;
+
+    @Size(max = 10, message = "Phone extension must be at most 10 characters")
+    private String phoneExtension;
+
     @NotBlank(message = "Undergraduate degree is required")
     private String undergraduateDegree;
+
+    @NotBlank(message = "Last degree obtained is required")
+    private String lastDegreeObtained;
 
     @NotNull(message = "Program type is required")
     private ProgramType programType;

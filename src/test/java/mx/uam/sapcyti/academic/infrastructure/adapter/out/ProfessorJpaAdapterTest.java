@@ -1,9 +1,11 @@
 package mx.uam.sapcyti.academic.infrastructure.adapter.out;
 
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.defaultProfessorInformation;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.minimalProfessorPersonalData;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.professorPersonalData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,10 +38,7 @@ class ProfessorJpaAdapterTest {
     @DisplayName("persists professor and finds by graduate program")
     void saveAndFindByProgram() {
         Professor professor = new Professor(
-                "30568",
-                10L,
-                1L,
-                new PersonalData("Humberto", "Cervantes", "Maceda", null));
+                "30568", 10L, 1L, professorPersonalData(), defaultProfessorInformation());
 
         adapter.save(professor);
         entityManager.flush();
@@ -55,12 +54,12 @@ class ProfessorJpaAdapterTest {
     @DisplayName("rejects duplicate employee number")
     void duplicateEmployeeNumber() {
         adapter.save(new Professor(
-                "30568", 10L, 1L, new PersonalData("A", "B", null, null)));
+                "30568", 10L, 1L, minimalProfessorPersonalData("A", "B"), defaultProfessorInformation()));
         entityManager.flush();
 
         assertThatThrownBy(() -> {
             adapter.save(new Professor(
-                    "30568", 11L, 1L, new PersonalData("C", "D", null, null)));
+                    "30568", 11L, 1L, minimalProfessorPersonalData("C", "D"), defaultProfessorInformation()));
             entityManager.flush();
         }).isInstanceOf(Exception.class);
     }

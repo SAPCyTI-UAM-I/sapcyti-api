@@ -59,7 +59,11 @@ public class ListStudentsUseCase {
                 .firstLastName(student.getPersonalData().getFirstLastName())
                 .secondLastName(student.getPersonalData().getSecondLastName())
                 .nationality(student.getPersonalData().getNationality())
+                .birthDate(student.getPersonalData().getBirthDate())
+                .phone(student.getPersonalData().getPhone())
+                .phoneExtension(student.getPersonalData().getPhoneExtension())
                 .undergraduateDegree(student.getAcademicInformation().getUndergraduateDegree())
+                .lastDegreeObtained(student.getAcademicInformation().getLastDegreeObtained())
                 .programType(student.getAcademicInformation().getProgramType())
                 .admissionDate(student.getAcademicInformation().getAdmissionDate())
                 .advisorId(student.getAdvisorId())
@@ -102,7 +106,11 @@ public class ListStudentsUseCase {
         String firstLastName;
         String secondLastName;
         String nationality;
+        LocalDate birthDate;
+        String phone;
+        String phoneExtension;
         String undergraduateDegree;
+        String lastDegreeObtained;
         ProgramType programType;
         LocalDate admissionDate;
         Long advisorId;

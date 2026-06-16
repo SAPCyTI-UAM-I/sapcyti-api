@@ -7,13 +7,16 @@ import jakarta.persistence.Enumerated;
 import java.time.LocalDate;
 
 /**
- * Student program data: undergraduate degree, program type, admission date (HU-15).
+ * Student program data: undergraduate degree, last degree obtained, program type, admission date (HU-15).
  */
 @Embeddable
 public class AcademicInformation {
 
     @Column(name = "undergraduate_degree", nullable = false, length = 200)
     private String undergraduateDegree;
+
+    @Column(name = "last_degree_obtained", nullable = false, length = 200)
+    private String lastDegreeObtained;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "program_type", nullable = false, length = 50)
@@ -26,14 +29,23 @@ public class AcademicInformation {
         // For JPA
     }
 
-    public AcademicInformation(String undergraduateDegree, ProgramType programType, LocalDate admissionDate) {
+    public AcademicInformation(
+            String undergraduateDegree,
+            String lastDegreeObtained,
+            ProgramType programType,
+            LocalDate admissionDate) {
         this.undergraduateDegree = undergraduateDegree;
+        this.lastDegreeObtained = lastDegreeObtained;
         this.programType = programType;
         this.admissionDate = admissionDate;
     }
 
     public String getUndergraduateDegree() {
         return undergraduateDegree;
+    }
+
+    public String getLastDegreeObtained() {
+        return lastDegreeObtained;
     }
 
     public ProgramType getProgramType() {

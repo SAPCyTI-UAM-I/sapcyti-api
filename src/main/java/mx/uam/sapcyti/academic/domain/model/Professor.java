@@ -35,6 +35,9 @@ public class Professor {
     @Embedded
     private PersonalData personalData;
 
+    @Embedded
+    private ProfessorInformation professorInformation;
+
     protected Professor() {
         // For JPA
     }
@@ -43,11 +46,13 @@ public class Professor {
             String employeeNumber,
             Long userId,
             Long graduateProgramId,
-            PersonalData personalData) {
+            PersonalData personalData,
+            ProfessorInformation professorInformation) {
         this.employeeNumber = employeeNumber;
         this.userId = userId;
         this.graduateProgramId = graduateProgramId;
         this.personalData = personalData;
+        this.professorInformation = professorInformation;
     }
 
     public Long getId() {
@@ -68,5 +73,9 @@ public class Professor {
 
     public PersonalData getPersonalData() {
         return personalData;
+    }
+
+    public ProfessorInformation getProfessorInformation() {
+        return professorInformation;
     }
 }

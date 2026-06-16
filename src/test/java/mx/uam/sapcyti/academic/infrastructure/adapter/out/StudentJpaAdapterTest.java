@@ -1,12 +1,10 @@
 package mx.uam.sapcyti.academic.infrastructure.adapter.out;
 
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.sampleAcademicInformation;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.studentPersonalData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.LocalDate;
-import mx.uam.sapcyti.academic.domain.model.AcademicInformation;
-import mx.uam.sapcyti.academic.domain.model.PersonalData;
-import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -62,11 +60,6 @@ class StudentJpaAdapterTest {
 
     private static Student sampleStudent(String enrollmentId, Long userId) {
         return new Student(
-                enrollmentId,
-                userId,
-                1L,
-                null,
-                new PersonalData("Paulina", "Valencia", "Franco", "Mexicana"),
-                new AcademicInformation("Computación", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
+                enrollmentId, userId, 1L, null, studentPersonalData(), sampleAcademicInformation());
     }
 }

@@ -61,10 +61,14 @@ public class RegisterStudentUseCase {
                 command.firstName().trim(),
                 command.firstLastName().trim(),
                 blankToNull(command.secondLastName()),
-                command.nationality().trim());
+                command.nationality().trim(),
+                command.birthDate(),
+                command.phone().trim(),
+                blankToNull(command.phoneExtension()));
 
         AcademicInformation academicInformation = new AcademicInformation(
                 command.undergraduateDegree().trim(),
+                command.lastDegreeObtained().trim(),
                 command.programType(),
                 command.admissionDate());
 
@@ -86,7 +90,11 @@ public class RegisterStudentUseCase {
                 .firstLastName(personalData.getFirstLastName())
                 .secondLastName(personalData.getSecondLastName())
                 .nationality(personalData.getNationality())
+                .birthDate(personalData.getBirthDate())
+                .phone(personalData.getPhone())
+                .phoneExtension(personalData.getPhoneExtension())
                 .undergraduateDegree(academicInformation.getUndergraduateDegree())
+                .lastDegreeObtained(academicInformation.getLastDegreeObtained())
                 .programType(academicInformation.getProgramType())
                 .admissionDate(academicInformation.getAdmissionDate())
                 .advisorId(student.getAdvisorId())
@@ -135,7 +143,11 @@ public class RegisterStudentUseCase {
         String firstLastName;
         String secondLastName;
         String nationality;
+        java.time.LocalDate birthDate;
+        String phone;
+        String phoneExtension;
         String undergraduateDegree;
+        String lastDegreeObtained;
         mx.uam.sapcyti.academic.domain.model.ProgramType programType;
         java.time.LocalDate admissionDate;
         Long advisorId;

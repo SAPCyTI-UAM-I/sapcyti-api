@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
+import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataStudentRepository;
@@ -85,7 +86,8 @@ class StudentControllerIT {
                 "30568",
                 999L,
                 programId,
-                new PersonalData("Humberto", "Cervantes", "Maceda", null)));
+                new PersonalData("Humberto", "Cervantes", "Maceda", null, null, "5554825678", null),
+                new ProfessorInformation(false, null, null)));
         advisorId = advisor.getId();
     }
 
@@ -105,6 +107,8 @@ class StudentControllerIT {
                 .andExpect(jsonPath("$.enrollmentId").value("2123803361"))
                 .andExpect(jsonPath("$.email").value("paulina.valencia@uam.mx"))
                 .andExpect(jsonPath("$.advisorId").value(advisorId.intValue()))
+                .andExpect(jsonPath("$.birthDate").value("1998-03-15"))
+                .andExpect(jsonPath("$.lastDegreeObtained").value("Licenciatura en Computación"))
                 .andExpect(jsonPath("$.userId").isNumber())
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.generatedPassword").isNotEmpty())
@@ -120,18 +124,30 @@ class StudentControllerIT {
     }
 
     @Test
+    @DisplayName("registration without phoneExtension succeeds")
+    void registerWithoutPhoneExtension() throws Exception {
+        RegisterStudentRequest request = sampleRequestBuilder()
+                .enrollmentId("2123803364")
+                .email("no.extension@uam.mx")
+                .phoneExtension(null)
+                .build();
+
+        mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.phoneExtension").doesNotExist());
+    }
+
+    @Test
     @DisplayName("registration without advisor succeeds")
     void registerWithoutAdvisor() throws Exception {
-        RegisterStudentRequest request = RegisterStudentRequest.builder()
+        RegisterStudentRequest request = sampleRequestBuilder()
                 .enrollmentId("2123803362")
                 .email("no.advisor@uam.mx")
-                .graduateProgramId(programId)
-                .firstName("Paulina")
-                .firstLastName("Valencia")
-                .nationality("Mexicana")
-                .undergraduateDegree("Computación")
-                .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1))
+                .advisorId(null)
                 .build();
 
         mockMvc.perform(post("/api/students")
@@ -146,17 +162,10 @@ class StudentControllerIT {
     @Test
     @DisplayName("registration without secondLastName succeeds")
     void registerWithoutSecondLastName() throws Exception {
-        RegisterStudentRequest request = RegisterStudentRequest.builder()
+        RegisterStudentRequest request = sampleRequestBuilder()
                 .enrollmentId("2123803363")
                 .email("no.second@uam.mx")
-                .graduateProgramId(programId)
-                .advisorId(advisorId)
-                .firstName("Paulina")
-                .firstLastName("Valencia")
-                .nationality("Mexicana")
-                .undergraduateDegree("Computación")
-                .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1))
+                .secondLastName(null)
                 .build();
 
         mockMvc.perform(post("/api/students")
@@ -193,16 +202,9 @@ class StudentControllerIT {
                         .content(objectMapper.writeValueAsString(sampleRequest())))
                 .andExpect(status().isCreated());
 
-        RegisterStudentRequest second = RegisterStudentRequest.builder()
-                .enrollmentId("2123803361")
+        RegisterStudentRequest second = sampleRequestBuilder()
                 .email("other.student@uam.mx")
-                .graduateProgramId(programId)
-                .firstName("Other")
-                .firstLastName("Student")
-                .nationality("Mexicana")
-                .undergraduateDegree("Computación")
-                .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1))
+                .advisorId(null)
                 .build();
 
         mockMvc.perform(post("/api/students")
@@ -218,16 +220,8 @@ class StudentControllerIT {
     @Test
     @DisplayName("missing first name returns 400")
     void missingRequiredField() throws Exception {
-        RegisterStudentRequest request = RegisterStudentRequest.builder()
-                .enrollmentId("2123803361")
-                .email("paulina.valencia@uam.mx")
-                .graduateProgramId(programId)
+        RegisterStudentRequest request = sampleRequestBuilder()
                 .firstName("")
-                .firstLastName("Valencia")
-                .nationality("Mexicana")
-                .undergraduateDegree("Computación")
-                .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1))
                 .build();
 
         mockMvc.perform(post("/api/students")
@@ -242,16 +236,8 @@ class StudentControllerIT {
     @Test
     @DisplayName("invalid email returns 400")
     void invalidEmail() throws Exception {
-        RegisterStudentRequest request = RegisterStudentRequest.builder()
-                .enrollmentId("2123803361")
+        RegisterStudentRequest request = sampleRequestBuilder()
                 .email("not-an-email")
-                .graduateProgramId(programId)
-                .firstName("Paulina")
-                .firstLastName("Valencia")
-                .nationality("Mexicana")
-                .undergraduateDegree("Computación")
-                .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1))
                 .build();
 
         mockMvc.perform(post("/api/students")
@@ -280,17 +266,8 @@ class StudentControllerIT {
     @Test
     @DisplayName("non-existent advisor returns 404")
     void unknownAdvisor() throws Exception {
-        RegisterStudentRequest request = RegisterStudentRequest.builder()
-                .enrollmentId("2123803361")
-                .email("paulina.valencia@uam.mx")
-                .graduateProgramId(programId)
+        RegisterStudentRequest request = sampleRequestBuilder()
                 .advisorId(999L)
-                .firstName("Paulina")
-                .firstLastName("Valencia")
-                .nationality("Mexicana")
-                .undergraduateDegree("Computación")
-                .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1))
                 .build();
 
         mockMvc.perform(post("/api/students")
@@ -369,6 +346,10 @@ class StudentControllerIT {
     }
 
     private RegisterStudentRequest sampleRequest() {
+        return sampleRequestBuilder().build();
+    }
+
+    private RegisterStudentRequest.RegisterStudentRequestBuilder sampleRequestBuilder() {
         return RegisterStudentRequest.builder()
                 .enrollmentId("2123803361")
                 .email("paulina.valencia@uam.mx")
@@ -378,10 +359,13 @@ class StudentControllerIT {
                 .firstLastName("Valencia")
                 .secondLastName("Franco")
                 .nationality("Mexicana")
+                .birthDate(LocalDate.of(1998, 3, 15))
+                .phone("5554821234")
+                .phoneExtension("1234")
                 .undergraduateDegree("Computación")
+                .lastDegreeObtained("Licenciatura en Computación")
                 .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1))
-                .build();
+                .admissionDate(LocalDate.of(2023, 9, 1));
     }
 
     private String coordinatorToken() throws Exception {

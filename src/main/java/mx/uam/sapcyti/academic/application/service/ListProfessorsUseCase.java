@@ -1,5 +1,6 @@
 package mx.uam.sapcyti.academic.application.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -54,6 +55,11 @@ public class ListProfessorsUseCase {
                 .firstName(professor.getPersonalData().getFirstName())
                 .firstLastName(professor.getPersonalData().getFirstLastName())
                 .secondLastName(professor.getPersonalData().getSecondLastName())
+                .phone(professor.getPersonalData().getPhone())
+                .phoneExtension(professor.getPersonalData().getPhoneExtension())
+                .commissionMember(professor.getProfessorInformation().isCommissionMember())
+                .nextSabbaticalStart(professor.getProfessorInformation().getNextSabbaticalStart())
+                .nextSabbaticalEnd(professor.getProfessorInformation().getNextSabbaticalEnd())
                 .graduateProgramId(professor.getGraduateProgramId())
                 .userId(professor.getUserId())
                 .active(user != null && user.isActive())
@@ -91,6 +97,11 @@ public class ListProfessorsUseCase {
         String firstName;
         String firstLastName;
         String secondLastName;
+        String phone;
+        String phoneExtension;
+        boolean commissionMember;
+        LocalDate nextSabbaticalStart;
+        LocalDate nextSabbaticalEnd;
         Long graduateProgramId;
         Long userId;
         boolean active;

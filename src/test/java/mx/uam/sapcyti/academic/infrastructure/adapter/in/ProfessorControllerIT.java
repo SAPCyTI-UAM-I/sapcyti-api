@@ -9,8 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
+import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterProfessorRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
 import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
@@ -77,14 +79,7 @@ class ProfessorControllerIT {
     @Test
     @DisplayName("coordinator registers professor and receives generated password")
     void registerSuccess() throws Exception {
-        RegisterProfessorRequest request = RegisterProfessorRequest.builder()
-                .employeeNumber("30568")
-                .email("humberto.cervantes@uam.mx")
-                .graduateProgramId(programId)
-                .firstName("Humberto Gustavo")
-                .firstLastName("Cervantes")
-                .secondLastName("Maceda")
-                .build();
+        RegisterProfessorRequest request = sampleRequest();
 
         MvcResult result = mockMvc.perform(post("/api/professors")
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -96,6 +91,7 @@ class ProfessorControllerIT {
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.employeeNumber").value("30568"))
                 .andExpect(jsonPath("$.email").value("humberto.cervantes@uam.mx"))
+                .andExpect(jsonPath("$.commissionMember").value(true))
                 .andExpect(jsonPath("$.userId").isNumber())
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.generatedPassword").isNotEmpty())
@@ -113,12 +109,12 @@ class ProfessorControllerIT {
     @Test
     @DisplayName("registration without secondLastName succeeds")
     void registerWithoutSecondLastName() throws Exception {
-        RegisterProfessorRequest request = RegisterProfessorRequest.builder()
+        RegisterProfessorRequest request = sampleRequestBuilder()
                 .employeeNumber("30569")
                 .email("prof.no-second@uam.mx")
-                .graduateProgramId(programId)
                 .firstName("Ana")
                 .firstLastName("Lopez")
+                .secondLastName(null)
                 .build();
 
         mockMvc.perform(post("/api/professors")
@@ -128,6 +124,45 @@ class ProfessorControllerIT {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.secondLastName").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("registration without sabbatical dates succeeds")
+    void registerWithoutSabbaticalDates() throws Exception {
+        RegisterProfessorRequest request = sampleRequestBuilder()
+                .employeeNumber("30570")
+                .email("prof.no-sabbatical@uam.mx")
+                .commissionMember(false)
+                .nextSabbaticalStart(null)
+                .nextSabbaticalEnd(null)
+                .build();
+
+        mockMvc.perform(post("/api/professors")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.nextSabbaticalStart").doesNotExist())
+                .andExpect(jsonPath("$.nextSabbaticalEnd").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("registration without phoneExtension succeeds")
+    void registerWithoutPhoneExtension() throws Exception {
+        RegisterProfessorRequest request = sampleRequestBuilder()
+                .employeeNumber("30571")
+                .email("prof.no-extension@uam.mx")
+                .phoneExtension(null)
+                .build();
+
+        mockMvc.perform(post("/api/professors")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.phoneExtension").doesNotExist());
     }
 
     @Test
@@ -154,7 +189,8 @@ class ProfessorControllerIT {
                 "30568",
                 999L,
                 programId,
-                new PersonalData("Existing", "Professor", null, null)));
+                new PersonalData("Existing", "Professor", null, null, null, "5554820000", null),
+                new ProfessorInformation(false, null, null)));
 
         RegisterProfessorRequest request = sampleRequest();
 
@@ -171,12 +207,8 @@ class ProfessorControllerIT {
     @Test
     @DisplayName("missing employee number returns 400")
     void missingRequiredField() throws Exception {
-        RegisterProfessorRequest request = RegisterProfessorRequest.builder()
+        RegisterProfessorRequest request = sampleRequestBuilder()
                 .employeeNumber("")
-                .email("humberto.cervantes@uam.mx")
-                .graduateProgramId(programId)
-                .firstName("Humberto Gustavo")
-                .firstLastName("Cervantes")
                 .build();
 
         mockMvc.perform(post("/api/professors")
@@ -191,12 +223,8 @@ class ProfessorControllerIT {
     @Test
     @DisplayName("invalid email returns 400")
     void invalidEmail() throws Exception {
-        RegisterProfessorRequest request = RegisterProfessorRequest.builder()
-                .employeeNumber("30568")
+        RegisterProfessorRequest request = sampleRequestBuilder()
                 .email("invalid")
-                .graduateProgramId(programId)
-                .firstName("Humberto Gustavo")
-                .firstLastName("Cervantes")
                 .build();
 
         mockMvc.perform(post("/api/professors")
@@ -213,13 +241,7 @@ class ProfessorControllerIT {
     void unknownProgram() throws Exception {
         programAdapter.deleteById(programId);
 
-        RegisterProfessorRequest request = RegisterProfessorRequest.builder()
-                .employeeNumber("30568")
-                .email("humberto.cervantes@uam.mx")
-                .graduateProgramId(programId)
-                .firstName("Humberto Gustavo")
-                .firstLastName("Cervantes")
-                .build();
+        RegisterProfessorRequest request = sampleRequestBuilder().build();
 
         mockMvc.perform(post("/api/professors")
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -298,6 +320,10 @@ class ProfessorControllerIT {
     }
 
     private RegisterProfessorRequest sampleRequest() {
+        return sampleRequestBuilder().build();
+    }
+
+    private RegisterProfessorRequest.RegisterProfessorRequestBuilder sampleRequestBuilder() {
         return RegisterProfessorRequest.builder()
                 .employeeNumber("30568")
                 .email("humberto.cervantes@uam.mx")
@@ -305,7 +331,11 @@ class ProfessorControllerIT {
                 .firstName("Humberto Gustavo")
                 .firstLastName("Cervantes")
                 .secondLastName("Maceda")
-                .build();
+                .phone("5554825678")
+                .phoneExtension("4321")
+                .commissionMember(true)
+                .nextSabbaticalStart(LocalDate.of(2027, 1, 15))
+                .nextSabbaticalEnd(LocalDate.of(2027, 7, 15));
     }
 
     private String coordinatorToken() throws Exception {

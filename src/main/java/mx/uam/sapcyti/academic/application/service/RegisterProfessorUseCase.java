@@ -8,6 +8,7 @@ import mx.uam.sapcyti.academic.domain.exception.DuplicateEmployeeNumberException
 import mx.uam.sapcyti.academic.domain.exception.DuplicateProfessorEmailException;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
+import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.PasswordGenerationService;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
@@ -35,6 +36,7 @@ public class RegisterProfessorUseCase {
     public RegisterProfessorResult execute(RegisterProfessorCommand command) {
         assertTenant(command.graduateProgramId());
         assertProgramExists(command.graduateProgramId());
+        assertValidSabbaticalPeriod(command.nextSabbaticalStart(), command.nextSabbaticalEnd());
 
         String normalizedEmail = command.email().trim().toLowerCase();
         if (userRepository.existsByEmail(normalizedEmail)) {
@@ -56,13 +58,22 @@ public class RegisterProfessorUseCase {
                 command.firstName().trim(),
                 command.firstLastName().trim(),
                 blankToNull(command.secondLastName()),
-                null);
+                null,
+                null,
+                command.phone().trim(),
+                blankToNull(command.phoneExtension()));
+
+        ProfessorInformation professorInformation = new ProfessorInformation(
+                command.commissionMember(),
+                command.nextSabbaticalStart(),
+                command.nextSabbaticalEnd());
 
         Professor professor = new Professor(
                 command.employeeNumber().trim(),
                 user.getId(),
                 command.graduateProgramId(),
-                personalData);
+                personalData,
+                professorInformation);
         professor = professorRepository.save(professor);
 
         return RegisterProfessorResult.builder()
@@ -73,6 +84,11 @@ public class RegisterProfessorUseCase {
                 .firstName(personalData.getFirstName())
                 .firstLastName(personalData.getFirstLastName())
                 .secondLastName(personalData.getSecondLastName())
+                .phone(personalData.getPhone())
+                .phoneExtension(personalData.getPhoneExtension())
+                .commissionMember(professorInformation.isCommissionMember())
+                .nextSabbaticalStart(professorInformation.getNextSabbaticalStart())
+                .nextSabbaticalEnd(professorInformation.getNextSabbaticalEnd())
                 .graduateProgramId(professor.getGraduateProgramId())
                 .generatedPassword(plaintextPassword)
                 .build();
@@ -88,6 +104,13 @@ public class RegisterProfessorUseCase {
     private void assertProgramExists(Long graduateProgramId) {
         if (programRepository.findById(graduateProgramId).isEmpty()) {
             throw new GraduateProgramNotFoundException(graduateProgramId);
+        }
+    }
+
+    private static void assertValidSabbaticalPeriod(
+            java.time.LocalDate start, java.time.LocalDate end) {
+        if (start != null && end != null && end.isBefore(start)) {
+            throw new IllegalArgumentException("Sabbatical end date must be on or after start date");
         }
     }
 
@@ -108,6 +131,11 @@ public class RegisterProfessorUseCase {
         String firstName;
         String firstLastName;
         String secondLastName;
+        String phone;
+        String phoneExtension;
+        boolean commissionMember;
+        java.time.LocalDate nextSabbaticalStart;
+        java.time.LocalDate nextSabbaticalEnd;
         Long graduateProgramId;
         String generatedPassword;
     }

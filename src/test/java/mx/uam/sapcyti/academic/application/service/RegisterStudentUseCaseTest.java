@@ -1,5 +1,8 @@
 package mx.uam.sapcyti.academic.application.service;
 
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.sampleAcademicInformation;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.studentPersonalData;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.studentPersonalDataWithoutExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,7 +15,6 @@ import mx.uam.sapcyti.academic.application.command.RegisterStudentCommand;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateEnrollmentIdException;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateStudentEmailException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
-import mx.uam.sapcyti.academic.domain.model.AcademicInformation;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
@@ -83,12 +85,7 @@ class RegisterStudentUseCaseTest {
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
 
         Student savedStudent = new Student(
-                "2123803361",
-                20L,
-                1L,
-                10L,
-                new PersonalData("Paulina", "Valencia", "Franco", "Mexicana"),
-                new AcademicInformation("Computación", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
+                "2123803361", 20L, 1L, 10L, studentPersonalData(), sampleAcademicInformation());
         ReflectionTestUtils.setField(savedStudent, "id", 1L);
         when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
 
@@ -98,6 +95,8 @@ class RegisterStudentUseCaseTest {
         assertThat(result.getGeneratedPassword()).isEqualTo("Kx9#mP2vLq4!");
         assertThat(result.getEmail()).isEqualTo("paulina.valencia@uam.mx");
         assertThat(result.getAdvisorId()).isEqualTo(10L);
+        assertThat(result.getBirthDate()).isEqualTo(LocalDate.of(1998, 3, 15));
+        assertThat(result.getLastDegreeObtained()).isEqualTo("Licenciatura en Computación");
         verify(userRepository).save(any(User.class));
         verify(studentRepository).save(any(Student.class));
     }
@@ -156,7 +155,11 @@ class RegisterStudentUseCaseTest {
                 "Valencia",
                 "Franco",
                 "Mexicana",
+                LocalDate.of(1998, 3, 15),
+                "5554821234",
+                "1234",
                 "Computación",
+                "Licenciatura en Computación",
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1));
 
@@ -176,7 +179,11 @@ class RegisterStudentUseCaseTest {
                 "Valencia",
                 "Franco",
                 "Mexicana",
+                LocalDate.of(1998, 3, 15),
+                "5554821234",
+                null,
                 "Computación",
+                "Licenciatura en Computación",
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1));
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
@@ -191,12 +198,7 @@ class RegisterStudentUseCaseTest {
 
         ArgumentCaptor<Student> studentCaptor = ArgumentCaptor.forClass(Student.class);
         Student savedStudent = new Student(
-                "2123803361",
-                20L,
-                1L,
-                null,
-                new PersonalData("Paulina", "Valencia", "Franco", "Mexicana"),
-                new AcademicInformation("Computación", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
+                "2123803361", 20L, 1L, null, studentPersonalData(), sampleAcademicInformation());
         ReflectionTestUtils.setField(savedStudent, "id", 1L);
         when(studentRepository.save(studentCaptor.capture())).thenReturn(savedStudent);
 
@@ -218,7 +220,11 @@ class RegisterStudentUseCaseTest {
                 "Valencia",
                 null,
                 "Mexicana",
+                LocalDate.of(1998, 3, 15),
+                "5554821234",
+                null,
                 "Computación",
+                "Licenciatura en Computación",
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1));
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
@@ -237,8 +243,8 @@ class RegisterStudentUseCaseTest {
                 20L,
                 1L,
                 null,
-                new PersonalData("Paulina", "Valencia", null, "Mexicana"),
-                new AcademicInformation("Computación", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
+                new PersonalData("Paulina", "Valencia", null, "Mexicana", LocalDate.of(1998, 3, 15), "5554821234", null),
+                sampleAcademicInformation());
         ReflectionTestUtils.setField(savedStudent, "id", 1L);
         when(studentRepository.save(studentCaptor.capture())).thenReturn(savedStudent);
 
@@ -246,6 +252,47 @@ class RegisterStudentUseCaseTest {
 
         assertThat(result.getSecondLastName()).isNull();
         assertThat(studentCaptor.getValue().getPersonalData().getSecondLastName()).isNull();
+    }
+
+    @Test
+    @DisplayName("allows registration without phoneExtension")
+    void withoutPhoneExtension() {
+        RegisterStudentCommand command = new RegisterStudentCommand(
+                "2123803361",
+                "paulina.valencia@uam.mx",
+                1L,
+                null,
+                "Paulina",
+                "Valencia",
+                "Franco",
+                "Mexicana",
+                LocalDate.of(1998, 3, 15),
+                "5554821234",
+                null,
+                "Computación",
+                "Licenciatura en Computación",
+                ProgramType.MAESTRIA,
+                LocalDate.of(2023, 9, 1));
+        when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
+        when(userRepository.existsByEmail("paulina.valencia@uam.mx")).thenReturn(false);
+        when(studentRepository.existsByEnrollmentId("2123803361")).thenReturn(false);
+        when(passwordGenerationService.generatePassword()).thenReturn("Kx9#mP2vLq4!");
+        when(passwordEncoder.encode(any())).thenReturn("hashed");
+
+        User savedUser = new User("paulina.valencia@uam.mx", "hashed", RoleType.STUDENT, 1L);
+        ReflectionTestUtils.setField(savedUser, "id", 20L);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        ArgumentCaptor<Student> studentCaptor = ArgumentCaptor.forClass(Student.class);
+        Student savedStudent = new Student(
+                "2123803361", 20L, 1L, null, studentPersonalDataWithoutExtension(), sampleAcademicInformation());
+        ReflectionTestUtils.setField(savedStudent, "id", 1L);
+        when(studentRepository.save(studentCaptor.capture())).thenReturn(savedStudent);
+
+        RegisterStudentUseCase.RegisterStudentResult result = useCase.execute(command);
+
+        assertThat(result.getPhoneExtension()).isNull();
+        assertThat(studentCaptor.getValue().getPersonalData().getPhoneExtension()).isNull();
     }
 
     private static RegisterStudentCommand sampleCommand() {
@@ -258,7 +305,11 @@ class RegisterStudentUseCaseTest {
                 "Valencia",
                 "Franco",
                 "Mexicana",
+                LocalDate.of(1998, 3, 15),
+                "5554821234",
+                "1234",
                 "Computación",
+                "Licenciatura en Computación",
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1));
     }
