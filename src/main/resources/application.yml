@@ -45,6 +45,14 @@ management:
 server:
   port: ${SERVER_PORT:8081}
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /docs
+    operations-sorter: method
+    tags-sorter: alpha
+
 app:
   password-reset:
     base-url: ${PASSWORD_RESET_BASE_URL:http://localhost:4200}
