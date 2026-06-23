@@ -32,6 +32,7 @@ jobs:
     outputs:
       env_name: ${{ steps.determine-env.outputs.env_name }}
       image_tag: ${{ steps.determine-env.outputs.image_tag }}
+      image_owner: ${{ steps.determine-env.outputs.image_owner }}
 
     steps:
       - name: Checkout code
@@ -76,8 +77,11 @@ jobs:
             exit 1
           fi
 
+          IMAGE_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+
           echo "env_name=$ENV_NAME" >> $GITHUB_OUTPUT
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image_owner=$IMAGE_OWNER" >> $GITHUB_OUTPUT
       
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4.2.0
@@ -91,7 +95,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/sapcyti-api:${{ steps.determine-env.outputs.image_tag }}
+          tags: ghcr.io/${{ steps.determine-env.outputs.image_owner }}/sapcyti-api:${{ steps.determine-env.outputs.image_tag }}
 
   cd-build:
     name: Invoke CD Engine
@@ -100,8 +104,8 @@ jobs:
     uses: SAPCyTI-UAM-I/sapcyti-infra/.github/workflows/cd-deploy.yml@main
     with:
       environment: ${{ needs.ci-build.outputs.env_name }}
-      api_image: ghcr.io/${{ github.repository_owner }}/sapcyti-api:${{ needs.ci-build.outputs.image_tag }}
-      spa_image: ghcr.io/${{ github.repository_owner }}/sapcyti-spa:${{ needs.ci-build.outputs.image_tag }}
+      api_image: ghcr.io/${{ needs.ci-build.outputs.image_owner }}/sapcyti-api:${{ needs.ci-build.outputs.image_tag }}
+      spa_image: ghcr.io/${{ needs.ci-build.outputs.image_owner }}/sapcyti-spa:${{ needs.ci-build.outputs.image_tag }}
     secrets:
       SSH_HOST: ${{ secrets.SSH_HOST }}
       SSH_USER: ${{ secrets.SSH_USER }}
