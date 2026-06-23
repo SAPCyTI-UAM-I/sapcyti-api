@@ -11,9 +11,24 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.validation.ConstraintViolationException;
+import mx.uam.sapcyti.academic.domain.exception.DuplicateEmployeeNumberException;
+import mx.uam.sapcyti.academic.domain.exception.DuplicateEnrollmentIdException;
+import mx.uam.sapcyti.academic.domain.exception.DuplicateProfessorEmailException;
+import mx.uam.sapcyti.academic.domain.exception.DuplicateStudentEmailException;
+import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
+import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.ConfigurationParameterNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.DuplicateGraduateProgramNameException;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
+import mx.uam.sapcyti.identity.domain.exception.ExpiredResetTokenException;
+import mx.uam.sapcyti.identity.domain.exception.IncorrectCurrentPasswordException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidCredentialsException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidRefreshTokenException;
+import mx.uam.sapcyti.identity.domain.exception.InvalidResetTokenException;
+import mx.uam.sapcyti.identity.domain.exception.PasswordChangeForbiddenException;
+import mx.uam.sapcyti.identity.domain.exception.UsedResetTokenException;
+import mx.uam.sapcyti.identity.domain.exception.UserNotFoundException;
+import mx.uam.sapcyti.shared.tenant.TenantAccessDeniedException;
 
 /**
  * Unified JSON error responses for REST APIs (SPEC-007).
@@ -84,6 +99,126 @@ public class GlobalExceptionHandler {
             .body(new ErrorResponse(
                 "CONFLICT",
                 DuplicateGraduateProgramNameException.MESSAGE));
+    }
+
+    @ExceptionHandler(DuplicateProfessorEmailException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateProfessorEmail(
+            DuplicateProfessorEmailException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("CONFLICT", DuplicateProfessorEmailException.MESSAGE));
+    }
+
+    @ExceptionHandler(DuplicateEmployeeNumberException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEmployeeNumber(
+            DuplicateEmployeeNumberException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("CONFLICT", DuplicateEmployeeNumberException.MESSAGE));
+    }
+
+    @ExceptionHandler(DuplicateStudentEmailException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateStudentEmail(
+            DuplicateStudentEmailException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("CONFLICT", DuplicateStudentEmailException.MESSAGE));
+    }
+
+    @ExceptionHandler(DuplicateEnrollmentIdException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEnrollmentId(
+            DuplicateEnrollmentIdException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("CONFLICT", DuplicateEnrollmentIdException.MESSAGE));
+    }
+
+    @ExceptionHandler(ProfessorNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleProfessorNotFound(
+            ProfessorNotFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse("NOT_FOUND", ProfessorNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(StudentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleStudentNotFound(
+            StudentNotFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse("NOT_FOUND", StudentNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentials(
+            InvalidCredentialsException ex) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponse("UNAUTHORIZED", InvalidCredentialsException.MESSAGE));
+    }
+
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRefreshToken(
+            InvalidRefreshTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(new ErrorResponse("UNAUTHORIZED", InvalidRefreshTokenException.MESSAGE));
+    }
+
+    @ExceptionHandler(InvalidResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidResetToken(
+            InvalidResetTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("INVALID_TOKEN", InvalidResetTokenException.MESSAGE));
+    }
+
+    @ExceptionHandler(ExpiredResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleExpiredResetToken(
+            ExpiredResetTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("EXPIRED_TOKEN", ExpiredResetTokenException.MESSAGE));
+    }
+
+    @ExceptionHandler(UsedResetTokenException.class)
+    public ResponseEntity<ErrorResponse> handleUsedResetToken(
+            UsedResetTokenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("TOKEN_USED", UsedResetTokenException.MESSAGE));
+    }
+
+    @ExceptionHandler(IncorrectCurrentPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleIncorrectCurrentPassword(
+            IncorrectCurrentPasswordException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse("VALIDATION_ERROR", IncorrectCurrentPasswordException.MESSAGE));
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleUserNotFound(
+            UserNotFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse("NOT_FOUND", UserNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(PasswordChangeForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handlePasswordChangeForbidden(
+            PasswordChangeForbiddenException ex) {
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(new ErrorResponse("FORBIDDEN", PasswordChangeForbiddenException.MESSAGE));
+    }
+
+    @ExceptionHandler(TenantAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleTenantAccessDenied(
+            TenantAccessDeniedException ex) {
+        return ResponseEntity
+            .status(HttpStatus.FORBIDDEN)
+            .body(new ErrorResponse("FORBIDDEN", ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

@@ -62,15 +62,3 @@ public class GraduateProgramJpaAdapter implements GraduateProgramRepositoryPort 
         jpaRepository.deleteById(id);
     }
 }
-
-/**
- * Spring Data repository — internal to the infrastructure layer.
- * Not exposed to the domain; only used by {@link GraduateProgramJpaAdapter}.
- */
-interface SpringDataGraduateProgramRepository
-        extends JpaRepository<GraduateProgram, Long> {
-
-    boolean existsByName(String name);
-
-    boolean existsByNameAndIdNot(String name, Long id);
-}

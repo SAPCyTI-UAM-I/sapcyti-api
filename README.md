@@ -83,13 +83,94 @@ On Linux or macOS use `./mvnw` instead of `.\mvnw.cmd`.
 
 ### 5. Verify
 
-Open [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) or run:
+| URL | Purpose |
+|-----|---------|
+| [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) | Health check |
+| [http://localhost:8080/docs](http://localhost:8080/docs) | Swagger UI (OpenAPI) |
+| [http://localhost:8080/api-docs](http://localhost:8080/api-docs) | OpenAPI JSON |
+
+Or run:
 
 ```powershell
 Invoke-WebRequest -Uri http://localhost:8080/actuator/health -UseBasicParsing
 ```
 
 Stop the API with `Ctrl+C`. Stop the database with `docker compose -f docker-compose.dev.yml down`.
+
+## Authentication API (SPEC-012 — handoff for SPA)
+
+JWT login is available for local development after PostgreSQL is running and Flyway has applied migrations (seed users — password **`password`** for all):
+
+| Role | Email |
+|------|-------|
+| SYSTEM_ADMIN | `system_admin@uam.mx` |
+| COORDINATOR | `coordinator@uam.mx` |
+| ASSISTANT | `assistant@uam.mx` |
+| PROFESSOR | `professor@uam.mx` |
+| STUDENT | `student@uam.mx` |
+| SPEAKER | `speaker@uam.mx` |
+
+| Doc | Audience |
+|-----|----------|
+| [Frontend API contract](../Docs/implementation/guides/frontend-auth-api-contract.md) | SPA / SPEC-013 |
+| [Login flow & tenant](../Docs/implementation/guides/authentication-login-flow.md) | Full stack |
+
+**Base URLs:** host JVM `http://localhost:8080` (or `SERVER_PORT`); Docker stack maps API to **`http://localhost:8081`** (`sapcyti-infra/local-dev/docker-compose.stack.yml`).
+
+| Endpoint | Method | Auth | Notes |
+|----------|--------|------|-------|
+| `/api/auth/login` | POST | None | Body: `{ "email", "password", "rememberMe", "deviceInfo?" }` |
+| `/api/auth/refresh` | POST | Cookie `refreshToken` | Returns new `accessToken` |
+| `/api/auth/logout` | POST | Cookie `refreshToken` | Revokes refresh session |
+
+**Password recovery (SPEC-015 — HU-02):**
+
+| Endpoint | Method | Auth | Notes |
+|----------|--------|------|-------|
+| `/api/auth/forgot-password` | POST | None | Body: `{ "email" }` — always **200** with generic message (no email enumeration) |
+| `/api/auth/reset-password` | POST | None | Body: `{ "token", "newPassword" }` — **200** on success; **400** for invalid/expired/used token |
+
+Forgot response (200): `{ "message": "If an account with that email exists, a recovery email has been sent" }` (English via `Accept-Language: en`; Spanish by default).
+
+Reset errors (400): `{ "error": "INVALID_TOKEN" | "EXPIRED_TOKEN" | "TOKEN_USED", "message": "..." }`.
+
+**Mail (dev):** defaults to `localhost:1025` (MailHog). Set `PASSWORD_RESET_BASE_URL` to the SPA origin (default `http://localhost:4200`) so reset links point to `/auth/reset-password?token=...`.
+
+### MailHog (password recovery emails)
+
+MailHog is **not** part of the Java API — it is a dev-only SMTP sink in [`sapcyti-infra/local-dev`](../sapcyti-infra/local-dev/).
+
+| Mode | Start MailHog | API SMTP target | Inbox UI |
+|------|---------------|-----------------|----------|
+| JVM on host (`SPRING_PROFILES_ACTIVE=dev`) | `docker compose -f ../sapcyti-infra/local-dev/docker-compose.db.yml up -d` | `localhost:1025` (defaults) | [http://localhost:8025](http://localhost:8025) |
+| Full Docker stack | `docker compose -f ../sapcyti-infra/local-dev/docker-compose.stack.yml up -d` | `mailhog:1025` (via `.env`) | [http://localhost:8025](http://localhost:8025) |
+
+Example forgot-password + check inbox:
+
+```powershell
+$body = '{"email":"student@uam.mx"}'
+Invoke-RestMethod -Uri http://localhost:8080/api/auth/forgot-password -Method POST -ContentType "application/json" -Body $body
+# Open http://localhost:8025 — click the message and use the reset link
+```
+
+**Login response (200):** `{ "accessToken", "expiresIn": 900, "role" }` plus `Set-Cookie: refreshToken=...; HttpOnly; Path=/api/auth; SameSite=Strict`.
+
+**Protected APIs:** send `Authorization: Bearer {accessToken}`.
+
+**CORS (SPA on port 4200):** set `CORS_ALLOWED_ORIGINS=http://localhost:4200` (stack `.env` also includes `http://localhost:8888` for the Nginx edge).
+
+**JWT keys (dev):** bundled under `src/main/resources/jwt/`. Regenerate with:
+
+```powershell
+.\scripts\generate-jwt-keys.ps1
+```
+
+**Example login:**
+
+```powershell
+$body = '{"email":"coordinator@uam.mx","password":"password","rememberMe":false}'
+Invoke-RestMethod -Uri http://localhost:8080/api/auth/login -Method POST -ContentType "application/json" -Body $body
+```
 
 ## Quick Start (summary)
 
