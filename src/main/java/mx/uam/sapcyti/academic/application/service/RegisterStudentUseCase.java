@@ -10,9 +10,7 @@ import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.AcademicInformation;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Student;
-import mx.uam.sapcyti.academic.domain.model.StudentProgram;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
-import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.PasswordGenerationService;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
@@ -33,7 +31,6 @@ public class RegisterStudentUseCase {
     private final GraduateProgramRepositoryPort programRepository;
     private final UserRepositoryPort userRepository;
     private final StudentRepositoryPort studentRepository;
-    private final StudentProgramRepositoryPort studentProgramRepository;
     private final ProfessorRepositoryPort professorRepository;
     private final PasswordGenerationService passwordGenerationService;
     private final PasswordEncoderPort passwordEncoder;
@@ -83,15 +80,6 @@ public class RegisterStudentUseCase {
                 personalData,
                 academicInformation);
         student = studentRepository.save(student);
-
-        StudentProgram program = StudentProgram.forRegistration(
-                student.getId(),
-                student.getGraduateProgramId(),
-                student.getEnrollmentId(),
-                academicInformation.getProgramType(),
-                academicInformation.getAdmissionDate(),
-                command.advisorId());
-        studentProgramRepository.save(program);
 
         return RegisterStudentResult.builder()
                 .id(student.getId())
