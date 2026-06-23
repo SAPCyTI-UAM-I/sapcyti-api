@@ -15,6 +15,20 @@ jobs:
   ci-build:
     name: Build, Test & Package
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: sapcyti_test
+          POSTGRES_USER: sapcyti
+          POSTGRES_PASSWORD: sapcyti_test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U sapcyti -d sapcyti_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     outputs:
       env_name: ${{ steps.determine-env.outputs.env_name }}
       image_tag: ${{ steps.determine-env.outputs.image_tag }}
@@ -31,24 +45,39 @@ jobs:
           cache: maven
 
       - name: Run Checkstyle Static Analysis
-        run: mvn checkstyle:check
+        run: mvn checkstyle:check -q
 
       - name: Run Unit and Integration Tests
-        run: mvn clean test
+        run: mvn clean verify -B
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/sapcyti_test
+          DB_USER: sapcyti
+          DB_PASS: sapcyti_test_pass
+          SPRING_PROFILES_ACTIVE: test
 
       - name: Determine Target Environment & Image Tag
         id: determine-env
         run: |
+          ENV_NAME=""
+          IMAGE_TAG=""
           if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
-            echo "env_name=dev" >> $GITHUB_OUTPUT
-            echo "image_tag=dev" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" == "refs/heads/release/*" ]]; then
-            echo "env_name=qa" >> $GITHUB_OUTPUT
-            echo "image_tag=qa" >> $GITHUB_OUTPUT
+            ENV_NAME="dev"
+            IMAGE_TAG="dev"
+          elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            ENV_NAME="qa"
+            IMAGE_TAG="qa"
           elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "env_name=prod" >> $GITHUB_OUTPUT
-            echo "image_tag=prod" >> $GITHUB_OUTPUT
+            ENV_NAME="prod"
+            IMAGE_TAG="prod"
           fi
+
+          if [ -z "$ENV_NAME" ]; then
+            echo "❌ Error: Could not determine target environment for ref ${{ github.ref }}"
+            exit 1
+          fi
+
+          echo "env_name=$ENV_NAME" >> $GITHUB_OUTPUT
+          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
       
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
