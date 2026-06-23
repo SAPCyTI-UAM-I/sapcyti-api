@@ -17,6 +17,7 @@ import mx.uam.sapcyti.academic.domain.exception.DuplicateProfessorEmailException
 import mx.uam.sapcyti.academic.domain.exception.DuplicateStudentEmailException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
+import mx.uam.sapcyti.academic.domain.exception.StudentProgramNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.ConfigurationParameterNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.DuplicateGraduateProgramNameException;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
@@ -147,6 +148,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.NOT_FOUND)
             .body(new ErrorResponse("NOT_FOUND", StudentNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(StudentProgramNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleStudentProgramNotFound(
+            StudentProgramNotFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse("NOT_FOUND", StudentProgramNotFoundException.MESSAGE));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
