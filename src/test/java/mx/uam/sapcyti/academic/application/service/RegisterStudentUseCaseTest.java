@@ -18,7 +18,9 @@ import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
+import mx.uam.sapcyti.academic.domain.model.StudentProgram;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
+import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.PasswordGenerationService;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
@@ -46,6 +48,7 @@ class RegisterStudentUseCaseTest {
     @Mock private GraduateProgramRepositoryPort programRepository;
     @Mock private UserRepositoryPort userRepository;
     @Mock private StudentRepositoryPort studentRepository;
+    @Mock private StudentProgramRepositoryPort studentProgramRepository;
     @Mock private ProfessorRepositoryPort professorRepository;
     @Mock private PasswordGenerationService passwordGenerationService;
     @Mock private PasswordEncoderPort passwordEncoder;
@@ -58,6 +61,7 @@ class RegisterStudentUseCaseTest {
                 programRepository,
                 userRepository,
                 studentRepository,
+                studentProgramRepository,
                 professorRepository,
                 passwordGenerationService,
                 passwordEncoder);
@@ -88,6 +92,7 @@ class RegisterStudentUseCaseTest {
                 "2123803361", 20L, 1L, 10L, studentPersonalData(), sampleAcademicInformation());
         ReflectionTestUtils.setField(savedStudent, "id", 1L);
         when(studentRepository.save(any(Student.class))).thenReturn(savedStudent);
+        when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterStudentUseCase.RegisterStudentResult result = useCase.execute(command);
 
@@ -99,6 +104,7 @@ class RegisterStudentUseCaseTest {
         assertThat(result.getLastDegreeObtained()).isEqualTo("Licenciatura en Computación");
         verify(userRepository).save(any(User.class));
         verify(studentRepository).save(any(Student.class));
+        verify(studentProgramRepository).save(any(StudentProgram.class));
     }
 
     @Test
@@ -201,11 +207,13 @@ class RegisterStudentUseCaseTest {
                 "2123803361", 20L, 1L, null, studentPersonalData(), sampleAcademicInformation());
         ReflectionTestUtils.setField(savedStudent, "id", 1L);
         when(studentRepository.save(studentCaptor.capture())).thenReturn(savedStudent);
+        when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterStudentUseCase.RegisterStudentResult result = useCase.execute(command);
 
         assertThat(result.getAdvisorId()).isNull();
         assertThat(studentCaptor.getValue().getAdvisorId()).isNull();
+        verify(studentProgramRepository).save(any(StudentProgram.class));
     }
 
     @Test
@@ -247,6 +255,7 @@ class RegisterStudentUseCaseTest {
                 sampleAcademicInformation());
         ReflectionTestUtils.setField(savedStudent, "id", 1L);
         when(studentRepository.save(studentCaptor.capture())).thenReturn(savedStudent);
+        when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterStudentUseCase.RegisterStudentResult result = useCase.execute(command);
 
@@ -288,6 +297,7 @@ class RegisterStudentUseCaseTest {
                 "2123803361", 20L, 1L, null, studentPersonalDataWithoutExtension(), sampleAcademicInformation());
         ReflectionTestUtils.setField(savedStudent, "id", 1L);
         when(studentRepository.save(studentCaptor.capture())).thenReturn(savedStudent);
+        when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RegisterStudentUseCase.RegisterStudentResult result = useCase.execute(command);
 
