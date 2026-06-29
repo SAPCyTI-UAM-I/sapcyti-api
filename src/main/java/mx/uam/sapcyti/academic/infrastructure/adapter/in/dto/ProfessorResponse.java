@@ -2,12 +2,15 @@ package mx.uam.sapcyti.academic.infrastructure.adapter.in.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
+import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 
 /**
- * Read model for professor data (HU-21).
+ * Read model for professor data (HU-21, HU-23).
  */
 public record ProfessorResponse(
         Long id,
+        @Schema(description = "Professor employment classification.", example = "INTERNO")
+        ProfessorType professorType,
         String employeeNumber,
         String email,
         String firstName,

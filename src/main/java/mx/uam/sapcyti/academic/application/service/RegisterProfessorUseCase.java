@@ -11,6 +11,7 @@ import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.PasswordGenerationService;
+import mx.uam.sapcyti.academic.domain.service.ProfessorTypeRules;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
 import mx.uam.sapcyti.configuration.domain.port.out.GraduateProgramRepositoryPort;
 import mx.uam.sapcyti.identity.domain.model.RoleType;
@@ -38,13 +39,14 @@ public class RegisterProfessorUseCase {
         assertProgramExists(command.graduateProgramId());
         assertValidSabbaticalPeriod(command.nextSabbaticalStart(), command.nextSabbaticalEnd());
 
+        String normalizedEmployeeNumber = ProfessorTypeRules.normalizeEmployeeNumber(
+                command.professorType(), command.employeeNumber());
+
         String normalizedEmail = command.email().trim().toLowerCase();
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new DuplicateProfessorEmailException();
         }
-        if (professorRepository.existsByEmployeeNumber(command.employeeNumber().trim())) {
-            throw new DuplicateEmployeeNumberException();
-        }
+        assertUniqueEmployeeNumber(command.graduateProgramId(), normalizedEmployeeNumber, null);
 
         String plaintextPassword = passwordGenerationService.generatePassword();
         User user = new User(
@@ -69,7 +71,8 @@ public class RegisterProfessorUseCase {
                 command.nextSabbaticalEnd());
 
         Professor professor = new Professor(
-                command.employeeNumber().trim(),
+                command.professorType(),
+                normalizedEmployeeNumber,
                 user.getId(),
                 command.graduateProgramId(),
                 personalData,
@@ -79,6 +82,7 @@ public class RegisterProfessorUseCase {
         return RegisterProfessorResult.builder()
                 .id(professor.getId())
                 .userId(user.getId())
+                .professorType(professor.getProfessorType())
                 .employeeNumber(professor.getEmployeeNumber())
                 .email(normalizedEmail)
                 .firstName(personalData.getFirstName())
@@ -92,6 +96,23 @@ public class RegisterProfessorUseCase {
                 .graduateProgramId(professor.getGraduateProgramId())
                 .generatedPassword(plaintextPassword)
                 .build();
+    }
+
+    private void assertUniqueEmployeeNumber(
+            Long graduateProgramId, String employeeNumber, Long excludeProfessorId) {
+        if (employeeNumber == null) {
+            return;
+        }
+        for (Professor candidate : professorRepository.findInternosByEmployeeNumberAndGraduateProgramId(
+                graduateProgramId, employeeNumber)) {
+            if (excludeProfessorId != null && excludeProfessorId.equals(candidate.getId())) {
+                continue;
+            }
+            User linkedUser = userRepository.findById(candidate.getUserId()).orElse(null);
+            if (linkedUser != null && linkedUser.isActive()) {
+                throw new DuplicateEmployeeNumberException();
+            }
+        }
     }
 
     private void assertTenant(Long graduateProgramId) {
@@ -126,6 +147,7 @@ public class RegisterProfessorUseCase {
     public static class RegisterProfessorResult {
         Long id;
         Long userId;
+        mx.uam.sapcyti.academic.domain.model.ProfessorType professorType;
         String employeeNumber;
         String email;
         String firstName;

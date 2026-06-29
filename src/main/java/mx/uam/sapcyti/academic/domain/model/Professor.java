@@ -3,6 +3,8 @@ package mx.uam.sapcyti.academic.domain.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -14,7 +16,6 @@ import jakarta.persistence.UniqueConstraint;
  */
 @Entity
 @Table(name = "professors", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "employee_number"),
         @UniqueConstraint(columnNames = "user_id")
 })
 public class Professor {
@@ -23,7 +24,11 @@ public class Professor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "employee_number", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "professor_type", nullable = false, length = 20)
+    private ProfessorType professorType;
+
+    @Column(name = "employee_number", length = 20)
     private String employeeNumber;
 
     @Column(name = "user_id", nullable = false)
@@ -43,11 +48,13 @@ public class Professor {
     }
 
     public Professor(
+            ProfessorType professorType,
             String employeeNumber,
             Long userId,
             Long graduateProgramId,
             PersonalData personalData,
             ProfessorInformation professorInformation) {
+        this.professorType = professorType;
         this.employeeNumber = employeeNumber;
         this.userId = userId;
         this.graduateProgramId = graduateProgramId;
@@ -57,6 +64,10 @@ public class Professor {
 
     public Long getId() {
         return id;
+    }
+
+    public ProfessorType getProfessorType() {
+        return professorType;
     }
 
     public String getEmployeeNumber() {
@@ -77,5 +88,18 @@ public class Professor {
 
     public ProfessorInformation getProfessorInformation() {
         return professorInformation;
+    }
+
+    public void updatePersonalData(PersonalData personalData) {
+        this.personalData = personalData;
+    }
+
+    public void updateProfessorInformation(ProfessorInformation professorInformation) {
+        this.professorInformation = professorInformation;
+    }
+
+    public void updateTypeAndEmployeeNumber(ProfessorType professorType, String employeeNumber) {
+        this.professorType = professorType;
+        this.employeeNumber = employeeNumber;
     }
 }

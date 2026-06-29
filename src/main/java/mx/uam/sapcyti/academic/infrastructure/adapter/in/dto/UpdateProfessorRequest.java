@@ -15,7 +15,7 @@ import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegisterProfessorRequest {
+public class UpdateProfessorRequest {
 
     @NotNull(message = "Professor type is required")
     private ProfessorType professorType;
@@ -26,9 +26,6 @@ public class RegisterProfessorRequest {
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
     private String email;
-
-    @NotNull(message = "Graduate program id is required")
-    private Long graduateProgramId;
 
     @NotBlank(message = "First name is required")
     private String firstName;

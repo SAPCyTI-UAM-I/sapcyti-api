@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import mx.uam.sapcyti.academic.domain.model.Professor;
+import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
@@ -50,6 +51,7 @@ public class ListProfessorsUseCase {
     static ProfessorListItem toListItem(Professor professor, User user) {
         return ProfessorListItem.builder()
                 .id(professor.getId())
+                .professorType(professor.getProfessorType())
                 .employeeNumber(professor.getEmployeeNumber())
                 .email(user != null ? user.getEmail() : null)
                 .firstName(professor.getPersonalData().getFirstName())
@@ -92,6 +94,7 @@ public class ListProfessorsUseCase {
     @Builder
     public static class ProfessorListItem {
         Long id;
+        ProfessorType professorType;
         String employeeNumber;
         String email;
         String firstName;

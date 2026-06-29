@@ -35,4 +35,10 @@ public class StudentProgramJpaAdapter implements StudentProgramRepositoryPort {
     public StudentProgram save(StudentProgram program) {
         return jpaRepository.save(program);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasActiveAssignmentAsTutorOrAdvisor(Long professorId) {
+        return jpaRepository.hasActiveAssignmentAsTutorOrAdvisor(professorId);
+    }
 }

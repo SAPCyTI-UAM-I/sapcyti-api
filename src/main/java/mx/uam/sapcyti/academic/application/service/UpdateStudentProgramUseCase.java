@@ -7,12 +7,14 @@ import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentProgramNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.StudentProgram;
+import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.ResearchCatalogValidator;
-import mx.uam.sapcyti.shared.tenant.TenantContext;
+import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantAccessDeniedException;
+import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ public class UpdateStudentProgramUseCase {
     private final StudentRepositoryPort studentRepository;
     private final StudentProgramRepositoryPort studentProgramRepository;
     private final ProfessorRepositoryPort professorRepository;
+    private final UserRepositoryPort userRepository;
     private final GetStudentProgramUseCase getStudentProgramUseCase;
     private final ResearchCatalogValidator researchCatalogValidator;
 
@@ -69,7 +72,10 @@ public class UpdateStudentProgramUseCase {
         if (professorId == null) {
             return;
         }
-        if (!professorRepository.existsByIdAndGraduateProgramId(professorId, graduateProgramId)) {
+        var professor = professorRepository.findByIdAndGraduateProgramId(professorId, graduateProgramId)
+                .orElseThrow(ProfessorNotFoundException::new);
+        User user = userRepository.findById(professor.getUserId()).orElseThrow(ProfessorNotFoundException::new);
+        if (!user.isActive()) {
             throw new ProfessorNotFoundException();
         }
     }

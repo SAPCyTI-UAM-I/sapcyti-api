@@ -3,7 +3,9 @@ package mx.uam.sapcyti.academic;
 import java.time.LocalDate;
 import mx.uam.sapcyti.academic.domain.model.AcademicInformation;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
+import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
+import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 public final class AcademicTestFixtures {
@@ -51,5 +53,26 @@ public final class AcademicTestFixtures {
 
     public static ProfessorInformation defaultProfessorInformation() {
         return new ProfessorInformation(false, null, null);
+    }
+
+    public static Professor internoProfessor(
+            String employeeNumber, Long userId, Long graduateProgramId, PersonalData personalData) {
+        return new Professor(
+                ProfessorType.INTERNO,
+                employeeNumber,
+                userId,
+                graduateProgramId,
+                personalData,
+                defaultProfessorInformation());
+    }
+
+    public static Professor internoProfessor(
+            String employeeNumber,
+            Long userId,
+            Long graduateProgramId,
+            PersonalData personalData,
+            ProfessorInformation information) {
+        return new Professor(
+                ProfessorType.INTERNO, employeeNumber, userId, graduateProgramId, personalData, information);
     }
 }

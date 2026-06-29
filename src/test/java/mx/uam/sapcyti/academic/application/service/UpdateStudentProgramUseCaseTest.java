@@ -1,5 +1,6 @@
 package mx.uam.sapcyti.academic.application.service;
 
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -13,6 +14,7 @@ import mx.uam.sapcyti.academic.application.command.UpdateStudentProgramCommand;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentProgramNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
+import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProgramStatus;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
@@ -21,6 +23,9 @@ import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.ResearchCatalogValidator;
+import mx.uam.sapcyti.identity.domain.model.RoleType;
+import mx.uam.sapcyti.identity.domain.model.User;
+import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +44,7 @@ class UpdateStudentProgramUseCaseTest {
     @Mock private StudentRepositoryPort studentRepository;
     @Mock private StudentProgramRepositoryPort studentProgramRepository;
     @Mock private ProfessorRepositoryPort professorRepository;
+    @Mock private UserRepositoryPort userRepository;
     @Mock private GetStudentProgramUseCase getStudentProgramUseCase;
     @Mock private ResearchCatalogValidator researchCatalogValidator;
 
@@ -59,7 +65,7 @@ class UpdateStudentProgramUseCaseTest {
     @DisplayName("HU-20: assigns tutor to student program")
     void assignTutor() {
         stubStudentAndProgram();
-        when(professorRepository.existsByIdAndGraduateProgramId(10L, 1L)).thenReturn(true);
+        stubActiveProfessor(10L);
         when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(getStudentProgramUseCase.execute(50L, 100L)).thenReturn(sampleDetail(10L, List.of()));
 
@@ -77,8 +83,8 @@ class UpdateStudentProgramUseCaseTest {
     @DisplayName("HU-20: assigns multiple advisors")
     void assignAdvisors() {
         stubStudentAndProgram();
-        when(professorRepository.existsByIdAndGraduateProgramId(10L, 1L)).thenReturn(true);
-        when(professorRepository.existsByIdAndGraduateProgramId(11L, 1L)).thenReturn(true);
+        stubActiveProfessor(10L);
+        stubActiveProfessor(11L);
         when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(getStudentProgramUseCase.execute(50L, 100L)).thenReturn(sampleDetail(null, List.of(10L, 11L)));
 
@@ -130,7 +136,7 @@ class UpdateStudentProgramUseCaseTest {
     @DisplayName("HU-20: rejects non-existent tutor")
     void unknownTutor() {
         stubStudentAndProgram();
-        when(professorRepository.existsByIdAndGraduateProgramId(999L, 1L)).thenReturn(false);
+        when(professorRepository.findByIdAndGraduateProgramId(999L, 1L)).thenReturn(Optional.empty());
 
         UpdateStudentProgramCommand command = command(999L, List.of(), null, null, null, null, null);
 
@@ -142,7 +148,7 @@ class UpdateStudentProgramUseCaseTest {
     @DisplayName("HU-20: rejects non-existent advisor")
     void unknownAdvisor() {
         stubStudentAndProgram();
-        when(professorRepository.existsByIdAndGraduateProgramId(999L, 1L)).thenReturn(false);
+        when(professorRepository.findByIdAndGraduateProgramId(999L, 1L)).thenReturn(Optional.empty());
 
         UpdateStudentProgramCommand command = command(null, List.of(999L), null, null, null, null, null);
 
@@ -198,6 +204,17 @@ class UpdateStudentProgramUseCaseTest {
 
         assertThatThrownBy(() -> useCase.execute(command))
                 .isInstanceOf(StudentProgramNotFoundException.class);
+    }
+
+    private void stubActiveProfessor(Long professorId) {
+        Professor professor = internoProfessor("EMP" + professorId, professorId * 10, 1L,
+                new PersonalData("Prof", "Test", null, null, null, "5554820000", null));
+        ReflectionTestUtils.setField(professor, "id", professorId);
+        when(professorRepository.findByIdAndGraduateProgramId(professorId, 1L))
+                .thenReturn(Optional.of(professor));
+        User user = new User("prof" + professorId + "@uam.mx", "hash", RoleType.PROFESSOR, 1L);
+        ReflectionTestUtils.setField(user, "id", professorId * 10);
+        when(userRepository.findById(professorId * 10)).thenReturn(Optional.of(user));
     }
 
     private void stubStudentAndProgram() {

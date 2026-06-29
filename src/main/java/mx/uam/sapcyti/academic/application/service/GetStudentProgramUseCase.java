@@ -14,6 +14,8 @@ import mx.uam.sapcyti.academic.domain.model.StudentProgram;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
+import mx.uam.sapcyti.identity.domain.model.User;
+import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantAccessDeniedException;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ public class GetStudentProgramUseCase {
     private final StudentRepositoryPort studentRepository;
     private final StudentProgramRepositoryPort studentProgramRepository;
     private final ProfessorRepositoryPort professorRepository;
+    private final UserRepositoryPort userRepository;
 
     @Transactional(readOnly = true)
     public StudentProgramDetail execute(Long studentId, Long programId) {
@@ -36,7 +39,7 @@ public class GetStudentProgramUseCase {
                 .findByIdAndStudentIdAndGraduateProgramId(programId, studentId, graduateProgramId)
                 .orElseThrow(StudentProgramNotFoundException::new);
 
-        return StudentProgramDetail.from(program, graduateProgramId, professorRepository);
+        return StudentProgramDetail.from(program, graduateProgramId, professorRepository, userRepository);
     }
 
     private void assertStudentInTenant(Long studentId, Long graduateProgramId) {
@@ -57,15 +60,17 @@ public class GetStudentProgramUseCase {
             Long id,
             String firstName,
             String firstLastName,
-            String secondLastName) {
+            String secondLastName,
+            boolean active) {
 
-        static ProfessorReference from(Professor professor) {
+        static ProfessorReference from(Professor professor, User user) {
             PersonalData personalData = professor.getPersonalData();
             return new ProfessorReference(
                     professor.getId(),
                     personalData.getFirstName(),
                     personalData.getFirstLastName(),
-                    personalData.getSecondLastName());
+                    personalData.getSecondLastName(),
+                    user != null && user.isActive());
         }
     }
 
@@ -89,10 +94,13 @@ public class GetStudentProgramUseCase {
         static StudentProgramDetail from(
                 StudentProgram program,
                 Long graduateProgramId,
-                ProfessorRepositoryPort professorRepository) {
-            ProfessorReference tutor = resolveProfessor(program.getTutorId(), graduateProgramId, professorRepository);
+                ProfessorRepositoryPort professorRepository,
+                UserRepositoryPort userRepository) {
+            ProfessorReference tutor = resolveProfessor(
+                    program.getTutorId(), graduateProgramId, professorRepository, userRepository);
             List<Long> advisorIds = program.getAdvisorIds();
-            List<ProfessorReference> advisors = resolveProfessors(advisorIds, graduateProgramId, professorRepository);
+            List<ProfessorReference> advisors = resolveProfessors(
+                    advisorIds, graduateProgramId, professorRepository, userRepository);
 
             String lineOfKnowledge;
             String researchArea;
@@ -125,25 +133,33 @@ public class GetStudentProgramUseCase {
         private static ProfessorReference resolveProfessor(
                 Long professorId,
                 Long graduateProgramId,
-                ProfessorRepositoryPort professorRepository) {
+                ProfessorRepositoryPort professorRepository,
+                UserRepositoryPort userRepository) {
             if (professorId == null) {
                 return null;
             }
             return professorRepository.findById(professorId)
                     .filter(professor -> graduateProgramId.equals(professor.getGraduateProgramId()))
-                    .map(ProfessorReference::from)
+                    .map(professor -> {
+                        User user = userRepository.findById(professor.getUserId()).orElse(null);
+                        return ProfessorReference.from(professor, user);
+                    })
                     .orElse(null);
         }
 
         private static List<ProfessorReference> resolveProfessors(
                 List<Long> professorIds,
                 Long graduateProgramId,
-                ProfessorRepositoryPort professorRepository) {
+                ProfessorRepositoryPort professorRepository,
+                UserRepositoryPort userRepository) {
             List<ProfessorReference> references = new ArrayList<>();
             for (Long professorId : professorIds) {
                 professorRepository.findById(professorId)
                         .filter(professor -> graduateProgramId.equals(professor.getGraduateProgramId()))
-                        .map(ProfessorReference::from)
+                        .map(professor -> {
+                            User user = userRepository.findById(professor.getUserId()).orElse(null);
+                            return ProfessorReference.from(professor, user);
+                        })
                         .ifPresent(references::add);
             }
             return references;

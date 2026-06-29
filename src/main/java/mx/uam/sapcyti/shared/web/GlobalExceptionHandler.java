@@ -15,6 +15,8 @@ import mx.uam.sapcyti.academic.domain.exception.DuplicateEmployeeNumberException
 import mx.uam.sapcyti.academic.domain.exception.DuplicateEnrollmentIdException;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateProfessorEmailException;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateStudentEmailException;
+import mx.uam.sapcyti.academic.domain.exception.ProfessorAlreadyInactiveException;
+import mx.uam.sapcyti.academic.domain.exception.ProfessorHasActiveAssignmentsException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentProgramNotFoundException;
@@ -140,6 +142,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.NOT_FOUND)
             .body(new ErrorResponse("NOT_FOUND", ProfessorNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(ProfessorAlreadyInactiveException.class)
+    public ResponseEntity<ErrorResponse> handleProfessorAlreadyInactive(
+            ProfessorAlreadyInactiveException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("CONFLICT", ProfessorAlreadyInactiveException.MESSAGE));
+    }
+
+    @ExceptionHandler(ProfessorHasActiveAssignmentsException.class)
+    public ResponseEntity<ErrorResponse> handleProfessorHasActiveAssignments(
+            ProfessorHasActiveAssignmentsException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse("CONFLICT", ProfessorHasActiveAssignmentsException.MESSAGE));
     }
 
     @ExceptionHandler(StudentNotFoundException.class)
