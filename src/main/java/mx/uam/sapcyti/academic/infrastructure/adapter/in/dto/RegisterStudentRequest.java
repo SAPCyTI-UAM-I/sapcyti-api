@@ -30,6 +30,14 @@ public class RegisterStudentRequest {
 
     private Long advisorId;
 
+    private java.util.List<Long> advisorIds;
+
+    private Long tutorId;
+
+    private String lineOfKnowledge;
+
+    private String researchArea;
+
     @NotBlank(message = "First name is required")
     private String firstName;
 

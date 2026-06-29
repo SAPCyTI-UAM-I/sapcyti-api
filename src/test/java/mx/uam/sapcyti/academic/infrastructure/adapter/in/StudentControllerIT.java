@@ -3,6 +3,7 @@ package mx.uam.sapcyti.academic.infrastructure.adapter.in;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +15,7 @@ import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterStudentRequest;
+import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.UpdateStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataStudentRepository;
 import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
@@ -292,7 +294,7 @@ class StudentControllerIT {
     }
 
     @Test
-    @DisplayName("GET by id returns student without generatedPassword")
+    @DisplayName("GET by id returns unified detail with embedded program")
     void getById() throws Exception {
         MvcResult created = mockMvc.perform(post("/api/students")
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -311,7 +313,84 @@ class StudentControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enrollmentId").value("2123803361"))
-                .andExpect(jsonPath("$.generatedPassword").doesNotExist());
+                .andExpect(jsonPath("$.generatedPassword").doesNotExist())
+                .andExpect(jsonPath("$.program.id").isNumber())
+                .andExpect(jsonPath("$.program.enrollmentId").value("2123803361"));
+    }
+
+    @Test
+    @DisplayName("PUT updates student personal data")
+    void updateStudent() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long studentId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        UpdateStudentRequest updateRequest = new UpdateStudentRequest(
+                "Paulina",
+                "Valencia Franco",
+                "Franco",
+                "paulina.updated@uam.mx",
+                "Mexicana",
+                LocalDate.of(1998, 3, 15),
+                "5559998877",
+                "4321",
+                "Ingeniería en Computación",
+                "Licenciatura en Computación",
+                ProgramType.MAESTRIA,
+                LocalDate.of(2023, 9, 1),
+                true);
+
+        mockMvc.perform(put("/api/students/{id}", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("paulina.updated@uam.mx"))
+                .andExpect(jsonPath("$.firstLastName").value("Valencia Franco"))
+                .andExpect(jsonPath("$.enrollmentId").value("2123803361"));
+    }
+
+    @Test
+    @DisplayName("PUT duplicate email returns 409")
+    void updateDuplicateEmail() throws Exception {
+        userRepository.save(new User("existing@uam.mx", "hash", RoleType.STUDENT, programId));
+
+        MvcResult created = mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequestBuilder()
+                                .email("student.to.update@uam.mx")
+                                .build())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long studentId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        UpdateStudentRequest updateRequest = new UpdateStudentRequest(
+                "Paulina", "Valencia", "Franco", "existing@uam.mx", "Mexicana",
+                LocalDate.of(1998, 3, 15), "5554821234", null,
+                "Computación", "Licenciatura en Computación",
+                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), true);
+
+        mockMvc.perform(put("/api/students/{id}", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("A user with this email already exists"));
     }
 
     @Test

@@ -87,4 +87,9 @@ public class Student {
     public AcademicInformation getAcademicInformation() {
         return academicInformation;
     }
+
+    public void updateProfile(PersonalData personalData, AcademicInformation academicInformation) {
+        this.personalData = personalData;
+        this.academicInformation = academicInformation;
+    }
 }

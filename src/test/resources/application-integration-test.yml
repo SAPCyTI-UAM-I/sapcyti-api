@@ -6,6 +6,11 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:integration-test/data.sql
   flyway:
     enabled: false
   mail:

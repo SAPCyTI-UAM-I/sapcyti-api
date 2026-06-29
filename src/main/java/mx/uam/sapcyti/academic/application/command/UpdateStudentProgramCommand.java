@@ -12,6 +12,7 @@ public record UpdateStudentProgramCommand(
         Long programId,
         LocalDate admissionDate,
         LocalDate graduationDate,
+        String lineOfKnowledge,
         String researchArea,
         ProgramStatus status,
         String withdrawalReason,

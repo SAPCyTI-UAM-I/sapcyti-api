@@ -93,6 +93,23 @@ class GetStudentProgramUseCaseTest {
     }
 
     @Test
+    @DisplayName("HU-44: legacy free-text research area maps to unclassified on read")
+    void legacyUnclassified() {
+        Student student = sampleStudent(50L);
+        StudentProgram program = sampleProgram(100L, 50L);
+        ReflectionTestUtils.setField(program, "researchArea", "Machine Learning aplicado");
+
+        when(studentRepository.findById(50L)).thenReturn(Optional.of(student));
+        when(studentProgramRepository.findByIdAndStudentIdAndGraduateProgramId(100L, 50L, 1L))
+                .thenReturn(Optional.of(program));
+
+        GetStudentProgramUseCase.StudentProgramDetail detail = useCase.execute(50L, 100L);
+
+        assertThat(detail.lineOfKnowledge()).isEqualTo(StudentProgram.UNCLASSIFIED);
+        assertThat(detail.researchArea()).isEqualTo(StudentProgram.UNCLASSIFIED);
+    }
+
+    @Test
     @DisplayName("HU-19: non-existent program returns not found")
     void programNotFound() {
         when(studentRepository.findById(50L)).thenReturn(Optional.of(sampleStudent(50L)));
