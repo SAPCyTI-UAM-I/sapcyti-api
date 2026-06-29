@@ -1,4 +1,4 @@
 /**
- * Academic Offering (BC-03) — terms, offers, CSV ACL; placeholder for Iteration 5.
+ * Academic Offering (BC-03) — UEA catalog, terms, offers, CSV ACL.
  */
 package mx.uam.sapcyti.offering;

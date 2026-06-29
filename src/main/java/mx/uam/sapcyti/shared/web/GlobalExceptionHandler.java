@@ -20,6 +20,9 @@ import mx.uam.sapcyti.academic.domain.exception.ProfessorHasActiveAssignmentsExc
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentProgramNotFoundException;
+import mx.uam.sapcyti.offering.domain.exception.ClaveInvalidFormatException;
+import mx.uam.sapcyti.offering.domain.exception.FileFormatInvalidException;
+import mx.uam.sapcyti.offering.domain.exception.UeaAlreadyExistsException;
 import mx.uam.sapcyti.configuration.domain.exception.ConfigurationParameterNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.DuplicateGraduateProgramNameException;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
@@ -72,6 +75,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.BAD_REQUEST)
             .body(new ErrorResponse("VALIDATION_ERROR", ex.getMessage()));
+    }
+
+    @ExceptionHandler(UeaAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleUeaAlreadyExists(UeaAlreadyExistsException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(UeaAlreadyExistsException.ERROR_CODE, UeaAlreadyExistsException.MESSAGE));
+    }
+
+    @ExceptionHandler(ClaveInvalidFormatException.class)
+    public ResponseEntity<ErrorResponse> handleClaveInvalidFormat(ClaveInvalidFormatException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse(ClaveInvalidFormatException.ERROR_CODE, ClaveInvalidFormatException.MESSAGE));
+    }
+
+    @ExceptionHandler(FileFormatInvalidException.class)
+    public ResponseEntity<ErrorResponse> handleFileFormatInvalid(FileFormatInvalidException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse(FileFormatInvalidException.ERROR_CODE, FileFormatInvalidException.MESSAGE));
     }
 
     @ExceptionHandler(GraduateProgramNotFoundException.class)
