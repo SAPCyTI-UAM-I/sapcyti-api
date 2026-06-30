@@ -28,6 +28,10 @@ public record StudentResponse(
         Long userId,
         @Schema(description = "Whether the student account is active.", accessMode = Schema.AccessMode.READ_ONLY)
         boolean active,
+        Long tutorId,
+        java.util.List<Long> advisorIds,
+        String lineOfKnowledge,
+        String researchArea,
         @Schema(
                 description = "One-time server-generated temporary password. Present only in the registration (create) "
                         + "response; null on list/get.",

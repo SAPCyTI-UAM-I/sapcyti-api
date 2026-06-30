@@ -159,7 +159,8 @@ class StudentProgramControllerIT {
         UpdateStudentProgramRequest request = new UpdateStudentProgramRequest(
                 LocalDate.of(2023, 9, 1),
                 null,
-                "Inteligencia Artificial",
+                "Ciencias e Ingeniería de la Computación",
+                "Inteligencia artificial",
                 ProgramStatus.ACTIVO,
                 null,
                 tutorId,
@@ -174,7 +175,8 @@ class StudentProgramControllerIT {
                 .andExpect(jsonPath("$.tutorId").value(tutorId.intValue()))
                 .andExpect(jsonPath("$.tutor.firstName").value("Humberto"))
                 .andExpect(jsonPath("$.advisorIds[0]").value(advisorId.intValue()))
-                .andExpect(jsonPath("$.researchArea").value("Inteligencia Artificial"));
+                .andExpect(jsonPath("$.researchArea").value("Inteligencia artificial"))
+                .andExpect(jsonPath("$.lineOfKnowledge").value("Ciencias e Ingeniería de la Computación"));
     }
 
     @Test
@@ -240,6 +242,7 @@ class StudentProgramControllerIT {
     private UpdateStudentProgramRequest sampleUpdateRequest(Long tutorId, List<Long> advisorIds) {
         return new UpdateStudentProgramRequest(
                 LocalDate.of(2023, 9, 1),
+                null,
                 null,
                 null,
                 ProgramStatus.ACTIVO,

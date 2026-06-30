@@ -56,7 +56,7 @@ class StudentProgramAuditAspectTest {
         GetStudentProgramUseCase.StudentProgramDetail detail =
                 new GetStudentProgramUseCase.StudentProgramDetail(
                         100L, 50L, 1L, "2123803361", ProgramType.MAESTRIA,
-                        LocalDate.of(2023, 9, 1), null, null, ProgramStatus.ACTIVO, null,
+                        LocalDate.of(2023, 9, 1), null, null, null, ProgramStatus.ACTIVO, null,
                         10L, null, List.of(11L), List.of());
 
         aspect.auditStudentProgramUpdated(detail);

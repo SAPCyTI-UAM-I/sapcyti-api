@@ -77,6 +77,7 @@ public class GetStudentProgramUseCase {
             ProgramType programType,
             LocalDate admissionDate,
             LocalDate graduationDate,
+            String lineOfKnowledge,
             String researchArea,
             ProgramStatus status,
             String withdrawalReason,
@@ -93,6 +94,16 @@ public class GetStudentProgramUseCase {
             List<Long> advisorIds = program.getAdvisorIds();
             List<ProfessorReference> advisors = resolveProfessors(advisorIds, graduateProgramId, professorRepository);
 
+            String lineOfKnowledge;
+            String researchArea;
+            if (program.isResearchUnclassified()) {
+                lineOfKnowledge = StudentProgram.UNCLASSIFIED;
+                researchArea = StudentProgram.UNCLASSIFIED;
+            } else {
+                lineOfKnowledge = program.getLineOfKnowledge();
+                researchArea = program.getResearchArea();
+            }
+
             return new StudentProgramDetail(
                     program.getId(),
                     program.getStudentId(),
@@ -101,7 +112,8 @@ public class GetStudentProgramUseCase {
                     program.getProgramType(),
                     program.getAdmissionDate(),
                     program.getGraduationDate(),
-                    program.getResearchArea(),
+                    lineOfKnowledge,
+                    researchArea,
                     program.getStatus(),
                     program.getWithdrawalReason(),
                     program.getTutorId(),

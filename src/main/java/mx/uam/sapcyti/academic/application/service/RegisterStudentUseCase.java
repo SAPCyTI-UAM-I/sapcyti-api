@@ -1,5 +1,7 @@
 package mx.uam.sapcyti.academic.application.service;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
@@ -15,6 +17,7 @@ import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.PasswordGenerationService;
+import mx.uam.sapcyti.academic.domain.service.ResearchCatalogValidator;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
 import mx.uam.sapcyti.configuration.domain.port.out.GraduateProgramRepositoryPort;
 import mx.uam.sapcyti.identity.domain.model.RoleType;
@@ -37,12 +40,23 @@ public class RegisterStudentUseCase {
     private final ProfessorRepositoryPort professorRepository;
     private final PasswordGenerationService passwordGenerationService;
     private final PasswordEncoderPort passwordEncoder;
+    private final ResearchCatalogValidator researchCatalogValidator;
 
     @Transactional
     public RegisterStudentResult execute(RegisterStudentCommand command) {
         assertTenant(command.graduateProgramId());
         assertProgramExists(command.graduateProgramId());
-        assertAdvisorExists(command.advisorId(), command.graduateProgramId());
+
+        List<Long> advisorIds = resolveAdvisorIds(command);
+        StudentProgram.validateUniqueAdvisorIds(advisorIds);
+        assertProfessorExists(command.tutorId(), command.graduateProgramId());
+        for (Long advisorId : advisorIds) {
+            assertProfessorExists(advisorId, command.graduateProgramId());
+        }
+        researchCatalogValidator.validate(command.lineOfKnowledge(), command.researchArea());
+
+        Long legacyAdvisorId = advisorIds.isEmpty() ? command.advisorId() : advisorIds.getFirst();
+        assertAdvisorExists(legacyAdvisorId, command.graduateProgramId());
 
         String normalizedEmail = command.email().trim().toLowerCase();
         if (userRepository.existsByEmail(normalizedEmail)) {
@@ -79,7 +93,7 @@ public class RegisterStudentUseCase {
                 command.enrollmentId().trim(),
                 user.getId(),
                 command.graduateProgramId(),
-                command.advisorId(),
+                legacyAdvisorId,
                 personalData,
                 academicInformation);
         student = studentRepository.save(student);
@@ -90,7 +104,16 @@ public class RegisterStudentUseCase {
                 student.getEnrollmentId(),
                 academicInformation.getProgramType(),
                 academicInformation.getAdmissionDate(),
-                command.advisorId());
+                null);
+        program.updateMetadata(
+                academicInformation.getAdmissionDate(),
+                null,
+                blankToNull(command.lineOfKnowledge()),
+                blankToNull(command.researchArea()),
+                mx.uam.sapcyti.academic.domain.model.ProgramStatus.ACTIVO,
+                null,
+                command.tutorId());
+        program.replaceAdvisors(advisorIds);
         studentProgramRepository.save(program);
 
         return RegisterStudentResult.builder()
@@ -109,7 +132,11 @@ public class RegisterStudentUseCase {
                 .lastDegreeObtained(academicInformation.getLastDegreeObtained())
                 .programType(academicInformation.getProgramType())
                 .admissionDate(academicInformation.getAdmissionDate())
-                .advisorId(student.getAdvisorId())
+                .advisorId(legacyAdvisorId)
+                .lineOfKnowledge(blankToNull(command.lineOfKnowledge()))
+                .researchArea(blankToNull(command.researchArea()))
+                .tutorId(command.tutorId())
+                .advisorIds(advisorIds.isEmpty() ? null : advisorIds)
                 .graduateProgramId(student.getGraduateProgramId())
                 .generatedPassword(plaintextPassword)
                 .build();
@@ -125,6 +152,25 @@ public class RegisterStudentUseCase {
     private void assertProgramExists(Long graduateProgramId) {
         if (programRepository.findById(graduateProgramId).isEmpty()) {
             throw new GraduateProgramNotFoundException(graduateProgramId);
+        }
+    }
+
+    private static List<Long> resolveAdvisorIds(RegisterStudentCommand command) {
+        if (command.advisorIds() != null && !command.advisorIds().isEmpty()) {
+            return command.advisorIds();
+        }
+        if (command.advisorId() != null) {
+            return List.of(command.advisorId());
+        }
+        return List.of();
+    }
+
+    private void assertProfessorExists(Long professorId, Long graduateProgramId) {
+        if (professorId == null) {
+            return;
+        }
+        if (!professorRepository.existsByIdAndGraduateProgramId(professorId, graduateProgramId)) {
+            throw new ProfessorNotFoundException();
         }
     }
 
@@ -163,6 +209,10 @@ public class RegisterStudentUseCase {
         mx.uam.sapcyti.academic.domain.model.ProgramType programType;
         java.time.LocalDate admissionDate;
         Long advisorId;
+        Long tutorId;
+        String lineOfKnowledge;
+        String researchArea;
+        java.util.List<Long> advisorIds;
         Long graduateProgramId;
         String generatedPassword;
     }

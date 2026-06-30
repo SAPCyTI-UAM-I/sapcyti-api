@@ -20,6 +20,7 @@ import mx.uam.sapcyti.academic.domain.model.StudentProgram;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
+import mx.uam.sapcyti.academic.domain.service.ResearchCatalogValidator;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,7 @@ class UpdateStudentProgramUseCaseTest {
     @Mock private StudentProgramRepositoryPort studentProgramRepository;
     @Mock private ProfessorRepositoryPort professorRepository;
     @Mock private GetStudentProgramUseCase getStudentProgramUseCase;
+    @Mock private ResearchCatalogValidator researchCatalogValidator;
 
     @InjectMocks
     private UpdateStudentProgramUseCase useCase;
@@ -222,6 +224,7 @@ class UpdateStudentProgramUseCaseTest {
                 admissionDate != null ? admissionDate : LocalDate.of(2023, 9, 1),
                 graduationDate,
                 null,
+                null,
                 status != null ? status : ProgramStatus.ACTIVO,
                 withdrawalReason,
                 tutorId,
@@ -248,7 +251,7 @@ class UpdateStudentProgramUseCaseTest {
     private static GetStudentProgramUseCase.StudentProgramDetail sampleDetail(Long tutorId, List<Long> advisorIds) {
         return new GetStudentProgramUseCase.StudentProgramDetail(
                 100L, 50L, 1L, "2123803361", ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1), null, null, ProgramStatus.ACTIVO, null,
+                LocalDate.of(2023, 9, 1), null, null, null, ProgramStatus.ACTIVO, null,
                 tutorId, null, advisorIds, List.of());
     }
 }

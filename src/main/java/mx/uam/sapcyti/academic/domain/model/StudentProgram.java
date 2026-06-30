@@ -27,6 +27,8 @@ import java.util.Set;
 })
 public class StudentProgram {
 
+    public static final String UNCLASSIFIED = "Sin clasificar";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -49,6 +51,9 @@ public class StudentProgram {
 
     @Column(name = "graduation_date")
     private LocalDate graduationDate;
+
+    @Column(name = "line_of_knowledge", length = 200)
+    private String lineOfKnowledge;
 
     @Column(name = "research_area", length = 200)
     private String researchArea;
@@ -134,8 +139,16 @@ public class StudentProgram {
         return graduationDate;
     }
 
+    public String getLineOfKnowledge() {
+        return lineOfKnowledge;
+    }
+
     public String getResearchArea() {
         return researchArea;
+    }
+
+    public boolean isResearchUnclassified() {
+        return lineOfKnowledge == null && researchArea != null && !researchArea.isBlank();
     }
 
     public ProgramStatus getStatus() {
@@ -157,12 +170,14 @@ public class StudentProgram {
     public void updateMetadata(
             LocalDate admissionDate,
             LocalDate graduationDate,
+            String lineOfKnowledge,
             String researchArea,
             ProgramStatus status,
             String withdrawalReason,
             Long tutorId) {
         this.admissionDate = admissionDate;
         this.graduationDate = graduationDate;
+        this.lineOfKnowledge = lineOfKnowledge;
         this.researchArea = researchArea;
         this.status = status;
         this.withdrawalReason = withdrawalReason;

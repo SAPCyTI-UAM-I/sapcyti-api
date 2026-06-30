@@ -23,6 +23,7 @@ import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
 import mx.uam.sapcyti.academic.domain.service.PasswordGenerationService;
+import mx.uam.sapcyti.academic.domain.service.ResearchCatalogValidator;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
 import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
 import mx.uam.sapcyti.configuration.domain.port.out.GraduateProgramRepositoryPort;
@@ -52,6 +53,7 @@ class RegisterStudentUseCaseTest {
     @Mock private ProfessorRepositoryPort professorRepository;
     @Mock private PasswordGenerationService passwordGenerationService;
     @Mock private PasswordEncoderPort passwordEncoder;
+    @Mock private ResearchCatalogValidator researchCatalogValidator;
 
     private RegisterStudentUseCase useCase;
 
@@ -64,7 +66,8 @@ class RegisterStudentUseCaseTest {
                 studentProgramRepository,
                 professorRepository,
                 passwordGenerationService,
-                passwordEncoder);
+                passwordEncoder,
+                researchCatalogValidator);
         TenantContext.set(1L);
     }
 
@@ -152,22 +155,7 @@ class RegisterStudentUseCaseTest {
     @Test
     @DisplayName("rejects tenant mismatch")
     void tenantMismatch() {
-        RegisterStudentCommand command = new RegisterStudentCommand(
-                "2123803361",
-                "paulina.valencia@uam.mx",
-                99L,
-                10L,
-                "Paulina",
-                "Valencia",
-                "Franco",
-                "Mexicana",
-                LocalDate.of(1998, 3, 15),
-                "5554821234",
-                "1234",
-                "Computación",
-                "Licenciatura en Computación",
-                ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1));
+        RegisterStudentCommand command = sampleCommandBuilder().graduateProgramId(99L).build();
 
         assertThatThrownBy(() -> useCase.execute(command))
                 .isInstanceOf(TenantAccessDeniedException.class);
@@ -176,22 +164,7 @@ class RegisterStudentUseCaseTest {
     @Test
     @DisplayName("allows registration without advisor")
     void withoutAdvisor() {
-        RegisterStudentCommand command = new RegisterStudentCommand(
-                "2123803361",
-                "paulina.valencia@uam.mx",
-                1L,
-                null,
-                "Paulina",
-                "Valencia",
-                "Franco",
-                "Mexicana",
-                LocalDate.of(1998, 3, 15),
-                "5554821234",
-                null,
-                "Computación",
-                "Licenciatura en Computación",
-                ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1));
+        RegisterStudentCommand command = sampleCommandBuilder().advisorId(null).phoneExtension(null).build();
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
         when(userRepository.existsByEmail("paulina.valencia@uam.mx")).thenReturn(false);
         when(studentRepository.existsByEnrollmentId("2123803361")).thenReturn(false);
@@ -219,22 +192,10 @@ class RegisterStudentUseCaseTest {
     @Test
     @DisplayName("allows registration without secondLastName")
     void withoutSecondLastName() {
-        RegisterStudentCommand command = new RegisterStudentCommand(
-                "2123803361",
-                "paulina.valencia@uam.mx",
-                1L,
-                null,
-                "Paulina",
-                "Valencia",
-                null,
-                "Mexicana",
-                LocalDate.of(1998, 3, 15),
-                "5554821234",
-                null,
-                "Computación",
-                "Licenciatura en Computación",
-                ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1));
+        RegisterStudentCommand command = sampleCommandBuilder()
+                .advisorId(null)
+                .secondLastName(null)
+                .build();
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
         when(userRepository.existsByEmail("paulina.valencia@uam.mx")).thenReturn(false);
         when(studentRepository.existsByEnrollmentId("2123803361")).thenReturn(false);
@@ -266,22 +227,7 @@ class RegisterStudentUseCaseTest {
     @Test
     @DisplayName("allows registration without phoneExtension")
     void withoutPhoneExtension() {
-        RegisterStudentCommand command = new RegisterStudentCommand(
-                "2123803361",
-                "paulina.valencia@uam.mx",
-                1L,
-                null,
-                "Paulina",
-                "Valencia",
-                "Franco",
-                "Mexicana",
-                LocalDate.of(1998, 3, 15),
-                "5554821234",
-                null,
-                "Computación",
-                "Licenciatura en Computación",
-                ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1));
+        RegisterStudentCommand command = sampleCommandBuilder().advisorId(null).phoneExtension(null).build();
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
         when(userRepository.existsByEmail("paulina.valencia@uam.mx")).thenReturn(false);
         when(studentRepository.existsByEnrollmentId("2123803361")).thenReturn(false);
@@ -306,21 +252,71 @@ class RegisterStudentUseCaseTest {
     }
 
     private static RegisterStudentCommand sampleCommand() {
-        return new RegisterStudentCommand(
-                "2123803361",
-                "paulina.valencia@uam.mx",
-                1L,
-                10L,
-                "Paulina",
-                "Valencia",
-                "Franco",
-                "Mexicana",
-                LocalDate.of(1998, 3, 15),
-                "5554821234",
-                "1234",
-                "Computación",
-                "Licenciatura en Computación",
-                ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1));
+        return sampleCommandBuilder().build();
+    }
+
+    private static RegisterStudentCommandBuilder sampleCommandBuilder() {
+        return new RegisterStudentCommandBuilder();
+    }
+
+    private static final class RegisterStudentCommandBuilder {
+        private Long graduateProgramId = 1L;
+        private Long advisorId = 10L;
+        private String enrollmentId = "2123803361";
+        private String email = "paulina.valencia@uam.mx";
+        private String firstName = "Paulina";
+        private String firstLastName = "Valencia";
+        private String secondLastName = "Franco";
+        private String nationality = "Mexicana";
+        private LocalDate birthDate = LocalDate.of(1998, 3, 15);
+        private String phone = "5554821234";
+        private String phoneExtension = "1234";
+        private String undergraduateDegree = "Computación";
+        private String lastDegreeObtained = "Licenciatura en Computación";
+        private ProgramType programType = ProgramType.MAESTRIA;
+        private LocalDate admissionDate = LocalDate.of(2023, 9, 1);
+
+        RegisterStudentCommandBuilder graduateProgramId(Long value) {
+            this.graduateProgramId = value;
+            return this;
+        }
+
+        RegisterStudentCommandBuilder advisorId(Long value) {
+            this.advisorId = value;
+            return this;
+        }
+
+        RegisterStudentCommandBuilder secondLastName(String value) {
+            this.secondLastName = value;
+            return this;
+        }
+
+        RegisterStudentCommandBuilder phoneExtension(String value) {
+            this.phoneExtension = value;
+            return this;
+        }
+
+        RegisterStudentCommand build() {
+            return new RegisterStudentCommand(
+                    enrollmentId,
+                    email,
+                    graduateProgramId,
+                    advisorId,
+                    null,
+                    null,
+                    null,
+                    null,
+                    firstName,
+                    firstLastName,
+                    secondLastName,
+                    nationality,
+                    birthDate,
+                    phone,
+                    phoneExtension,
+                    undergraduateDegree,
+                    lastDegreeObtained,
+                    programType,
+                    admissionDate);
+        }
     }
 }

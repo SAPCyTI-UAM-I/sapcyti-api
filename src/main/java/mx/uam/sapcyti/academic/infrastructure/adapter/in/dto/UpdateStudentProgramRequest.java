@@ -18,7 +18,9 @@ public record UpdateStudentProgramRequest(
         @NotNull LocalDate admissionDate,
         @Schema(description = "Expected or actual graduation date. Must be on or after admissionDate.", example = "2026-07-15")
         LocalDate graduationDate,
-        @Schema(description = "Research area or thesis topic.", example = "Inteligencia Artificial", maxLength = 200)
+        @Schema(description = "Line of knowledge from HU-44 catalog.", example = "Ciencias e Ingeniería de la Computación", maxLength = 200)
+        @Size(max = 200) String lineOfKnowledge,
+        @Schema(description = "Research area from HU-44 catalog.", example = "Inteligencia artificial", maxLength = 200)
         @Size(max = 200) String researchArea,
         @Schema(description = "Program lifecycle status.", example = "ACTIVO")
         @NotNull ProgramStatus status,
