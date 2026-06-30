@@ -12,4 +12,6 @@ public interface StudentProgramRepositoryPort {
             Long id, Long studentId, Long graduateProgramId);
 
     StudentProgram save(StudentProgram program);
+
+    boolean hasActiveAssignmentAsTutorOrAdvisor(Long professorId);
 }

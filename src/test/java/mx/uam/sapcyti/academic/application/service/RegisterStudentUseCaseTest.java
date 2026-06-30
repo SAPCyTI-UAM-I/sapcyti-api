@@ -1,5 +1,6 @@
 package mx.uam.sapcyti.academic.application.service;
 
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.sampleAcademicInformation;
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.studentPersonalData;
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.studentPersonalDataWithoutExtension;
@@ -16,6 +17,7 @@ import mx.uam.sapcyti.academic.domain.exception.DuplicateEnrollmentIdException;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateStudentEmailException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
+import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
 import mx.uam.sapcyti.academic.domain.model.StudentProgram;
@@ -81,7 +83,7 @@ class RegisterStudentUseCaseTest {
     void happyPath() {
         RegisterStudentCommand command = sampleCommand();
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
-        when(professorRepository.existsByIdAndGraduateProgramId(10L, 1L)).thenReturn(true);
+        stubActiveProfessor(10L);
         when(userRepository.existsByEmail("paulina.valencia@uam.mx")).thenReturn(false);
         when(studentRepository.existsByEnrollmentId("2123803361")).thenReturn(false);
         when(passwordGenerationService.generatePassword()).thenReturn("Kx9#mP2vLq4!");
@@ -114,7 +116,7 @@ class RegisterStudentUseCaseTest {
     @DisplayName("rejects duplicate email")
     void duplicateEmail() {
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
-        when(professorRepository.existsByIdAndGraduateProgramId(10L, 1L)).thenReturn(true);
+        stubActiveProfessor(10L);
         when(userRepository.existsByEmail("paulina.valencia@uam.mx")).thenReturn(true);
 
         assertThatThrownBy(() -> useCase.execute(sampleCommand()))
@@ -125,7 +127,7 @@ class RegisterStudentUseCaseTest {
     @DisplayName("rejects duplicate enrollment id")
     void duplicateEnrollmentId() {
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
-        when(professorRepository.existsByIdAndGraduateProgramId(10L, 1L)).thenReturn(true);
+        stubActiveProfessor(10L);
         when(userRepository.existsByEmail("paulina.valencia@uam.mx")).thenReturn(false);
         when(studentRepository.existsByEnrollmentId("2123803361")).thenReturn(true);
 
@@ -146,7 +148,7 @@ class RegisterStudentUseCaseTest {
     @DisplayName("rejects non-existent advisor")
     void unknownAdvisor() {
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
-        when(professorRepository.existsByIdAndGraduateProgramId(10L, 1L)).thenReturn(false);
+        when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.execute(sampleCommand()))
                 .isInstanceOf(ProfessorNotFoundException.class);
@@ -249,6 +251,17 @@ class RegisterStudentUseCaseTest {
 
         assertThat(result.getPhoneExtension()).isNull();
         assertThat(studentCaptor.getValue().getPersonalData().getPhoneExtension()).isNull();
+    }
+
+    private void stubActiveProfessor(Long professorId) {
+        Professor professor = internoProfessor("EMP" + professorId, professorId * 10, 1L,
+                new PersonalData("Prof", "Test", null, null, null, "5554820000", null));
+        ReflectionTestUtils.setField(professor, "id", professorId);
+        when(professorRepository.findByIdAndGraduateProgramId(professorId, 1L))
+                .thenReturn(Optional.of(professor));
+        User user = new User("prof" + professorId + "@uam.mx", "hash", RoleType.PROFESSOR, 1L);
+        ReflectionTestUtils.setField(user, "id", professorId * 10);
+        when(userRepository.findById(professorId * 10)).thenReturn(Optional.of(user));
     }
 
     private static RegisterStudentCommand sampleCommand() {

@@ -3,6 +3,7 @@ package mx.uam.sapcyti.academic.infrastructure.adapter.in;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -13,7 +14,9 @@ import java.time.LocalDate;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
+import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterProfessorRequest;
+import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.UpdateProfessorRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
 import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
 import mx.uam.sapcyti.configuration.infrastructure.adapter.out.GraduateProgramJpaAdapter;
@@ -90,6 +93,7 @@ class ProfessorControllerIT {
                 .andExpect(header().string("Location", org.hamcrest.Matchers.containsString("/api/professors/")))
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.employeeNumber").value("30568"))
+                .andExpect(jsonPath("$.professorType").value("INTERNO"))
                 .andExpect(jsonPath("$.email").value("humberto.cervantes@uam.mx"))
                 .andExpect(jsonPath("$.commissionMember").value(true))
                 .andExpect(jsonPath("$.userId").isNumber())
@@ -185,9 +189,12 @@ class ProfessorControllerIT {
     @Test
     @DisplayName("duplicate employee number returns 409")
     void duplicateEmployeeNumber() throws Exception {
+        User existingUser = userRepository.save(new User(
+                "existing.prof@uam.mx", "hash", RoleType.PROFESSOR, programId));
         professorRepository.save(new Professor(
+                ProfessorType.INTERNO,
                 "30568",
-                999L,
+                existingUser.getId(),
                 programId,
                 new PersonalData("Existing", "Professor", null, null, null, "5554820000", null),
                 new ProfessorInformation(false, null, null)));
@@ -205,10 +212,11 @@ class ProfessorControllerIT {
     }
 
     @Test
-    @DisplayName("missing employee number returns 400")
-    void missingRequiredField() throws Exception {
+    @DisplayName("missing employee number for interno returns 400")
+    void missingEmployeeNumberForInterno() throws Exception {
         RegisterProfessorRequest request = sampleRequestBuilder()
-                .employeeNumber("")
+                .professorType(ProfessorType.INTERNO)
+                .employeeNumber(null)
                 .build();
 
         mockMvc.perform(post("/api/professors")
@@ -217,7 +225,72 @@ class ProfessorControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+                .andExpect(jsonPath("$.message").value("Employee number is required for internal professors"));
+    }
+
+    @Test
+    @DisplayName("PUT updates professor fields")
+    void updateProfessor() throws Exception {
+        Long professorId = createProfessor();
+
+        UpdateProfessorRequest update = UpdateProfessorRequest.builder()
+                .professorType(ProfessorType.INTERNO)
+                .employeeNumber("30568")
+                .email("humberto.nuevo@uam.mx")
+                .firstName("Humberto Gustavo")
+                .firstLastName("Cervantes")
+                .secondLastName("Maceda")
+                .phone("5559998877")
+                .phoneExtension("1234")
+                .commissionMember(false)
+                .nextSabbaticalStart(LocalDate.of(2028, 1, 1))
+                .nextSabbaticalEnd(LocalDate.of(2028, 6, 30))
+                .build();
+
+        mockMvc.perform(put("/api/professors/{id}", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("humberto.nuevo@uam.mx"))
+                .andExpect(jsonPath("$.commissionMember").value(false));
+    }
+
+    @Test
+    @DisplayName("PUT deactivate sets active false")
+    void deactivateProfessor() throws Exception {
+        Long professorId = createProfessor();
+
+        mockMvc.perform(put("/api/professors/{id}/deactivate", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+
+        mockMvc.perform(get("/api/professors")
+                        .param("active", "true")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    @DisplayName("deactivate already inactive professor returns 409")
+    void deactivateAlreadyInactive() throws Exception {
+        Long professorId = createProfessor();
+
+        mockMvc.perform(put("/api/professors/{id}/deactivate", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/professors/{id}/deactivate", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Professor is already inactive"));
     }
 
     @Test
@@ -284,6 +357,7 @@ class ProfessorControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.employeeNumber").value("30568"))
+                .andExpect(jsonPath("$.professorType").value("INTERNO"))
                 .andExpect(jsonPath("$.generatedPassword").doesNotExist());
     }
 
@@ -325,6 +399,7 @@ class ProfessorControllerIT {
 
     private RegisterProfessorRequest.RegisterProfessorRequestBuilder sampleRequestBuilder() {
         return RegisterProfessorRequest.builder()
+                .professorType(ProfessorType.INTERNO)
                 .employeeNumber("30568")
                 .email("humberto.cervantes@uam.mx")
                 .graduateProgramId(programId)
@@ -336,6 +411,17 @@ class ProfessorControllerIT {
                 .commissionMember(true)
                 .nextSabbaticalStart(LocalDate.of(2027, 1, 15))
                 .nextSabbaticalEnd(LocalDate.of(2027, 7, 15));
+    }
+
+    private Long createProfessor() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/professors")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
     }
 
     private String coordinatorToken() throws Exception {

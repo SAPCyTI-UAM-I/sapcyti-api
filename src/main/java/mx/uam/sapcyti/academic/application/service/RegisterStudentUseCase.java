@@ -169,18 +169,16 @@ public class RegisterStudentUseCase {
         if (professorId == null) {
             return;
         }
-        if (!professorRepository.existsByIdAndGraduateProgramId(professorId, graduateProgramId)) {
+        var professor = professorRepository.findByIdAndGraduateProgramId(professorId, graduateProgramId)
+                .orElseThrow(ProfessorNotFoundException::new);
+        User user = userRepository.findById(professor.getUserId()).orElseThrow(ProfessorNotFoundException::new);
+        if (!user.isActive()) {
             throw new ProfessorNotFoundException();
         }
     }
 
     private void assertAdvisorExists(Long advisorId, Long graduateProgramId) {
-        if (advisorId == null) {
-            return;
-        }
-        if (!professorRepository.existsByIdAndGraduateProgramId(advisorId, graduateProgramId)) {
-            throw new ProfessorNotFoundException();
-        }
+        assertProfessorExists(advisorId, graduateProgramId);
     }
 
     private static String blankToNull(String value) {

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.academic.domain.model.Professor;
+import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
 import org.springframework.stereotype.Repository;
@@ -23,12 +24,6 @@ public class ProfessorJpaAdapter implements ProfessorRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsByEmployeeNumber(String employeeNumber) {
-        return jpaRepository.existsByEmployeeNumber(employeeNumber);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public boolean existsByIdAndGraduateProgramId(Long id, Long graduateProgramId) {
         return jpaRepository.existsByIdAndGraduateProgramId(id, graduateProgramId);
     }
@@ -41,7 +36,21 @@ public class ProfessorJpaAdapter implements ProfessorRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Professor> findInternosByEmployeeNumberAndGraduateProgramId(
+            Long graduateProgramId, String employeeNumber) {
+        return jpaRepository.findByGraduateProgramIdAndProfessorTypeAndEmployeeNumber(
+                graduateProgramId, ProfessorType.INTERNO, employeeNumber);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<Professor> findById(Long id) {
         return jpaRepository.findById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Professor> findByIdAndGraduateProgramId(Long id, Long graduateProgramId) {
+        return jpaRepository.findByIdAndGraduateProgramId(id, graduateProgramId);
     }
 }

@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 
 @Data
 @Builder
@@ -16,7 +17,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RegisterProfessorRequest {
 
-    @NotBlank(message = "Employee number is required")
+    @NotNull(message = "Professor type is required")
+    private ProfessorType professorType;
+
     @Size(max = 20, message = "Employee number must be at most 20 characters")
     private String employeeNumber;
 

@@ -11,7 +11,7 @@ import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
 import mx.uam.sapcyti.academic.domain.exception.StudentProgramNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
-import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
 import mx.uam.sapcyti.academic.domain.model.ProgramStatus;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
@@ -19,6 +19,8 @@ import mx.uam.sapcyti.academic.domain.model.StudentProgram;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
+import mx.uam.sapcyti.identity.domain.model.User;
+import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantAccessDeniedException;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +39,7 @@ class GetStudentProgramUseCaseTest {
     @Mock private StudentRepositoryPort studentRepository;
     @Mock private StudentProgramRepositoryPort studentProgramRepository;
     @Mock private ProfessorRepositoryPort professorRepository;
+    @Mock private UserRepositoryPort userRepository;
 
     @InjectMocks
     private GetStudentProgramUseCase useCase;
@@ -64,6 +67,8 @@ class GetStudentProgramUseCaseTest {
                 .thenReturn(Optional.of(program));
         when(professorRepository.findById(10L)).thenReturn(Optional.of(sampleProfessor(10L, "Humberto", "Cervantes", "Maceda")));
         when(professorRepository.findById(11L)).thenReturn(Optional.of(sampleProfessor(11L, "Manuel", "Aguilar", "Cornejo")));
+        when(userRepository.findById(100L)).thenReturn(Optional.of(activeUser(100L)));
+        when(userRepository.findById(110L)).thenReturn(Optional.of(activeUser(110L)));
 
         GetStudentProgramUseCase.StudentProgramDetail detail = useCase.execute(50L, 100L);
 
@@ -73,6 +78,7 @@ class GetStudentProgramUseCaseTest {
         assertThat(detail.tutor().id()).isEqualTo(10L);
         assertThat(detail.advisors()).hasSize(1);
         assertThat(detail.advisors().getFirst().id()).isEqualTo(11L);
+        assertThat(detail.advisors().getFirst().active()).isTrue();
     }
 
     @Test
@@ -163,13 +169,18 @@ class GetStudentProgramUseCaseTest {
     }
 
     private static Professor sampleProfessor(Long id, String firstName, String firstLastName, String secondLastName) {
-        Professor professor = new Professor(
+        Professor professor = internoProfessor(
                 "EMP" + id,
                 id * 10,
                 1L,
-                new PersonalData(firstName, firstLastName, secondLastName, null, null, "5554820000", null),
-                new ProfessorInformation(false, null, null));
+                new PersonalData(firstName, firstLastName, secondLastName, null, null, "5554820000", null));
         ReflectionTestUtils.setField(professor, "id", id);
         return professor;
+    }
+
+    private static User activeUser(Long id) {
+        User user = new User("user" + id + "@uam.mx", "hash", mx.uam.sapcyti.identity.domain.model.RoleType.PROFESSOR, 1L);
+        ReflectionTestUtils.setField(user, "id", id);
+        return user;
     }
 }

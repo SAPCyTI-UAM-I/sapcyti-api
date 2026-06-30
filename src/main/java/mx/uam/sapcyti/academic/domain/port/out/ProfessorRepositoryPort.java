@@ -8,11 +8,14 @@ public interface ProfessorRepositoryPort {
 
     Professor save(Professor professor);
 
-    boolean existsByEmployeeNumber(String employeeNumber);
-
     boolean existsByIdAndGraduateProgramId(Long id, Long graduateProgramId);
 
     List<Professor> findByGraduateProgramId(Long graduateProgramId);
 
+    List<Professor> findInternosByEmployeeNumberAndGraduateProgramId(
+            Long graduateProgramId, String employeeNumber);
+
     Optional<Professor> findById(Long id);
+
+    Optional<Professor> findByIdAndGraduateProgramId(Long id, Long graduateProgramId);
 }

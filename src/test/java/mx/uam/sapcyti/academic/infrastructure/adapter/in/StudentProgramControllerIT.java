@@ -8,9 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.util.List;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.minimalProfessorPersonalData;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
-import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.domain.model.ProgramStatus;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
@@ -92,19 +93,19 @@ class StudentProgramControllerIT {
         User coordinator = userRepository.save(new User(COORDINATOR_EMAIL, hash, RoleType.COORDINATOR, programId));
         userRepository.save(new User(STUDENT_ROLE_EMAIL, hash, RoleType.STUDENT, programId));
         userRepository.save(new User(PROFESSOR_ROLE_EMAIL, hash, RoleType.PROFESSOR, programId));
+        User tutorUser = userRepository.save(new User("tutor.program@uam.mx", hash, RoleType.PROFESSOR, programId));
+        User advisorUser = userRepository.save(new User("advisor.program@uam.mx", hash, RoleType.PROFESSOR, programId));
 
-        Professor tutor = professorRepository.save(new Professor(
+        Professor tutor = professorRepository.save(internoProfessor(
                 "30568",
-                coordinator.getId() + 100,
+                tutorUser.getId(),
                 programId,
-                new PersonalData("Humberto", "Cervantes", "Maceda", null, null, "5554825678", null),
-                new ProfessorInformation(false, null, null)));
-        Professor advisor = professorRepository.save(new Professor(
+                minimalProfessorPersonalData("Humberto", "Cervantes")));
+        Professor advisor = professorRepository.save(internoProfessor(
                 "30569",
-                coordinator.getId() + 101,
+                advisorUser.getId(),
                 programId,
-                new PersonalData("Manuel", "Aguilar", "Cornejo", null, null, "5554825679", null),
-                new ProfessorInformation(false, null, null)));
+                minimalProfessorPersonalData("Manuel", "Aguilar")));
         tutorId = tutor.getId();
         advisorId = advisor.getId();
 

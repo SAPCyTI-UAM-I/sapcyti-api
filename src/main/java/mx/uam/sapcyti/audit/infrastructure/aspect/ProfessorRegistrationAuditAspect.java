@@ -3,7 +3,10 @@ package mx.uam.sapcyti.audit.infrastructure.aspect;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import mx.uam.sapcyti.academic.application.service.DeactivateProfessorUseCase;
+import mx.uam.sapcyti.academic.application.service.ListProfessorsUseCase;
 import mx.uam.sapcyti.academic.application.service.RegisterProfessorUseCase;
+import mx.uam.sapcyti.academic.application.service.UpdateProfessorUseCase;
 import mx.uam.sapcyti.audit.domain.model.AuditEvent;
 import mx.uam.sapcyti.audit.domain.model.AuditSeverity;
 import mx.uam.sapcyti.audit.domain.model.AuditSeverityLevel;
@@ -36,6 +39,12 @@ public class ProfessorRegistrationAuditAspect {
     @Pointcut("execution(* mx.uam.sapcyti.academic.application.service.RegisterProfessorUseCase.execute(..))")
     public void registerProfessorPointcut() {}
 
+    @Pointcut("execution(* mx.uam.sapcyti.academic.application.service.UpdateProfessorUseCase.execute(..))")
+    public void updateProfessorPointcut() {}
+
+    @Pointcut("execution(* mx.uam.sapcyti.academic.application.service.DeactivateProfessorUseCase.execute(..))")
+    public void deactivateProfessorPointcut() {}
+
     @Pointcut("execution(* mx.uam.sapcyti.academic.infrastructure.adapter.in.ProfessorController.*(..))")
     public void professorControllerPointcut() {}
 
@@ -45,19 +54,48 @@ public class ProfessorRegistrationAuditAspect {
             return;
         }
 
-        Long actorId = resolveActorId();
-        String actorRole = resolveActorRole();
-
         recordEvent(
                 KnownAuditActions.PROFESSOR_REGISTERED.name(),
-                actorId,
-                actorRole,
+                resolveActorId(),
+                resolveActorRole(),
                 registered.getGraduateProgramId(),
                 AuditSeverityLevel.STANDARD,
                 "professorId=%d,userId=%d,employeeNumber=%s".formatted(
                         registered.getId(),
                         registered.getUserId(),
                         registered.getEmployeeNumber()));
+    }
+
+    @AfterReturning(pointcut = "updateProfessorPointcut()", returning = "result")
+    public void auditProfessorUpdated(Object result) {
+        if (!(result instanceof ListProfessorsUseCase.ProfessorListItem updated)) {
+            return;
+        }
+
+        recordEvent(
+                KnownAuditActions.PROFESSOR_UPDATED.name(),
+                resolveActorId(),
+                resolveActorRole(),
+                updated.getGraduateProgramId(),
+                AuditSeverityLevel.STANDARD,
+                "professorId=%d,userId=%d,email=%s".formatted(
+                        updated.getId(), updated.getUserId(), updated.getEmail()));
+    }
+
+    @AfterReturning(pointcut = "deactivateProfessorPointcut()", returning = "result")
+    public void auditProfessorDeactivated(Object result) {
+        if (!(result instanceof ListProfessorsUseCase.ProfessorListItem deactivated)) {
+            return;
+        }
+
+        recordEvent(
+                KnownAuditActions.PROFESSOR_DEACTIVATED.name(),
+                resolveActorId(),
+                resolveActorRole(),
+                deactivated.getGraduateProgramId(),
+                AuditSeverityLevel.STANDARD,
+                "professorId=%d,userId=%d".formatted(
+                        deactivated.getId(), deactivated.getUserId()));
     }
 
     @AfterThrowing(pointcut = "professorControllerPointcut()", throwing = "ex")

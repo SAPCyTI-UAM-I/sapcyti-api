@@ -11,9 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
-import mx.uam.sapcyti.academic.domain.model.PersonalData;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.professorPersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
-import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.UpdateStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
@@ -83,13 +83,11 @@ class StudentControllerIT {
 
         userRepository.save(new User(COORDINATOR_EMAIL, hash, RoleType.COORDINATOR, programId));
         userRepository.save(new User(STUDENT_EMAIL, hash, RoleType.STUDENT, programId));
+        User advisorUser = userRepository.save(new User(
+                "advisor.student@uam.mx", hash, RoleType.PROFESSOR, programId));
 
-        Professor advisor = professorRepository.save(new Professor(
-                "30568",
-                999L,
-                programId,
-                new PersonalData("Humberto", "Cervantes", "Maceda", null, null, "5554825678", null),
-                new ProfessorInformation(false, null, null)));
+        Professor advisor = professorRepository.save(internoProfessor(
+                "30568", advisorUser.getId(), programId, professorPersonalData()));
         advisorId = advisor.getId();
     }
 
