@@ -106,9 +106,4 @@ jobs:
       environment: ${{ needs.ci-build.outputs.env_name }}
       api_image: ghcr.io/${{ needs.ci-build.outputs.image_owner }}/sapcyti-api:${{ needs.ci-build.outputs.image_tag }}
       spa_image: ghcr.io/${{ needs.ci-build.outputs.image_owner }}/sapcyti-spa:${{ needs.ci-build.outputs.image_tag }}
-    secrets:
-      SSH_HOST: ${{ secrets.SSH_HOST }}
-      SSH_USER: ${{ secrets.SSH_USER }}
-      SSH_KEY: ${{ secrets.SSH_KEY }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      GHCR_TOKEN: ${{ secrets.GHCR_PAT }}
+    secrets: inherit
