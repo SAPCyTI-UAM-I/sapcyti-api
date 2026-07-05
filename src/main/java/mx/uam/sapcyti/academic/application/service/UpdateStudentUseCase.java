@@ -58,7 +58,7 @@ public class UpdateStudentUseCase {
 
         AcademicInformation academicInformation = new AcademicInformation(
                 command.undergraduateDegree().trim(),
-                command.lastDegreeObtained().trim(),
+                command.lastDegreeObtained(),
                 command.programType(),
                 command.admissionDate());
 

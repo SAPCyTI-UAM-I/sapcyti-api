@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.professorPersonalData;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.UpdateStudentRequest;
@@ -108,7 +109,7 @@ class StudentControllerIT {
                 .andExpect(jsonPath("$.email").value("paulina.valencia@uam.mx"))
                 .andExpect(jsonPath("$.advisorId").value(advisorId.intValue()))
                 .andExpect(jsonPath("$.birthDate").value("1998-03-15"))
-                .andExpect(jsonPath("$.lastDegreeObtained").value("Licenciatura en Computación"))
+                .andExpect(jsonPath("$.lastDegreeObtained").value("LICENCIATURA"))
                 .andExpect(jsonPath("$.userId").isNumber())
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.generatedPassword").isNotEmpty())
@@ -341,7 +342,7 @@ class StudentControllerIT {
                 "5559998877",
                 "4321",
                 "Ingeniería en Computación",
-                "Licenciatura en Computación",
+                DegreeLevel.LICENCIATURA,
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1),
                 true);
@@ -379,7 +380,7 @@ class StudentControllerIT {
         UpdateStudentRequest updateRequest = new UpdateStudentRequest(
                 "Paulina", "Valencia", "Franco", "existing@uam.mx", "Mexicana",
                 LocalDate.of(1998, 3, 15), "5554821234", null,
-                "Computación", "Licenciatura en Computación",
+                "Computación", DegreeLevel.LICENCIATURA,
                 ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), true);
 
         mockMvc.perform(put("/api/students/{id}", studentId)
@@ -422,6 +423,84 @@ class StudentControllerIT {
                 .andExpect(jsonPath("$.content[0].generatedPassword").doesNotExist());
     }
 
+    @Test
+    @DisplayName("SPEC-032: free-text lastDegreeObtained on register returns 400")
+    void registerRejectsFreeTextLastDegreeObtained() throws Exception {
+        String body = objectMapper.writeValueAsString(sampleRequestBuilder().build())
+                .replace("\"lastDegreeObtained\":\"LICENCIATURA\"",
+                        "\"lastDegreeObtained\":\"Licenciatura en Computación\"");
+
+        mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @DisplayName("SPEC-032: free-text lastDegreeObtained on update returns 400")
+    void updateRejectsFreeTextLastDegreeObtained() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long studentId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        String body = objectMapper.writeValueAsString(new UpdateStudentRequest(
+                "Paulina", "Valencia", "Franco", "paulina.valencia@uam.mx", "Mexicana",
+                LocalDate.of(1998, 3, 15), "5554821234", null,
+                "Computación", DegreeLevel.LICENCIATURA,
+                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), true))
+                .replace("\"lastDegreeObtained\":\"LICENCIATURA\"",
+                        "\"lastDegreeObtained\":\"Licenciatura en Computación\"");
+
+        mockMvc.perform(put("/api/students/{id}", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @DisplayName("SPEC-032: valid DegreeLevel DOCTORADO on update returns 200")
+    void updateAcceptsValidDegreeLevel() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long studentId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        UpdateStudentRequest updateRequest = new UpdateStudentRequest(
+                "Paulina", "Valencia", "Franco", "paulina.valencia@uam.mx", "Mexicana",
+                LocalDate.of(1998, 3, 15), "5554821234", null,
+                "Computación", DegreeLevel.DOCTORADO,
+                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), true);
+
+        mockMvc.perform(put("/api/students/{id}", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.lastDegreeObtained").value("DOCTORADO"));
+    }
+
     private RegisterStudentRequest sampleRequest() {
         return sampleRequestBuilder().build();
     }
@@ -440,7 +519,7 @@ class StudentControllerIT {
                 .phone("5554821234")
                 .phoneExtension("1234")
                 .undergraduateDegree("Computación")
-                .lastDegreeObtained("Licenciatura en Computación")
+                .lastDegreeObtained(DegreeLevel.LICENCIATURA)
                 .programType(ProgramType.MAESTRIA)
                 .admissionDate(LocalDate.of(2023, 9, 1));
     }

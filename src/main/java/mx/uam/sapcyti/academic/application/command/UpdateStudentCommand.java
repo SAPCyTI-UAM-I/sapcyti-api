@@ -1,6 +1,7 @@
 package mx.uam.sapcyti.academic.application.command;
 
 import java.time.LocalDate;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 /**
@@ -17,7 +18,7 @@ public record UpdateStudentCommand(
         String phone,
         String phoneExtension,
         String undergraduateDegree,
-        String lastDegreeObtained,
+        DegreeLevel lastDegreeObtained,
         ProgramType programType,
         LocalDate admissionDate,
         boolean active) {

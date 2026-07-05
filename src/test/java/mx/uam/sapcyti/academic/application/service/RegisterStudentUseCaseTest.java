@@ -16,6 +16,7 @@ import mx.uam.sapcyti.academic.application.command.RegisterStudentCommand;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateEnrollmentIdException;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateStudentEmailException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
@@ -106,7 +107,7 @@ class RegisterStudentUseCaseTest {
         assertThat(result.getEmail()).isEqualTo("paulina.valencia@uam.mx");
         assertThat(result.getAdvisorId()).isEqualTo(10L);
         assertThat(result.getBirthDate()).isEqualTo(LocalDate.of(1998, 3, 15));
-        assertThat(result.getLastDegreeObtained()).isEqualTo("Licenciatura en Computación");
+        assertThat(result.getLastDegreeObtained()).isEqualTo(DegreeLevel.LICENCIATURA);
         verify(userRepository).save(any(User.class));
         verify(studentRepository).save(any(Student.class));
         verify(studentProgramRepository).save(any(StudentProgram.class));
@@ -285,7 +286,7 @@ class RegisterStudentUseCaseTest {
         private String phone = "5554821234";
         private String phoneExtension = "1234";
         private String undergraduateDegree = "Computación";
-        private String lastDegreeObtained = "Licenciatura en Computación";
+        private DegreeLevel lastDegreeObtained = DegreeLevel.LICENCIATURA;
         private ProgramType programType = ProgramType.MAESTRIA;
         private LocalDate admissionDate = LocalDate.of(2023, 9, 1);
 

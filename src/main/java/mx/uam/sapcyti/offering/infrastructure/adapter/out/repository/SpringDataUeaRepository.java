@@ -1,5 +1,6 @@
 package mx.uam.sapcyti.offering.infrastructure.adapter.out.repository;
 
+import java.util.List;
 import java.util.Optional;
 import mx.uam.sapcyti.offering.domain.model.UEA;
 import org.springframework.data.domain.Page;
@@ -14,6 +15,8 @@ public interface SpringDataUeaRepository extends JpaRepository<UEA, Long> {
 
     Optional<UEA> findByClaveIgnoreCaseAndGraduateProgramId(String clave, Long graduateProgramId);
 
+    Optional<UEA> findByIdAndGraduateProgramId(Long id, Long graduateProgramId);
+
     @Query("""
             SELECT u FROM UEA u
             WHERE u.graduateProgramId = :graduateProgramId
@@ -27,4 +30,6 @@ public interface SpringDataUeaRepository extends JpaRepository<UEA, Long> {
             @Param("search") String search,
             @Param("active") Boolean active,
             Pageable pageable);
+
+    List<UEA> findByGraduateProgramIdAndActiveTrueOrderByClaveAsc(Long graduateProgramId);
 }

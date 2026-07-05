@@ -253,7 +253,7 @@ class UpdateStudentProgramUseCaseTest {
                 "2123803361", 500L, 1L, null,
                 new PersonalData("Paulina", "Valencia", "Franco", "Mexicana", LocalDate.of(1998, 3, 15), "5554821234", null),
                 new mx.uam.sapcyti.academic.domain.model.AcademicInformation(
-                        "Computación", "Licenciatura", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
+                        "Computación", mx.uam.sapcyti.academic.domain.model.DegreeLevel.LICENCIATURA, ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
         ReflectionTestUtils.setField(student, "id", 50L);
         return student;
     }

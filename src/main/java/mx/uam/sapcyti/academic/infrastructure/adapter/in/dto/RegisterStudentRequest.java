@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 @Data
@@ -62,8 +63,8 @@ public class RegisterStudentRequest {
     @NotBlank(message = "Undergraduate degree is required")
     private String undergraduateDegree;
 
-    @NotBlank(message = "Last degree obtained is required")
-    private String lastDegreeObtained;
+    @NotNull(message = "Last degree obtained is required")
+    private DegreeLevel lastDegreeObtained;
 
     @NotNull(message = "Program type is required")
     private ProgramType programType;

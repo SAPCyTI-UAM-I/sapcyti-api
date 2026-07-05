@@ -9,6 +9,7 @@ import mx.uam.sapcyti.academic.application.service.DeactivateProfessorUseCase;
 import mx.uam.sapcyti.academic.application.service.GetProfessorUseCase;
 import mx.uam.sapcyti.academic.application.service.ListProfessorsUseCase;
 import mx.uam.sapcyti.academic.application.service.RegisterProfessorUseCase;
+import mx.uam.sapcyti.academic.application.service.RestoreProfessorUseCase;
 import mx.uam.sapcyti.academic.application.service.UpdateProfessorUseCase;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.ProfessorResponse;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterProfessorRequest;
@@ -39,6 +40,7 @@ public class ProfessorController {
     private final GetProfessorUseCase getProfessorUseCase;
     private final UpdateProfessorUseCase updateProfessorUseCase;
     private final DeactivateProfessorUseCase deactivateProfessorUseCase;
+    private final RestoreProfessorUseCase restoreProfessorUseCase;
     private final ProfessorMapper mapper;
 
     @PostMapping
@@ -96,5 +98,12 @@ public class ProfessorController {
     @Operation(summary = "Deactivate a professor", description = "Logically deactivates the professor by setting the linked user account to inactive.")
     public ProfessorResponse deactivate(@PathVariable Long id) {
         return mapper.toResponse(deactivateProfessorUseCase.execute(id));
+    }
+
+    @PutMapping("/{id}/restore")
+    @PreAuthorize("hasRole('COORDINATOR')")
+    @Operation(summary = "Restore a professor", description = "Reactivates a deactivated professor by setting the linked user account to active.")
+    public ProfessorResponse restore(@PathVariable Long id) {
+        return mapper.toResponse(restoreProfessorUseCase.execute(id));
     }
 }
