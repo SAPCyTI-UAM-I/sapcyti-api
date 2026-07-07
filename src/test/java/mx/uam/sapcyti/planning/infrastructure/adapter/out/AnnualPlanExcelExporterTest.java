@@ -44,11 +44,23 @@ class AnnualPlanExcelExporterTest {
         try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
             var sheet = workbook.getSheetAt(0);
             DataFormatter formatter = new DataFormatter();
-            assertThat(formatter.formatCellValue(sheet.getRow(0).getCell(0))).contains("PCyTI");
-            assertThat(formatter.formatCellValue(sheet.getRow(6).getCell(0))).isEqualTo("2156041");
-            assertThat(formatter.formatCellValue(sheet.getRow(6).getCell(2))).isEqualTo("2");
-            assertThat(formatter.formatCellValue(sheet.getRow(6).getCell(3))).isEqualTo("15");
-            assertThat(formatter.formatCellValue(sheet.getRow(6).getCell(4))).isEqualTo("*");
+            // Row 0: dynamic title; rows 2-6: legend block; row 8: section; row 10: headers; row 11: data.
+            assertThat(formatter.formatCellValue(sheet.getRow(0).getCell(0)))
+                    .isEqualTo("PLANEACION ANUAL 2027 POSGRADO");
+            assertThat(formatter.formatCellValue(sheet.getRow(2).getCell(0))).isEqualTo("Clave");
+            assertThat(formatter.formatCellValue(sheet.getRow(2).getCell(1))).isEqualTo("Siete dígitos");
+            assertThat(formatter.formatCellValue(sheet.getRow(3).getCell(0))).isEqualTo("X");
+            assertThat(formatter.formatCellValue(sheet.getRow(6).getCell(0))).isEqualTo("*");
+            assertThat(formatter.formatCellValue(sheet.getRow(8).getCell(0)))
+                    .isEqualTo("POSGRADO EN CIENCIAS Y TECNOLOGÍAS DE LA INFORMACIÓN");
+            assertThat(formatter.formatCellValue(sheet.getRow(10).getCell(0))).isEqualTo("Clave");
+            assertThat(formatter.formatCellValue(sheet.getRow(10).getCell(2)))
+                    .isEqualTo("No. de Gpos 27-I");
+            assertThat(formatter.formatCellValue(sheet.getRow(10).getCell(14))).isEqualTo("PCyTI");
+            assertThat(formatter.formatCellValue(sheet.getRow(11).getCell(0))).isEqualTo("2156041");
+            assertThat(formatter.formatCellValue(sheet.getRow(11).getCell(2))).isEqualTo("2");
+            assertThat(formatter.formatCellValue(sheet.getRow(11).getCell(3))).isEqualTo("15");
+            assertThat(formatter.formatCellValue(sheet.getRow(11).getCell(4))).isEqualTo("*");
         }
     }
 }

@@ -179,7 +179,9 @@ class AnnualPlanControllerIT {
         entry.put("cupoI", "15");
         entry.put("gruposP", "*");
         entry.put("cupoP", "*");
-        entry.putObject("marks").put("PCYTI", "X");
+        ObjectNode marks = entry.putObject("marks");
+        marks.put("P_FIS", "X");
+        marks.put("PCYTI", "O"); // ignored: PCYTI is derived from the UEA (OBLIGATORIA -> X)
 
         mockMvc.perform(put("/api/annual-plans/2027/entries")
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -188,6 +190,7 @@ class AnnualPlanControllerIT {
                         .content(payload.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.entries[0].gruposI").value("2"))
+                .andExpect(jsonPath("$.entries[0].marks.P_FIS").value("X"))
                 .andExpect(jsonPath("$.entries[0].marks.PCYTI").value("X"));
     }
 

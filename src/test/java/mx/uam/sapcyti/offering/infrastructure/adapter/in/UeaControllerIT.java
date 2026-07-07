@@ -17,12 +17,12 @@ import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.infrastructure.adapter.in.dto.LoginRequest;
 import mx.uam.sapcyti.identity.infrastructure.adapter.out.repository.SpringDataUserRepository;
-import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.RegisterUeaRequest;
-import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.UpdateUeaRequest;
-import mx.uam.sapcyti.offering.infrastructure.adapter.out.repository.SpringDataUeaRepository;
 import mx.uam.sapcyti.offering.domain.model.FormationType;
 import mx.uam.sapcyti.offering.domain.model.UeaModality;
 import mx.uam.sapcyti.offering.domain.model.UeaType;
+import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.RegisterUeaRequest;
+import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.UpdateUeaRequest;
+import mx.uam.sapcyti.offering.infrastructure.adapter.out.repository.SpringDataUeaRepository;
 import mx.uam.sapcyti.shared.tenant.TenantFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -102,6 +102,45 @@ class UeaControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].clave").value("2156041"))
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("get UEA by id returns the catalog item")
+    void getById() throws Exception {
+        long ueaId = createUea("2156041", "MÉTODOS MATEMÁTICOS", 9);
+
+        mockMvc.perform(get("/api/ueas/{ueaId}", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value((int) ueaId))
+                .andExpect(jsonPath("$.clave").value("2156041"))
+                .andExpect(jsonPath("$.nombre").value("MÉTODOS MATEMÁTICOS"));
+    }
+
+    @Test
+    @DisplayName("get unknown UEA returns NOT_FOUND")
+    void getByIdNotFound() throws Exception {
+        mockMvc.perform(get("/api/ueas/{ueaId}", 99999L)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("list sorts by nombre desc when requested")
+    void listSortsByNombreDesc() throws Exception {
+        createUea("2156041", "AAA PRIMERA", 9);
+        createUea("2156099", "ZZZ ULTIMA", 9);
+
+        mockMvc.perform(get("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .param("sort", "nombre,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nombre").value("ZZZ ULTIMA"))
+                .andExpect(jsonPath("$.content[1].nombre").value("AAA PRIMERA"));
     }
 
     @Test

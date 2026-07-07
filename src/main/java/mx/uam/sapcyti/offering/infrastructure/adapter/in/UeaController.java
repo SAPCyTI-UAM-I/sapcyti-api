@@ -11,6 +11,7 @@ import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.offering.application.service.BulkUploadUeasUseCase;
 import mx.uam.sapcyti.offering.application.service.DeactivateUeaUseCase;
+import mx.uam.sapcyti.offering.application.service.GetUeaUseCase;
 import mx.uam.sapcyti.offering.application.service.ListUeasUseCase;
 import mx.uam.sapcyti.offering.application.service.RegisterUeaUseCase;
 import mx.uam.sapcyti.offering.application.service.RestoreUeaUseCase;
@@ -22,6 +23,7 @@ import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.UeaCatalogItemRespo
 import mx.uam.sapcyti.offering.infrastructure.mapper.UeaMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +47,7 @@ import java.util.Set;
 public class UeaController {
 
     private final ListUeasUseCase listUeasUseCase;
+    private final GetUeaUseCase getUeaUseCase;
     private final RegisterUeaUseCase registerUeaUseCase;
     private final UpdateUeaUseCase updateUeaUseCase;
     private final DeactivateUeaUseCase deactivateUeaUseCase;
@@ -54,17 +57,44 @@ public class UeaController {
     private final ObjectMapper objectMapper;
     private final Validator validator;
 
+    private static final Set<String> SORTABLE_FIELDS = Set.of("clave", "nombre");
+
     @GetMapping
     @PreAuthorize("hasRole('COORDINATOR')")
-    @Operation(summary = "List UEAs", description = "Paginated UEA catalog with optional search and active filter.")
+    @Operation(summary = "List UEAs", description = "Paginated UEA catalog with optional search, active filter and sort (clave|nombre,asc|desc).")
     public Page<UeaCatalogItemResponse> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Boolean active) {
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String sort) {
         return listUeasUseCase
-                .execute(search, active, PageRequest.of(page, size))
+                .execute(search, active, PageRequest.of(page, size, parseSort(sort)))
                 .map(mapper::toResponse);
+    }
+
+    @GetMapping("/{ueaId}")
+    @PreAuthorize("hasRole('COORDINATOR')")
+    @Operation(summary = "Get a UEA", description = "Loads a single UEA for the edit view (refresh/deep-link safe).")
+    public UeaCatalogItemResponse get(@PathVariable Long ueaId) {
+        return mapper.toResponse(getUeaUseCase.execute(ueaId));
+    }
+
+    /** Parses `field,dir` into a Sort, whitelisting fields and defaulting to clave asc. */
+    private static Sort parseSort(String sort) {
+        Sort defaultSort = Sort.by(Sort.Direction.ASC, "clave");
+        if (sort == null || sort.isBlank()) {
+            return defaultSort;
+        }
+        String[] parts = sort.split(",");
+        String field = parts[0].trim();
+        if (!SORTABLE_FIELDS.contains(field)) {
+            return defaultSort;
+        }
+        Sort.Direction direction = parts.length > 1 && "desc".equalsIgnoreCase(parts[1].trim())
+                ? Sort.Direction.DESC
+                : Sort.Direction.ASC;
+        return Sort.by(direction, field);
     }
 
     @PostMapping
