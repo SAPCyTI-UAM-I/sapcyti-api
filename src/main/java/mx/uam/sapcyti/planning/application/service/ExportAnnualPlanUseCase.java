@@ -16,7 +16,9 @@ public class ExportAnnualPlanUseCase {
     private final AnnualPlanRepositoryPort annualPlanRepository;
     private final AnnualPlanExcelExporter exporter;
 
-    @Transactional(readOnly = true)
+    // Not readOnly: the @AfterReturning audit aspect inserts an audit_events row within this
+    // transaction, which PostgreSQL rejects under a read-only transaction (H2 does not enforce it).
+    @Transactional
     public ExportResult execute(int year) {
         Long graduateProgramId = requireTenant();
         AnnualPlan plan = annualPlanRepository
