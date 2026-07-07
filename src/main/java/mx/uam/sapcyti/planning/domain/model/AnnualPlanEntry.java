@@ -16,6 +16,7 @@ import java.util.EnumMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 import mx.uam.sapcyti.offering.domain.model.UEA;
+import mx.uam.sapcyti.offering.domain.model.UeaType;
 
 @Entity
 @Table(name = "annual_plan_entries", uniqueConstraints = {
@@ -116,13 +117,15 @@ public class AnnualPlanEntry {
     }
 
     public static AnnualPlanEntry createEmpty(AnnualPlan plan, UEA uea, short posicion) {
-        return new AnnualPlanEntry(
+        AnnualPlanEntry entry = new AnnualPlanEntry(
                 plan,
                 uea.getId(),
                 posicion,
                 uea.getClave(),
                 uea.getNombre(),
                 uea.getModalidad().name());
+        entry.pcyti = derivePcyti(uea);
+        return entry;
     }
 
     public static AnnualPlanEntry createWithPreload(
@@ -137,6 +140,7 @@ public class AnnualPlanEntry {
     public void refreshSnapshot(UEA uea) {
         this.nombre = uea.getNombre();
         this.modalidad = uea.getModalidad().name();
+        this.pcyti = derivePcyti(uea);
     }
 
     public void updateValues(
@@ -169,7 +173,7 @@ public class AnnualPlanEntry {
         this.pQuim = previous.pQuim;
         this.pIquim = previous.pIquim;
         this.pIbiom = previous.pIbiom;
-        this.pcyti = previous.pcyti;
+        // pcyti is not copied: it stays derived from the catalog `tipo` (set in createEmpty).
         this.pema = previous.pema;
         this.efmc = previous.efmc;
     }
@@ -181,13 +185,16 @@ public class AnnualPlanEntry {
         this.pQuim = null;
         this.pIquim = null;
         this.pIbiom = null;
-        this.pcyti = null;
         this.pema = null;
         this.efmc = null;
+        // pcyti is derived from the catalog `tipo` (read-only) — never cleared nor set from the payload.
         if (marks == null) {
             return;
         }
         for (Map.Entry<GraduateProgramMark, String> mark : marks.entrySet()) {
+            if (mark.getKey() == GraduateProgramMark.PCYTI) {
+                continue; // derived from tipo; ignore any client-provided value
+            }
             String value = validateMark(mark.getKey().name(), mark.getValue());
             setMark(mark.getKey(), value);
         }
@@ -211,6 +218,11 @@ public class AnnualPlanEntry {
             throw new IllegalArgumentException("Invalid value for marks." + field + ": " + value);
         }
         return value;
+    }
+
+    // PCYTI is derived from the catalog type: OBLIGATORIA -> "X", OPTATIVA -> "O" (read-only).
+    private static String derivePcyti(UEA uea) {
+        return uea.getTipo() == UeaType.OBLIGATORIA ? "X" : "O";
     }
 
     private void setMark(GraduateProgramMark mark, String value) {
