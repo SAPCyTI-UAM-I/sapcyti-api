@@ -43,8 +43,20 @@ public class UeaJpaAdapter implements UeaRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<UEA> findByIdAndGraduateProgramId(Long id, Long graduateProgramId) {
+        return jpaRepository.findByIdAndGraduateProgramId(id, graduateProgramId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<UEA> findByGraduateProgramId(
             Long graduateProgramId, String search, Boolean active, Pageable pageable) {
         return jpaRepository.searchByProgram(graduateProgramId, search, active, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UEA> findActiveByGraduateProgramId(Long graduateProgramId) {
+        return jpaRepository.findByGraduateProgramIdAndActiveTrueOrderByClaveAsc(graduateProgramId);
     }
 }

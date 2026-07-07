@@ -14,6 +14,8 @@ import java.util.Optional;
 import mx.uam.sapcyti.academic.application.command.UpdateProfessorCommand;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateEmployeeNumberException;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateProfessorEmailException;
+import mx.uam.sapcyti.academic.domain.exception.EmployeeNumberImmutableException;
+import mx.uam.sapcyti.academic.domain.exception.InvalidTypeChangeException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorType;
@@ -71,14 +73,11 @@ class UpdateProfessorUseCaseTest {
     }
 
     @Test
-    @DisplayName("change interno to externo clears employee number")
-    void internoToExterno() {
+    @DisplayName("rejects change interno to externo")
+    void internoToExternoRejected() {
         Professor professor = sampleProfessor(10L, ProfessorType.INTERNO, "30568", 20L);
-        User user = sampleUser(20L, "humberto.cervantes@uam.mx");
         when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(professor));
-        when(userRepository.findById(20L)).thenReturn(Optional.of(user));
-        when(userRepository.findByEmail("humberto.cervantes@uam.mx")).thenReturn(Optional.of(user));
-        when(professorRepository.save(any(Professor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(sampleUser(20L, "humberto.cervantes@uam.mx")));
 
         UpdateProfessorCommand command = new UpdateProfessorCommand(
                 10L,
@@ -94,10 +93,60 @@ class UpdateProfessorUseCaseTest {
                 null,
                 null);
 
+        assertThatThrownBy(() -> useCase.execute(command))
+                .isInstanceOf(InvalidTypeChangeException.class);
+    }
+
+    @Test
+    @DisplayName("rejects changing assigned employee number")
+    void changingEmployeeNumberRejected() {
+        Professor professor = sampleProfessor(10L, ProfessorType.INTERNO, "30568", 20L);
+        when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(professor));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(sampleUser(20L, "humberto.cervantes@uam.mx")));
+
+        UpdateProfessorCommand command = new UpdateProfessorCommand(
+                10L, ProfessorType.INTERNO, "99999", "humberto.cervantes@uam.mx",
+                "Humberto", "Cervantes", null, "5554825678", null, false, null, null);
+
+        assertThatThrownBy(() -> useCase.execute(command))
+                .isInstanceOf(EmployeeNumberImmutableException.class);
+    }
+
+    @Test
+    @DisplayName("rejects clearing assigned employee number")
+    void clearingEmployeeNumberRejected() {
+        Professor professor = sampleProfessor(10L, ProfessorType.INTERNO, "30568", 20L);
+        when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(professor));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(sampleUser(20L, "humberto.cervantes@uam.mx")));
+
+        UpdateProfessorCommand command = new UpdateProfessorCommand(
+                10L, ProfessorType.INTERNO, null, "humberto.cervantes@uam.mx",
+                "Humberto", "Cervantes", null, "5554825678", null, false, null, null);
+
+        assertThatThrownBy(() -> useCase.execute(command))
+                .isInstanceOf(EmployeeNumberImmutableException.class);
+    }
+
+    @Test
+    @DisplayName("change externo to interno with valid employee number")
+    void externoToInterno() {
+        Professor professor = sampleProfessor(10L, ProfessorType.EXTERNO, null, 20L);
+        User user = sampleUser(20L, "externo@uam.mx");
+        when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(professor));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(user));
+        when(professorRepository.findInternosByEmployeeNumberAndGraduateProgramId(1L, "40123"))
+                .thenReturn(List.of());
+        when(userRepository.findByEmail("externo@uam.mx")).thenReturn(Optional.of(user));
+        when(professorRepository.save(any(Professor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UpdateProfessorCommand command = new UpdateProfessorCommand(
+                10L, ProfessorType.INTERNO, "40123", "externo@uam.mx",
+                "Juan", "Perez", null, "5554825678", null, false, null, null);
+
         ListProfessorsUseCase.ProfessorListItem result = useCase.execute(command);
 
-        assertThat(result.getProfessorType()).isEqualTo(ProfessorType.EXTERNO);
-        assertThat(result.getEmployeeNumber()).isNull();
+        assertThat(result.getProfessorType()).isEqualTo(ProfessorType.INTERNO);
+        assertThat(result.getEmployeeNumber()).isEqualTo("40123");
     }
 
     @Test
@@ -135,19 +184,19 @@ class UpdateProfessorUseCaseTest {
     }
 
     @Test
-    @DisplayName("rejects duplicate employee number")
+    @DisplayName("rejects duplicate employee number on externo to interno")
     void duplicateEmployeeNumber() {
-        Professor professor = sampleProfessor(10L, ProfessorType.INTERNO, "30568", 20L);
-        Professor other = sampleProfessor(11L, ProfessorType.INTERNO, "30568", 30L);
+        Professor professor = sampleProfessor(10L, ProfessorType.EXTERNO, null, 20L);
+        Professor other = sampleProfessor(11L, ProfessorType.INTERNO, "40100", 30L);
         when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(professor));
-        when(userRepository.findById(20L)).thenReturn(Optional.of(sampleUser(20L, "humberto.cervantes@uam.mx")));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(sampleUser(20L, "externo@uam.mx")));
         when(professorRepository.findInternosByEmployeeNumberAndGraduateProgramId(1L, "40100"))
                 .thenReturn(List.of(other));
         when(userRepository.findById(30L)).thenReturn(Optional.of(sampleUser(30L, "other@uam.mx")));
 
         UpdateProfessorCommand command = new UpdateProfessorCommand(
-                10L, ProfessorType.INTERNO, "40100", "humberto.cervantes@uam.mx",
-                "Humberto", "Cervantes", null, "5554825678", null, false, null, null);
+                10L, ProfessorType.INTERNO, "40100", "externo@uam.mx",
+                "Juan", "Perez", null, "5554825678", null, false, null, null);
 
         assertThatThrownBy(() -> useCase.execute(command))
                 .isInstanceOf(DuplicateEmployeeNumberException.class);

@@ -10,7 +10,11 @@ import mx.uam.sapcyti.audit.domain.model.KnownAuditActions;
 import mx.uam.sapcyti.audit.domain.port.out.AuditOutputPort;
 import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.offering.application.service.BulkUploadUeasUseCase;
+import mx.uam.sapcyti.offering.application.service.DeactivateUeaUseCase;
 import mx.uam.sapcyti.offering.application.service.RegisterUeaUseCase;
+import mx.uam.sapcyti.offering.application.service.RestoreUeaUseCase;
+import mx.uam.sapcyti.offering.application.service.UpdateUeaUseCase;
+import mx.uam.sapcyti.offering.domain.model.UEA;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
@@ -39,6 +43,15 @@ public class UeaAuditAspect {
 
     @Pointcut("execution(* mx.uam.sapcyti.offering.application.service.BulkUploadUeasUseCase.execute(..))")
     public void bulkUploadUeaPointcut() {}
+
+    @Pointcut("execution(* mx.uam.sapcyti.offering.application.service.UpdateUeaUseCase.execute(..))")
+    public void updateUeaPointcut() {}
+
+    @Pointcut("execution(* mx.uam.sapcyti.offering.application.service.DeactivateUeaUseCase.execute(..))")
+    public void deactivateUeaPointcut() {}
+
+    @Pointcut("execution(* mx.uam.sapcyti.offering.application.service.RestoreUeaUseCase.execute(..))")
+    public void restoreUeaPointcut() {}
 
     @Pointcut("execution(* mx.uam.sapcyti.offering.infrastructure.adapter.in.UeaController.*(..))")
     public void ueaControllerPointcut() {}
@@ -76,6 +89,54 @@ public class UeaAuditAspect {
                 AuditSeverityLevel.STANDARD,
                 "graduateProgramId=%d,createdCount=%d".formatted(
                         TenantContext.get(), uploaded.getCreated()));
+    }
+
+    @AfterReturning(pointcut = "updateUeaPointcut()", returning = "result")
+    public void auditUeaUpdated(Object result) {
+        if (!(result instanceof UEA updated)) {
+            return;
+        }
+
+        recordEvent(
+                KnownAuditActions.UEA_UPDATED.name(),
+                resolveActorId(),
+                resolveActorRole(),
+                updated.getGraduateProgramId(),
+                AuditSeverityLevel.STANDARD,
+                "ueaId=%d,clave=%s,graduateProgramId=%d".formatted(
+                        updated.getId(), updated.getClave(), updated.getGraduateProgramId()));
+    }
+
+    @AfterReturning(pointcut = "deactivateUeaPointcut()", returning = "result")
+    public void auditUeaDeactivated(Object result) {
+        if (!(result instanceof UEA deactivated)) {
+            return;
+        }
+
+        recordEvent(
+                KnownAuditActions.UEA_DEACTIVATED.name(),
+                resolveActorId(),
+                resolveActorRole(),
+                deactivated.getGraduateProgramId(),
+                AuditSeverityLevel.STANDARD,
+                "ueaId=%d,clave=%s,graduateProgramId=%d".formatted(
+                        deactivated.getId(), deactivated.getClave(), deactivated.getGraduateProgramId()));
+    }
+
+    @AfterReturning(pointcut = "restoreUeaPointcut()", returning = "result")
+    public void auditUeaRestored(Object result) {
+        if (!(result instanceof UEA restored)) {
+            return;
+        }
+
+        recordEvent(
+                KnownAuditActions.UEA_RESTORED.name(),
+                resolveActorId(),
+                resolveActorRole(),
+                restored.getGraduateProgramId(),
+                AuditSeverityLevel.STANDARD,
+                "ueaId=%d,clave=%s,graduateProgramId=%d".formatted(
+                        restored.getId(), restored.getClave(), restored.getGraduateProgramId()));
     }
 
     @AfterThrowing(pointcut = "ueaControllerPointcut()", throwing = "ex")

@@ -11,6 +11,7 @@ import java.util.Optional;
 import mx.uam.sapcyti.academic.application.command.UpdateStudentCommand;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateStudentEmailException;
 import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
@@ -132,7 +133,7 @@ class UpdateStudentUseCaseTest {
                 "5559998877",
                 "4321",
                 "Ingeniería en Computación",
-                "Licenciatura en Computación",
+                DegreeLevel.LICENCIATURA,
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1),
                 active);
@@ -143,7 +144,7 @@ class UpdateStudentUseCaseTest {
                 "2123803361", 500L, 1L, null,
                 new PersonalData("Paulina", "Valencia", "Franco", "Mexicana", LocalDate.of(1998, 3, 15), "5554821234", null),
                 new mx.uam.sapcyti.academic.domain.model.AcademicInformation(
-                        "Computación", "Licenciatura", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
+                        "Computación", DegreeLevel.LICENCIATURA, ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1)));
         ReflectionTestUtils.setField(student, "id", 50L);
         return student;
     }

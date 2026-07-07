@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import mx.uam.sapcyti.audit.domain.port.out.AuditOutputPort;
 import mx.uam.sapcyti.offering.application.service.RegisterUeaUseCase;
 import mx.uam.sapcyti.offering.domain.model.FormationType;
+import mx.uam.sapcyti.offering.domain.model.UEA;
 import mx.uam.sapcyti.offering.domain.model.UeaModality;
 import mx.uam.sapcyti.offering.domain.model.UeaType;
 import org.junit.jupiter.api.DisplayName;
@@ -50,6 +51,78 @@ class UeaAuditAspectTest {
                 .build();
 
         aspect.auditUeaRegistered(result);
+
+        verify(auditOutputPort).record(any());
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("records UEA_UPDATED after successful update")
+    void auditUpdated() {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "1", null, java.util.List.of(new SimpleGrantedAuthority("ROLE_COORDINATOR"))));
+
+        UEA updated = UEA.create(
+                1L,
+                "2156041",
+                "Nombre actualizado",
+                UeaType.OBLIGATORIA,
+                UeaModality.MIXTA,
+                new BigDecimal("4.5"),
+                new BigDecimal("0"),
+                FormationType.BASICA,
+                12);
+
+        aspect.auditUeaUpdated(updated);
+
+        verify(auditOutputPort).record(any());
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("records UEA_DEACTIVATED after successful deactivation")
+    void auditDeactivated() {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "1", null, java.util.List.of(new SimpleGrantedAuthority("ROLE_COORDINATOR"))));
+
+        UEA uea = UEA.create(
+                1L,
+                "2156041",
+                "Nombre",
+                UeaType.OPTATIVA,
+                UeaModality.MIXTA,
+                new BigDecimal("3"),
+                new BigDecimal("3"),
+                FormationType.COMPLEMENTARIA,
+                9);
+        uea.deactivate();
+
+        aspect.auditUeaDeactivated(uea);
+
+        verify(auditOutputPort).record(any());
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("records UEA_RESTORED after successful restore")
+    void auditRestored() {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "1", null, java.util.List.of(new SimpleGrantedAuthority("ROLE_COORDINATOR"))));
+
+        UEA uea = UEA.create(
+                1L,
+                "2156041",
+                "Nombre",
+                UeaType.OPTATIVA,
+                UeaModality.MIXTA,
+                new BigDecimal("3"),
+                new BigDecimal("3"),
+                FormationType.COMPLEMENTARIA,
+                9);
+        uea.deactivate();
+        uea.restore();
+
+        aspect.auditUeaRestored(uea);
 
         verify(auditOutputPort).record(any());
         SecurityContextHolder.clearContext();

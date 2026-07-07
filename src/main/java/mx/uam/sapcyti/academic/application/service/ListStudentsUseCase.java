@@ -7,6 +7,7 @@ import java.util.Locale;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
 import mx.uam.sapcyti.academic.domain.port.out.StudentRepositoryPort;
@@ -110,7 +111,7 @@ public class ListStudentsUseCase {
         String phone;
         String phoneExtension;
         String undergraduateDegree;
-        String lastDegreeObtained;
+        DegreeLevel lastDegreeObtained;
         ProgramType programType;
         LocalDate admissionDate;
         Long advisorId;

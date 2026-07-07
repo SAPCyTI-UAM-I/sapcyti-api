@@ -15,8 +15,9 @@ public class AcademicInformation {
     @Column(name = "undergraduate_degree", nullable = false, length = 200)
     private String undergraduateDegree;
 
-    @Column(name = "last_degree_obtained", nullable = false, length = 200)
-    private String lastDegreeObtained;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "last_degree_obtained", nullable = false, length = 20)
+    private DegreeLevel lastDegreeObtained;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "program_type", nullable = false, length = 50)
@@ -31,7 +32,7 @@ public class AcademicInformation {
 
     public AcademicInformation(
             String undergraduateDegree,
-            String lastDegreeObtained,
+            DegreeLevel lastDegreeObtained,
             ProgramType programType,
             LocalDate admissionDate) {
         this.undergraduateDegree = undergraduateDegree;
@@ -44,7 +45,7 @@ public class AcademicInformation {
         return undergraduateDegree;
     }
 
-    public String getLastDegreeObtained() {
+    public DegreeLevel getLastDegreeObtained() {
         return lastDegreeObtained;
     }
 

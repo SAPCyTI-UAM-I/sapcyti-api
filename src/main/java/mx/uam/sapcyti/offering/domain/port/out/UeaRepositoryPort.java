@@ -16,5 +16,9 @@ public interface UeaRepositoryPort {
 
     Optional<UEA> findByClaveAndGraduateProgramId(String clave, Long graduateProgramId);
 
+    Optional<UEA> findByIdAndGraduateProgramId(Long id, Long graduateProgramId);
+
     Page<UEA> findByGraduateProgramId(Long graduateProgramId, String search, Boolean active, Pageable pageable);
+
+    List<UEA> findActiveByGraduateProgramId(Long graduateProgramId);
 }

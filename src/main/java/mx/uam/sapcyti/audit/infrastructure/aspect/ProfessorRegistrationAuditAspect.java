@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import mx.uam.sapcyti.academic.application.service.DeactivateProfessorUseCase;
 import mx.uam.sapcyti.academic.application.service.ListProfessorsUseCase;
 import mx.uam.sapcyti.academic.application.service.RegisterProfessorUseCase;
+import mx.uam.sapcyti.academic.application.service.RestoreProfessorUseCase;
 import mx.uam.sapcyti.academic.application.service.UpdateProfessorUseCase;
 import mx.uam.sapcyti.audit.domain.model.AuditEvent;
 import mx.uam.sapcyti.audit.domain.model.AuditSeverity;
@@ -44,6 +45,9 @@ public class ProfessorRegistrationAuditAspect {
 
     @Pointcut("execution(* mx.uam.sapcyti.academic.application.service.DeactivateProfessorUseCase.execute(..))")
     public void deactivateProfessorPointcut() {}
+
+    @Pointcut("execution(* mx.uam.sapcyti.academic.application.service.RestoreProfessorUseCase.execute(..))")
+    public void restoreProfessorPointcut() {}
 
     @Pointcut("execution(* mx.uam.sapcyti.academic.infrastructure.adapter.in.ProfessorController.*(..))")
     public void professorControllerPointcut() {}
@@ -96,6 +100,24 @@ public class ProfessorRegistrationAuditAspect {
                 AuditSeverityLevel.STANDARD,
                 "professorId=%d,userId=%d".formatted(
                         deactivated.getId(), deactivated.getUserId()));
+    }
+
+    @AfterReturning(pointcut = "restoreProfessorPointcut()", returning = "result")
+    public void auditProfessorRestored(Object result) {
+        if (!(result instanceof ListProfessorsUseCase.ProfessorListItem restored)) {
+            return;
+        }
+
+        recordEvent(
+                KnownAuditActions.PROFESSOR_RESTORED.name(),
+                resolveActorId(),
+                resolveActorRole(),
+                restored.getGraduateProgramId(),
+                AuditSeverityLevel.STANDARD,
+                "professorId=%d,userId=%d,employeeNumber=%s".formatted(
+                        restored.getId(),
+                        restored.getUserId(),
+                        restored.getEmployeeNumber()));
     }
 
     @AfterThrowing(pointcut = "professorControllerPointcut()", throwing = "ex")

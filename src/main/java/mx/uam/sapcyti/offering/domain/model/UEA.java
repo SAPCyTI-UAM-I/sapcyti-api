@@ -13,9 +13,11 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.regex.Pattern;
 import mx.uam.sapcyti.offering.domain.exception.ClaveInvalidFormatException;
+import mx.uam.sapcyti.offering.domain.exception.UeaAlreadyActiveException;
+import mx.uam.sapcyti.offering.domain.exception.UeaAlreadyInactiveException;
 
 /**
- * Aggregate root for the UEA catalog (HU-39, HU-46).
+ * Aggregate root for the UEA catalog (HU-39, HU-46, HU-47).
  */
 @Entity
 @Table(name = "ueas", uniqueConstraints = {
@@ -105,6 +107,72 @@ public class UEA {
             FormationType tipoFormacion,
             int creditos) {
         String normalizedClave = validateAndNormalizeClave(clave);
+        ValidatedUeaFields fields = validateEditableFields(
+                nombre, tipo, modalidad, horasTeoria, horasPractica, tipoFormacion, creditos);
+
+        return new UEA(
+                graduateProgramId,
+                normalizedClave,
+                fields.nombre(),
+                fields.tipo(),
+                fields.modalidad(),
+                fields.horasTeoria(),
+                fields.horasPractica(),
+                fields.tipoFormacion(),
+                fields.creditos(),
+                true);
+    }
+
+    /**
+     * Updates editable catalog fields. {@code clave} and {@code active} are unchanged (HU-47).
+     */
+    public void update(
+            String nombre,
+            UeaType tipo,
+            UeaModality modalidad,
+            BigDecimal horasTeoria,
+            BigDecimal horasPractica,
+            FormationType tipoFormacion,
+            int creditos) {
+        ValidatedUeaFields fields = validateEditableFields(
+                nombre, tipo, modalidad, horasTeoria, horasPractica, tipoFormacion, creditos);
+        this.nombre = fields.nombre();
+        this.tipo = fields.tipo();
+        this.modalidad = fields.modalidad();
+        this.horasTeoria = fields.horasTeoria();
+        this.horasPractica = fields.horasPractica();
+        this.tipoFormacion = fields.tipoFormacion();
+        this.creditos = fields.creditos();
+    }
+
+    /**
+     * Logically deactivates the UEA. The row is retained (HU-48).
+     */
+    public void deactivate() {
+        if (!active) {
+            throw new UeaAlreadyInactiveException();
+        }
+        this.active = false;
+    }
+
+    /**
+     * Reactivates a logically deactivated UEA (HU-55). {@code clave} and editable fields are unchanged.
+     */
+    public void restore() {
+        if (active) {
+            throw new UeaAlreadyActiveException();
+        }
+        this.active = true;
+    }
+
+    private static ValidatedUeaFields validateEditableFields(
+            String nombre,
+            UeaType tipo,
+            UeaModality modalidad,
+            BigDecimal horasTeoria,
+            BigDecimal horasPractica,
+            FormationType tipoFormacion,
+            int creditos) {
         if (nombre == null || nombre.isBlank()) {
             throw new IllegalArgumentException("nombre is required");
         }
@@ -120,17 +188,18 @@ public class UEA {
         validateHoras(horasTeoria, horasPractica);
         validateCreditos(creditos);
 
-        return new UEA(
-                graduateProgramId,
-                normalizedClave,
-                nombre.trim(),
-                tipo,
-                modalidad,
-                horasTeoria,
-                horasPractica,
-                tipoFormacion,
-                creditos,
-                true);
+        return new ValidatedUeaFields(
+                nombre.trim(), tipo, modalidad, horasTeoria, horasPractica, tipoFormacion, creditos);
+    }
+
+    private record ValidatedUeaFields(
+            String nombre,
+            UeaType tipo,
+            UeaModality modalidad,
+            BigDecimal horasTeoria,
+            BigDecimal horasPractica,
+            FormationType tipoFormacion,
+            int creditos) {
     }
 
     public static String validateAndNormalizeClave(String clave) {

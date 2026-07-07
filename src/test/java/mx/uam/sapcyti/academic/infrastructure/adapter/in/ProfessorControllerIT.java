@@ -258,6 +258,104 @@ class ProfessorControllerIT {
     }
 
     @Test
+    @DisplayName("PUT rejects interno to externo type change")
+    void updateRejectsInternoToExterno() throws Exception {
+        Long professorId = createProfessor();
+
+        UpdateProfessorRequest update = UpdateProfessorRequest.builder()
+                .professorType(ProfessorType.EXTERNO)
+                .email("humberto.cervantes@uam.mx")
+                .firstName("Humberto Gustavo")
+                .firstLastName("Cervantes")
+                .secondLastName("Maceda")
+                .phone("5554825678")
+                .commissionMember(false)
+                .build();
+
+        mockMvc.perform(put("/api/professors/{id}", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("INVALID_TYPE_CHANGE"));
+    }
+
+    @Test
+    @DisplayName("PUT rejects changing assigned employee number")
+    void updateRejectsChangingEmployeeNumber() throws Exception {
+        Long professorId = createProfessor();
+
+        UpdateProfessorRequest update = UpdateProfessorRequest.builder()
+                .professorType(ProfessorType.INTERNO)
+                .employeeNumber("99999")
+                .email("humberto.cervantes@uam.mx")
+                .firstName("Humberto Gustavo")
+                .firstLastName("Cervantes")
+                .secondLastName("Maceda")
+                .phone("5554825678")
+                .commissionMember(false)
+                .build();
+
+        mockMvc.perform(put("/api/professors/{id}", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("NEMP_IMMUTABLE"));
+    }
+
+    @Test
+    @DisplayName("PUT rejects clearing assigned employee number")
+    void updateRejectsClearingEmployeeNumber() throws Exception {
+        Long professorId = createProfessor();
+
+        UpdateProfessorRequest update = UpdateProfessorRequest.builder()
+                .professorType(ProfessorType.INTERNO)
+                .email("humberto.cervantes@uam.mx")
+                .firstName("Humberto Gustavo")
+                .firstLastName("Cervantes")
+                .secondLastName("Maceda")
+                .phone("5554825678")
+                .commissionMember(false)
+                .build();
+
+        mockMvc.perform(put("/api/professors/{id}", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("NEMP_IMMUTABLE"));
+    }
+
+    @Test
+    @DisplayName("PUT change externo to interno with valid employee number")
+    void updateExternoToInterno() throws Exception {
+        Long professorId = createExternoProfessor();
+
+        UpdateProfessorRequest update = UpdateProfessorRequest.builder()
+                .professorType(ProfessorType.INTERNO)
+                .employeeNumber("40123")
+                .email("externo.prof@uam.mx")
+                .firstName("Externo")
+                .firstLastName("Profesor")
+                .phone("5554825678")
+                .commissionMember(false)
+                .build();
+
+        mockMvc.perform(put("/api/professors/{id}", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(update)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.professorType").value("INTERNO"))
+                .andExpect(jsonPath("$.employeeNumber").value("40123"));
+    }
+
+    @Test
     @DisplayName("PUT deactivate sets active false")
     void deactivateProfessor() throws Exception {
         Long professorId = createProfessor();
@@ -291,6 +389,94 @@ class ProfessorControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Professor is already inactive"));
+    }
+
+    @Test
+    @DisplayName("PUT restore reactivates inactive professor")
+    void restoreProfessor() throws Exception {
+        Long professorId = createProfessor();
+
+        mockMvc.perform(put("/api/professors/{id}/deactivate", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false));
+
+        mockMvc.perform(put("/api/professors/{id}/restore", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.employeeNumber").value("30568"));
+
+        mockMvc.perform(get("/api/professors")
+                        .param("active", "true")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("restore already active professor returns 409")
+    void restoreAlreadyActive() throws Exception {
+        Long professorId = createProfessor();
+
+        mockMvc.perform(put("/api/professors/{id}/restore", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("PROFESSOR_ALREADY_ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("restore blocked when NEMP collides with another active interno")
+    void restoreNempCollision() throws Exception {
+        Long inactiveProfessorId = createProfessor();
+
+        mockMvc.perform(put("/api/professors/{id}/deactivate", inactiveProfessorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        RegisterProfessorRequest replacement = sampleRequestBuilder()
+                .email("replacement.prof@uam.mx")
+                .employeeNumber("30568")
+                .build();
+        mockMvc.perform(post("/api/professors")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(replacement)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(put("/api/professors/{id}/restore", inactiveProfessorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("DUPLICATE_EMPLOYEE_NUMBER"));
+    }
+
+    @Test
+    @DisplayName("restore unknown professor returns 404")
+    void restoreNotFound() throws Exception {
+        mockMvc.perform(put("/api/professors/{id}/restore", 999_999L)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Professor not found"));
+    }
+
+    @Test
+    @DisplayName("student role cannot restore professor")
+    void restoreUnauthorizedRole() throws Exception {
+        Long professorId = createProfessor();
+
+        mockMvc.perform(put("/api/professors/{id}/restore", professorId)
+                        .header("Authorization", "Bearer " + studentToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("FORBIDDEN"));
     }
 
     @Test
@@ -419,6 +605,26 @@ class ProfessorControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+        return objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+    }
+
+    private Long createExternoProfessor() throws Exception {
+        RegisterProfessorRequest request = sampleRequestBuilder()
+                .professorType(ProfessorType.EXTERNO)
+                .employeeNumber(null)
+                .email("externo.prof@uam.mx")
+                .firstName("Externo")
+                .firstLastName("Profesor")
+                .secondLastName(null)
+                .build();
+
+        MvcResult created = mockMvc.perform(post("/api/professors")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andReturn();
         return objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();

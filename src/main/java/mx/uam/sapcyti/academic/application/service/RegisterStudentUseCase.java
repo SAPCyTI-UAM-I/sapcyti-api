@@ -85,7 +85,7 @@ public class RegisterStudentUseCase {
 
         AcademicInformation academicInformation = new AcademicInformation(
                 command.undergraduateDegree().trim(),
-                command.lastDegreeObtained().trim(),
+                command.lastDegreeObtained(),
                 command.programType(),
                 command.admissionDate());
 
@@ -203,7 +203,7 @@ public class RegisterStudentUseCase {
         String phone;
         String phoneExtension;
         String undergraduateDegree;
-        String lastDegreeObtained;
+        mx.uam.sapcyti.academic.domain.model.DegreeLevel lastDegreeObtained;
         mx.uam.sapcyti.academic.domain.model.ProgramType programType;
         java.time.LocalDate admissionDate;
         Long advisorId;

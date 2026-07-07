@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 
 import mx.uam.sapcyti.academic.application.service.RegisterProfessorUseCase;
+import mx.uam.sapcyti.academic.application.service.ListProfessorsUseCase;
 import mx.uam.sapcyti.audit.domain.model.AuditEvent;
 import mx.uam.sapcyti.audit.domain.port.out.AuditOutputPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,5 +66,26 @@ class ProfessorRegistrationAuditAspectTest {
         assertThat(event.getActorId()).isEqualTo(1L);
         assertThat(event.getDetails()).contains("professorId=10");
         assertThat(event.getDetails()).contains("employeeNumber=30568");
+    }
+
+    @Test
+    @DisplayName("records PROFESSOR_RESTORED on successful restoration")
+    void auditProfessorRestored() {
+        ListProfessorsUseCase.ProfessorListItem result =
+                ListProfessorsUseCase.ProfessorListItem.builder()
+                        .id(10L)
+                        .userId(20L)
+                        .employeeNumber("12345")
+                        .graduateProgramId(1L)
+                        .build();
+
+        aspect.auditProfessorRestored(result);
+
+        verify(auditOutputPort).record(eventCaptor.capture());
+        AuditEvent event = eventCaptor.getValue();
+        assertThat(event.getAction()).isEqualTo("PROFESSOR_RESTORED");
+        assertThat(event.getActorId()).isEqualTo(1L);
+        assertThat(event.getDetails()).contains("professorId=10");
+        assertThat(event.getDetails()).contains("employeeNumber=12345");
     }
 }

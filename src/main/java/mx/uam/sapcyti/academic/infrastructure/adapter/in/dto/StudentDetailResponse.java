@@ -2,6 +2,7 @@ package mx.uam.sapcyti.academic.infrastructure.adapter.in.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 /**
@@ -20,7 +21,7 @@ public record StudentDetailResponse(
         String phone,
         String phoneExtension,
         String undergraduateDegree,
-        String lastDegreeObtained,
+        DegreeLevel lastDegreeObtained,
         ProgramType programType,
         LocalDate admissionDate,
         Long advisorId,

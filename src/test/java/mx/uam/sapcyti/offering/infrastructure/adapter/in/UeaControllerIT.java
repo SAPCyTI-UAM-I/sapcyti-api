@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,11 +17,12 @@ import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.infrastructure.adapter.in.dto.LoginRequest;
 import mx.uam.sapcyti.identity.infrastructure.adapter.out.repository.SpringDataUserRepository;
-import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.RegisterUeaRequest;
-import mx.uam.sapcyti.offering.infrastructure.adapter.out.repository.SpringDataUeaRepository;
 import mx.uam.sapcyti.offering.domain.model.FormationType;
 import mx.uam.sapcyti.offering.domain.model.UeaModality;
 import mx.uam.sapcyti.offering.domain.model.UeaType;
+import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.RegisterUeaRequest;
+import mx.uam.sapcyti.offering.infrastructure.adapter.in.dto.UpdateUeaRequest;
+import mx.uam.sapcyti.offering.infrastructure.adapter.out.repository.SpringDataUeaRepository;
 import mx.uam.sapcyti.shared.tenant.TenantFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -100,6 +102,296 @@ class UeaControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].clave").value("2156041"))
                 .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @DisplayName("get UEA by id returns the catalog item")
+    void getById() throws Exception {
+        long ueaId = createUea("2156041", "MÉTODOS MATEMÁTICOS", 9);
+
+        mockMvc.perform(get("/api/ueas/{ueaId}", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value((int) ueaId))
+                .andExpect(jsonPath("$.clave").value("2156041"))
+                .andExpect(jsonPath("$.nombre").value("MÉTODOS MATEMÁTICOS"));
+    }
+
+    @Test
+    @DisplayName("get unknown UEA returns NOT_FOUND")
+    void getByIdNotFound() throws Exception {
+        mockMvc.perform(get("/api/ueas/{ueaId}", 99999L)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("list sorts by nombre desc when requested")
+    void listSortsByNombreDesc() throws Exception {
+        createUea("2156041", "AAA PRIMERA", 9);
+        createUea("2156099", "ZZZ ULTIMA", 9);
+
+        mockMvc.perform(get("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .param("sort", "nombre,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nombre").value("ZZZ ULTIMA"))
+                .andExpect(jsonPath("$.content[1].nombre").value("AAA PRIMERA"));
+    }
+
+    @Test
+    @DisplayName("coordinator updates UEA editable fields")
+    void updateUea() throws Exception {
+        RegisterUeaRequest createRequest = sampleRequest("2156041", "MÉTODOS MATEMÁTICOS", 9);
+        MvcResult created = mockMvc.perform(post("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        long ueaId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        UpdateUeaRequest updateRequest = new UpdateUeaRequest(
+                "MÉTODOS MATEMÁTICOS ACTUALIZADOS",
+                UeaType.OBLIGATORIA,
+                UeaModality.MIXTA,
+                new BigDecimal("4.5"),
+                new BigDecimal("0"),
+                FormationType.BASICA,
+                12);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.clave").value("2156041"))
+                .andExpect(jsonPath("$.nombre").value("MÉTODOS MATEMÁTICOS ACTUALIZADOS"))
+                .andExpect(jsonPath("$.creditos").value(12))
+                .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    @DisplayName("update rejects clave in request body")
+    void updateRejectsClave() throws Exception {
+        RegisterUeaRequest createRequest = sampleRequest("2156042", "UEA prueba", 9);
+        MvcResult created = mockMvc.perform(post("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(createRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        long ueaId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        String body = """
+                {
+                  "clave": "9999999",
+                  "nombre": "Nombre",
+                  "tipo": "OPTATIVA",
+                  "modalidad": "MIXTA",
+                  "horasTeoria": 3,
+                  "horasPractica": 3,
+                  "tipoFormacion": "COMPLEMENTARIA",
+                  "creditos": 9
+                }
+                """;
+
+        mockMvc.perform(put("/api/ueas/{ueaId}", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @DisplayName("update unknown UEA returns NOT_FOUND")
+    void updateNotFound() throws Exception {
+        UpdateUeaRequest updateRequest = new UpdateUeaRequest(
+                "Nombre",
+                UeaType.OPTATIVA,
+                UeaModality.MIXTA,
+                new BigDecimal("3"),
+                new BigDecimal("3"),
+                FormationType.COMPLEMENTARIA,
+                9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}", 99999L)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("coordinator deactivates active UEA")
+    void deactivateUea() throws Exception {
+        long ueaId = createUea("2156041", "MÉTODOS MATEMÁTICOS", 9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(false))
+                .andExpect(jsonPath("$.clave").value("2156041"));
+
+        assertThat(ueaRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("deactivated UEA excluded from active list and visible when inactive filter")
+    void deactivateFiltersList() throws Exception {
+        long ueaId = createUea("2156041", "MÉTODOS MATEMÁTICOS", 9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        mockMvc.perform(get("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .param("active", "false"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value((int) ueaId))
+                .andExpect(jsonPath("$.content[0].active").value(false));
+    }
+
+    @Test
+    @DisplayName("double deactivation returns UEA_ALREADY_INACTIVE")
+    void deactivateAlreadyInactive() throws Exception {
+        long ueaId = createUea("2156042", "UEA prueba", 9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("UEA_ALREADY_INACTIVE"));
+    }
+
+    @Test
+    @DisplayName("deactivate unknown UEA returns NOT_FOUND")
+    void deactivateNotFound() throws Exception {
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", 99999L)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("coordinator restores inactive UEA")
+    void restoreUea() throws Exception {
+        long ueaId = createUea("2156041", "MÉTODOS MATEMÁTICOS", 9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/restore", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.active").value(true))
+                .andExpect(jsonPath("$.clave").value("2156041"))
+                .andExpect(jsonPath("$.nombre").value("MÉTODOS MATEMÁTICOS"))
+                .andExpect(jsonPath("$.creditos").value(9));
+
+        assertThat(ueaRepository.count()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("restored UEA appears in active catalog list")
+    void restoreFiltersList() throws Exception {
+        long ueaId = createUea("2156041", "MÉTODOS MATEMÁTICOS", 9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/restore", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].id").value((int) ueaId))
+                .andExpect(jsonPath("$.content[0].active").value(true));
+    }
+
+    @Test
+    @DisplayName("double restore returns UEA_ALREADY_ACTIVE")
+    void restoreAlreadyActive() throws Exception {
+        long ueaId = createUea("2156042", "UEA prueba", 9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/restore", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("UEA_ALREADY_ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("restore unknown UEA returns NOT_FOUND")
+    void restoreNotFound() throws Exception {
+        mockMvc.perform(put("/api/ueas/{ueaId}/restore", 99999L)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    @DisplayName("student cannot restore UEAs")
+    void studentCannotRestore() throws Exception {
+        long ueaId = createUea("2156043", "UEA prueba", 9);
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/deactivate", ueaId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/ueas/{ueaId}/restore", ueaId)
+                        .header("Authorization", "Bearer " + studentToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("FORBIDDEN"));
     }
 
     @Test
@@ -200,6 +492,21 @@ class UeaControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
+    }
+
+    private long createUea(String clave, String nombre, int creditos) throws Exception {
+        RegisterUeaRequest request = sampleRequest(clave, nombre, creditos);
+        MvcResult created = mockMvc.perform(post("/api/ueas")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        return objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
     }
 
     private static RegisterUeaRequest sampleRequest(String clave, String nombre, int creditos) {

@@ -2,6 +2,7 @@ package mx.uam.sapcyti.academic;
 
 import java.time.LocalDate;
 import mx.uam.sapcyti.academic.domain.model.AcademicInformation;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
@@ -38,7 +39,7 @@ public final class AcademicTestFixtures {
     public static AcademicInformation sampleAcademicInformation() {
         return new AcademicInformation(
                 "Computación",
-                "Licenciatura en Computación",
+                DegreeLevel.LICENCIATURA,
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1));
     }

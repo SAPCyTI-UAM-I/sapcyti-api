@@ -7,6 +7,9 @@ spring:
     hibernate:
       ddl-auto: create-drop
     defer-datasource-initialization: true
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
   sql:
     init:
       mode: always

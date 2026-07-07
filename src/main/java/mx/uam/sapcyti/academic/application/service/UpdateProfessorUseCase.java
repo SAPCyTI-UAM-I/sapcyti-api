@@ -36,6 +36,12 @@ public class UpdateProfessorUseCase {
         User user = userRepository.findById(professor.getUserId())
                 .orElseThrow(ProfessorNotFoundException::new);
 
+        ProfessorTypeRules.assertUpdateAllowed(
+                professor.getProfessorType(),
+                professor.getEmployeeNumber(),
+                command.professorType(),
+                command.employeeNumber());
+
         String normalizedEmployeeNumber = ProfessorTypeRules.normalizeEmployeeNumber(
                 command.professorType(), command.employeeNumber());
         assertUniqueEmployeeNumber(

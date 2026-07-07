@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 /**
@@ -20,7 +21,7 @@ public record UpdateStudentRequest(
         @NotBlank(message = "Phone is required") @Size(max = 20, message = "Phone must be at most 20 characters") String phone,
         @Size(max = 10, message = "Phone extension must be at most 10 characters") String phoneExtension,
         @NotBlank(message = "Undergraduate degree is required") String undergraduateDegree,
-        @NotBlank(message = "Last degree obtained is required") String lastDegreeObtained,
+        @NotNull(message = "Last degree obtained is required") DegreeLevel lastDegreeObtained,
         @NotNull(message = "Program type is required") ProgramType programType,
         @NotNull(message = "Admission date is required") LocalDate admissionDate,
         boolean active) {
