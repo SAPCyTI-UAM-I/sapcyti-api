@@ -55,6 +55,7 @@ import mx.uam.sapcyti.survey.domain.exception.SurveyNoActiveUeasException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotActiveException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotDeletableException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotFoundException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyReopenDatesInvalidException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.exception.UeaNotAvailableException;
 
@@ -206,6 +207,15 @@ public class GlobalExceptionHandler {
             .body(new ErrorResponse(
                 SurveyAlreadyExistsForTermException.ERROR_CODE,
                 SurveyAlreadyExistsForTermException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyReopenDatesInvalidException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyReopenDatesInvalid(SurveyReopenDatesInvalidException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse(
+                SurveyReopenDatesInvalidException.ERROR_CODE,
+                SurveyReopenDatesInvalidException.MESSAGE));
     }
 
     @ExceptionHandler(SurveyNoActiveUeasException.class)

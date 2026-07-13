@@ -7,6 +7,7 @@ import mx.uam.sapcyti.offering.domain.model.UEA;
 import mx.uam.sapcyti.offering.domain.port.out.UeaRepositoryPort;
 import mx.uam.sapcyti.survey.application.command.UpdateSurveyCommand;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNoActiveUeasException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyReopenDatesInvalidException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.model.EnrollmentSurvey;
 import mx.uam.sapcyti.survey.domain.model.SurveyStatus;
@@ -35,7 +36,7 @@ public class UpdateSurveyUseCase {
         if (currentStatus == SurveyStatus.CERRADO) {
             Instant now = Instant.now();
             if (!command.opensAt().isAfter(now) || !command.closesAt().isAfter(now)) {
-                throw new IllegalArgumentException("Reopen requires future opensAt and closesAt");
+                throw new SurveyReopenDatesInvalidException();
             }
             List<Long> snapshotUeaIds = ueaRepository.findActiveByGraduateProgramId(survey.getGraduateProgramId())
                     .stream()
