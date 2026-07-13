@@ -3,6 +3,8 @@ package mx.uam.sapcyti.offering.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,11 +12,13 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.util.Optional;
 import mx.uam.sapcyti.offering.domain.exception.UeaAlreadyInactiveException;
+import mx.uam.sapcyti.offering.domain.exception.UeaInActiveSurveyException;
 import mx.uam.sapcyti.offering.domain.exception.UeaNotFoundException;
 import mx.uam.sapcyti.offering.domain.model.FormationType;
 import mx.uam.sapcyti.offering.domain.model.UEA;
 import mx.uam.sapcyti.offering.domain.model.UeaModality;
 import mx.uam.sapcyti.offering.domain.model.UeaType;
+import mx.uam.sapcyti.offering.domain.port.out.SurveyActivityPort;
 import mx.uam.sapcyti.offering.domain.port.out.UeaRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.junit.jupiter.api.AfterEach;
@@ -33,12 +37,17 @@ class DeactivateUeaUseCaseTest {
     @Mock
     private UeaRepositoryPort ueaRepository;
 
+    @Mock
+    private SurveyActivityPort surveyActivityPort;
+
     @InjectMocks
     private DeactivateUeaUseCase useCase;
 
     @BeforeEach
     void setTenant() {
         TenantContext.set(1L);
+        lenient().when(surveyActivityPort.findActiveSurveyTermIncluding(any(), any()))
+                .thenReturn(Optional.empty());
     }
 
     @AfterEach
@@ -75,6 +84,30 @@ class DeactivateUeaUseCaseTest {
         assertThatThrownBy(() -> useCase.execute(10L))
                 .isInstanceOf(UeaAlreadyInactiveException.class);
         verify(ueaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("rejects UEA in active survey without confirm")
+    void ueaInActiveSurvey() {
+        UEA existing = sampleUea();
+        when(ueaRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(surveyActivityPort.findActiveSurveyTermIncluding(10L, 1L)).thenReturn(Optional.of("26O"));
+
+        assertThatThrownBy(() -> useCase.execute(10L, false))
+                .isInstanceOf(UeaInActiveSurveyException.class);
+        verify(ueaRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("deactivates when confirm=true despite active survey")
+    void confirmBypassesSurveyGuard() {
+        UEA existing = sampleUea();
+        when(ueaRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(existing));
+        when(surveyActivityPort.findActiveSurveyTermIncluding(10L, 1L)).thenReturn(Optional.of("26O"));
+        when(ueaRepository.save(any(UEA.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UEA result = useCase.execute(10L, true);
+        assertThat(result.isActive()).isFalse();
     }
 
     @Test

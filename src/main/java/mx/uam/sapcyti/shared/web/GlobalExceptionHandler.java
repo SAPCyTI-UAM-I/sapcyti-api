@@ -29,6 +29,7 @@ import mx.uam.sapcyti.offering.domain.exception.FileFormatInvalidException;
 import mx.uam.sapcyti.offering.domain.exception.UeaAlreadyExistsException;
 import mx.uam.sapcyti.offering.domain.exception.UeaAlreadyActiveException;
 import mx.uam.sapcyti.offering.domain.exception.UeaAlreadyInactiveException;
+import mx.uam.sapcyti.offering.domain.exception.UeaInActiveSurveyException;
 import mx.uam.sapcyti.offering.domain.exception.UeaNotFoundException;
 import mx.uam.sapcyti.planning.domain.exception.AnnualPlanAlreadyExistsException;
 import mx.uam.sapcyti.planning.domain.exception.AnnualPlanEntryNotFoundException;
@@ -47,6 +48,13 @@ import mx.uam.sapcyti.identity.domain.exception.PasswordChangeForbiddenException
 import mx.uam.sapcyti.identity.domain.exception.UsedResetTokenException;
 import mx.uam.sapcyti.identity.domain.exception.UserNotFoundException;
 import mx.uam.sapcyti.shared.tenant.TenantAccessDeniedException;
+import mx.uam.sapcyti.survey.domain.exception.BlankWithUeasConflictException;
+import mx.uam.sapcyti.survey.domain.exception.StudentSurveyResponseNotFoundException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyAlreadyExistsForTermException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyNotActiveException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyNotDeletableException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyNotFoundException;
+import mx.uam.sapcyti.survey.domain.exception.UeaNotAvailableException;
 
 /**
  * Unified JSON error responses for REST APIs (SPEC-007).
@@ -180,6 +188,75 @@ public class GlobalExceptionHandler {
             .body(new ErrorResponse(
                 InvalidStatusTransitionException.ERROR_CODE,
                 InvalidStatusTransitionException.MESSAGE));
+    }
+
+    @ExceptionHandler(UeaInActiveSurveyException.class)
+    public ResponseEntity<ErrorResponse> handleUeaInActiveSurvey(UeaInActiveSurveyException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(UeaInActiveSurveyException.ERROR_CODE, ex.getMessage()));
+    }
+
+    @ExceptionHandler(SurveyAlreadyExistsForTermException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyAlreadyExists(SurveyAlreadyExistsForTermException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                SurveyAlreadyExistsForTermException.ERROR_CODE,
+                SurveyAlreadyExistsForTermException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyNotDeletableException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyNotDeletable(SurveyNotDeletableException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                SurveyNotDeletableException.ERROR_CODE,
+                SurveyNotDeletableException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyNotActiveException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyNotActive(SurveyNotActiveException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                SurveyNotActiveException.ERROR_CODE,
+                SurveyNotActiveException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyNotFound(SurveyNotFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse(
+                SurveyNotFoundException.ERROR_CODE,
+                SurveyNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(UeaNotAvailableException.class)
+    public ResponseEntity<ErrorResponse> handleUeaNotAvailable(UeaNotAvailableException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                UeaNotAvailableException.ERROR_CODE,
+                UeaNotAvailableException.MESSAGE));
+    }
+
+    @ExceptionHandler(BlankWithUeasConflictException.class)
+    public ResponseEntity<ErrorResponse> handleBlankWithUeasConflict(BlankWithUeasConflictException ex) {
+        return ResponseEntity
+            .status(HttpStatus.BAD_REQUEST)
+            .body(new ErrorResponse(
+                BlankWithUeasConflictException.ERROR_CODE,
+                BlankWithUeasConflictException.MESSAGE));
+    }
+
+    @ExceptionHandler(StudentSurveyResponseNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleStudentSurveyResponseNotFound(
+            StudentSurveyResponseNotFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse("NOT_FOUND", StudentSurveyResponseNotFoundException.MESSAGE));
     }
 
     @ExceptionHandler(GraduateProgramNotFoundException.class)
