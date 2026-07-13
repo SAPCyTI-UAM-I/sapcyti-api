@@ -19,6 +19,20 @@ public interface SpringDataEnrollmentSurveyRepository extends JpaRepository<Enro
     Optional<EnrollmentSurvey> findFirstByGraduateProgramIdOrderByCreatedAtDesc(Long graduateProgramId);
 
     @Query("""
+            SELECT COUNT(s) > 0 FROM EnrollmentSurvey s
+            WHERE s.graduateProgramId = :programId
+              AND s.closedManually = false
+              AND s.opensAt < :closesAt
+              AND s.closesAt > :opensAt
+              AND (:excludeId IS NULL OR s.id <> :excludeId)
+            """)
+    boolean existsWindowOverlap(
+            @Param("programId") Long graduateProgramId,
+            @Param("opensAt") Instant opensAt,
+            @Param("closesAt") Instant closesAt,
+            @Param("excludeId") Long excludeId);
+
+    @Query("""
             SELECT s FROM EnrollmentSurvey s
             WHERE s.graduateProgramId = :programId
               AND s.closedManually = false

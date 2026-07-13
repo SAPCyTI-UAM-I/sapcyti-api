@@ -10,6 +10,8 @@ import mx.uam.sapcyti.shared.tenant.TenantAccessDeniedException;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import mx.uam.sapcyti.survey.application.command.CreateSurveyCommand;
 import mx.uam.sapcyti.survey.domain.exception.SurveyAlreadyExistsForTermException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyNoActiveUeasException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.model.EnrollmentSurvey;
 import mx.uam.sapcyti.survey.domain.port.out.EnrollmentSurveyRepositoryPort;
 import mx.uam.sapcyti.survey.domain.service.SuggestedTermCalculator;
@@ -30,10 +32,17 @@ public class CreateSurveyUseCase {
         if (surveyRepository.existsByTermAndGraduateProgramId(command.term(), graduateProgramId)) {
             throw new SurveyAlreadyExistsForTermException();
         }
+        if (surveyRepository.existsWindowOverlap(
+                graduateProgramId, command.opensAt(), command.closesAt(), null)) {
+            throw new SurveyWindowOverlapException();
+        }
 
         List<Long> snapshotUeaIds = ueaRepository.findActiveByGraduateProgramId(graduateProgramId).stream()
                 .map(UEA::getId)
                 .toList();
+        if (snapshotUeaIds.isEmpty()) {
+            throw new SurveyNoActiveUeasException();
+        }
 
         Long createdBy = authenticatedUserResolver.resolve().getUserId();
         EnrollmentSurvey survey = EnrollmentSurvey.create(

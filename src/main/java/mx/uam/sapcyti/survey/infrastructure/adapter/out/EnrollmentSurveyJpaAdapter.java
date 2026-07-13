@@ -50,6 +50,13 @@ public class EnrollmentSurveyJpaAdapter implements EnrollmentSurveyRepositoryPor
 
     @Override
     @Transactional(readOnly = true)
+    public boolean existsWindowOverlap(Long graduateProgramId, Instant opensAt, Instant closesAt,
+            Long excludeSurveyId) {
+        return jpaRepository.existsWindowOverlap(graduateProgramId, opensAt, closesAt, excludeSurveyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<EnrollmentSurvey> findLatestByGraduateProgramId(Long graduateProgramId) {
         return jpaRepository.findFirstByGraduateProgramIdOrderByCreatedAtDesc(graduateProgramId);
     }

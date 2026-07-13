@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.offering.domain.model.UEA;
 import mx.uam.sapcyti.offering.domain.port.out.UeaRepositoryPort;
 import mx.uam.sapcyti.survey.application.command.UpdateSurveyCommand;
+import mx.uam.sapcyti.survey.domain.exception.SurveyNoActiveUeasException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.model.EnrollmentSurvey;
 import mx.uam.sapcyti.survey.domain.model.SurveyStatus;
 import mx.uam.sapcyti.survey.domain.port.out.EnrollmentSurveyRepositoryPort;
@@ -25,6 +27,11 @@ public class UpdateSurveyUseCase {
         EnrollmentSurvey survey = surveyDetailFactory.requireSurvey(surveyId);
         SurveyStatus currentStatus = survey.getStatus(Instant.now());
 
+        if (surveyRepository.existsWindowOverlap(
+                survey.getGraduateProgramId(), command.opensAt(), command.closesAt(), surveyId)) {
+            throw new SurveyWindowOverlapException();
+        }
+
         if (currentStatus == SurveyStatus.CERRADO) {
             Instant now = Instant.now();
             if (!command.opensAt().isAfter(now) || !command.closesAt().isAfter(now)) {
@@ -34,6 +41,9 @@ public class UpdateSurveyUseCase {
                     .stream()
                     .map(UEA::getId)
                     .toList();
+            if (snapshotUeaIds.isEmpty()) {
+                throw new SurveyNoActiveUeasException();
+            }
             survey.reopen(command.opensAt(), command.closesAt(), command.introMessage(), snapshotUeaIds);
         } else {
             survey.updateSchedule(command.opensAt(), command.closesAt(), command.introMessage());

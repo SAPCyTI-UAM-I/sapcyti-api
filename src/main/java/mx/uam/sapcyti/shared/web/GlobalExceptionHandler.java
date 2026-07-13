@@ -51,9 +51,11 @@ import mx.uam.sapcyti.shared.tenant.TenantAccessDeniedException;
 import mx.uam.sapcyti.survey.domain.exception.BlankWithUeasConflictException;
 import mx.uam.sapcyti.survey.domain.exception.StudentSurveyResponseNotFoundException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyAlreadyExistsForTermException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyNoActiveUeasException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotActiveException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotDeletableException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotFoundException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.exception.UeaNotAvailableException;
 
 /**
@@ -204,6 +206,24 @@ public class GlobalExceptionHandler {
             .body(new ErrorResponse(
                 SurveyAlreadyExistsForTermException.ERROR_CODE,
                 SurveyAlreadyExistsForTermException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyNoActiveUeasException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyNoActiveUeas(SurveyNoActiveUeasException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                SurveyNoActiveUeasException.ERROR_CODE,
+                SurveyNoActiveUeasException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyWindowOverlapException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyWindowOverlap(SurveyWindowOverlapException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                SurveyWindowOverlapException.ERROR_CODE,
+                SurveyWindowOverlapException.MESSAGE));
     }
 
     @ExceptionHandler(SurveyNotDeletableException.class)

@@ -17,6 +17,8 @@ public interface EnrollmentSurveyRepositoryPort {
 
     boolean existsByTermAndGraduateProgramId(String term, Long graduateProgramId);
 
+    boolean existsWindowOverlap(Long graduateProgramId, Instant opensAt, Instant closesAt, Long excludeSurveyId);
+
     Optional<EnrollmentSurvey> findLatestByGraduateProgramId(Long graduateProgramId);
 
     Optional<EnrollmentSurvey> findActiveByGraduateProgramId(Long graduateProgramId, Instant now);
