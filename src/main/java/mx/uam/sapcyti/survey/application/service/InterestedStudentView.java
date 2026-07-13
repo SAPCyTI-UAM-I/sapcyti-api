@@ -9,4 +9,6 @@ import lombok.Value;
 public class InterestedStudentView {
     String fullName;
     String enrollmentId;
+    /** Trimester (I–XII) the student declared in their survey response. */
+    String academicTerm;
 }

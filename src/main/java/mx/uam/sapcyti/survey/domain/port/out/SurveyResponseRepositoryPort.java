@@ -18,5 +18,5 @@ public interface SurveyResponseRepositoryPort {
 
     record UeaDemandAggregate(Long ueaId, long totalResponses) {}
 
-    record InterestedStudentRow(String fullName, String enrollmentId) {}
+    record InterestedStudentRow(String fullName, String enrollmentId, String academicTerm) {}
 }

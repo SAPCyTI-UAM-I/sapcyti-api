@@ -26,6 +26,7 @@ public class GetUeaInterestedStudentsUseCase {
                 .map(row -> InterestedStudentView.builder()
                         .fullName(row.fullName())
                         .enrollmentId(row.enrollmentId())
+                        .academicTerm(row.academicTerm())
                         .build())
                 .toList();
     }

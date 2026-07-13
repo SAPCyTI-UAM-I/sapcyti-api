@@ -26,7 +26,8 @@ public interface SpringDataSurveyResponseRepository extends JpaRepository<Studen
             SELECT CONCAT(s.first_name, ' ', s.first_last_name,
                    CASE WHEN s.second_last_name IS NOT NULL AND s.second_last_name <> ''
                         THEN CONCAT(' ', s.second_last_name) ELSE '' END),
-                   s.enrollment_id
+                   s.enrollment_id,
+                   sr.academic_term
             FROM survey_response_ueas sru
             JOIN survey_responses sr ON sr.id = sru.response_id
             JOIN students s ON s.id = sr.student_id

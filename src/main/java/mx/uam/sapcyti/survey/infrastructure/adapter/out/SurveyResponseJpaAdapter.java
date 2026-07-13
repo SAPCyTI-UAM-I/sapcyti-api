@@ -46,7 +46,7 @@ public class SurveyResponseJpaAdapter implements SurveyResponseRepositoryPort {
     public List<InterestedStudentRow> findInterestedStudents(
             Long surveyId, Long ueaId, Long graduateProgramId) {
         return jpaRepository.findInterestedStudentsNative(surveyId, ueaId, graduateProgramId).stream()
-                .map(row -> new InterestedStudentRow((String) row[0], (String) row[1]))
+                .map(row -> new InterestedStudentRow((String) row[0], (String) row[1], (String) row[2]))
                 .toList();
     }
 }
