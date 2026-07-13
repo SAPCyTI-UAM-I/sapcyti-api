@@ -35,7 +35,9 @@ public class UpdateSurveyUseCase {
 
         if (currentStatus == SurveyStatus.CERRADO) {
             Instant now = Instant.now();
-            if (!command.opensAt().isAfter(now) || !command.closesAt().isAfter(now)) {
+            // Only the closing date must be in the future — keeping the original
+            // (past) opening date reopens the survey as immediately ACTIVO.
+            if (!command.closesAt().isAfter(now)) {
                 throw new SurveyReopenDatesInvalidException();
             }
             List<Long> snapshotUeaIds = ueaRepository.findActiveByGraduateProgramId(survey.getGraduateProgramId())
