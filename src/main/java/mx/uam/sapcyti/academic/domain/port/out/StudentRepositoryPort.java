@@ -13,4 +13,6 @@ public interface StudentRepositoryPort {
     List<Student> findByGraduateProgramId(Long graduateProgramId);
 
     Optional<Student> findById(Long id);
+
+    Optional<Student> findByUserIdAndGraduateProgramId(Long userId, Long graduateProgramId);
 }

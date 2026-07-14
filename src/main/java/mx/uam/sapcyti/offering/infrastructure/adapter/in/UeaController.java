@@ -123,9 +123,11 @@ public class UeaController {
 
     @PutMapping("/{ueaId}/deactivate")
     @PreAuthorize("hasRole('COORDINATOR')")
-    @Operation(summary = "Deactivate a UEA", description = "Sets active=false. Row is retained.")
-    public UeaCatalogItemResponse deactivate(@PathVariable Long ueaId) {
-        return mapper.toResponse(deactivateUeaUseCase.execute(ueaId));
+    @Operation(summary = "Deactivate a UEA", description = "Sets active=false. Use confirm=true to bypass active survey guard.")
+    public UeaCatalogItemResponse deactivate(
+            @PathVariable Long ueaId,
+            @RequestParam(defaultValue = "false") boolean confirm) {
+        return mapper.toResponse(deactivateUeaUseCase.execute(ueaId, confirm));
     }
 
     @PutMapping("/{ueaId}/restore")

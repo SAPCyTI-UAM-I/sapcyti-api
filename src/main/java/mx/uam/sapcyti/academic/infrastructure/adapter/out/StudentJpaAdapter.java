@@ -38,4 +38,10 @@ public class StudentJpaAdapter implements StudentRepositoryPort {
     public Optional<Student> findById(Long id) {
         return jpaRepository.findById(id);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Student> findByUserIdAndGraduateProgramId(Long userId, Long graduateProgramId) {
+        return jpaRepository.findByUserIdAndGraduateProgramId(userId, graduateProgramId);
+    }
 }
