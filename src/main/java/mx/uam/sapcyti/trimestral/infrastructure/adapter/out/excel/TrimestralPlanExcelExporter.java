@@ -1,0 +1,119 @@
+package mx.uam.sapcyti.trimestral.infrastructure.adapter.out.excel;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
+import lombok.extern.slf4j.Slf4j;
+import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
+import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
+import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlan;
+import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanGroup;
+import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanGroup.DaySlot;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Component;
+
+@Component
+@Slf4j
+public class TrimestralPlanExcelExporter {
+
+    public byte[] export(TrimestralPlan plan) {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+                ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet(TrimestralExcelLayout.SHEET_NAME);
+
+            Row headerRow = sheet.createRow(0);
+            List<String> headers = TrimestralExcelLayout.headers();
+            for (int column = 0; column < headers.size(); column++) {
+                headerRow.createCell(column).setCellValue(headers.get(column));
+            }
+
+            int rowIndex = 1;
+            for (TrimestralPlanGroup group : plan.getGroups()) {
+                List<GroupStudent> students = group.getStudents();
+                if (students.isEmpty()) {
+                    writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, null);
+                } else {
+                    for (GroupStudent student : students) {
+                        writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, student);
+                    }
+                }
+            }
+
+            workbook.write(output);
+            return output.toByteArray();
+        } catch (IOException ex) {
+            log.error("Failed to export trimestral plan {}", plan.getId(), ex);
+            throw new IllegalStateException("Failed to export trimestral plan", ex);
+        }
+    }
+
+    private void writeGroupRow(
+            Sheet sheet, int rowIndex, String term, TrimestralPlanGroup group, GroupStudent student) {
+        Row row = sheet.createRow(rowIndex);
+        int column = 0;
+        row.createCell(column++).setCellValue(TrimestralExcelLayout.DIVISION);
+        row.createCell(column++).setCellValue(term);
+        row.createCell(column++).setCellValue(group.getClave());
+        row.createCell(column++).setCellValue(group.getNombre());
+        writeOptional(row, column++, group.getGrupo());
+        writeCupo(row, column++, group.getCupo());
+        row.createCell(column++).setCellValue(group.getTipoUea());
+        writeOptional(row, column++, group.getEmployeeNumber());
+        writeOptional(row, column++, group.getProfessorName());
+
+        List<DaySlot> schedule = group.scheduleInOrder();
+        ScheduleDay[] days = ScheduleDay.values();
+        for (int dayIndex = 0; dayIndex < days.length; dayIndex++) {
+            DaySlot slot = schedule.get(dayIndex);
+            writeOptional(row, column++, slot.start());
+            writeOptional(row, column++, slot.end());
+            writeLab(row, column++, slot.lab());
+        }
+
+        writeOptional(row, column, buildObs(group.getObs(), student));
+    }
+
+    private static String buildObs(String groupObs, GroupStudent student) {
+        if (student == null) {
+            return blankToNull(groupObs);
+        }
+        String listing = student.getEnrollmentId() + " " + student.getFullName();
+        if (groupObs == null || groupObs.isBlank()) {
+            return listing;
+        }
+        return groupObs + "; " + listing;
+    }
+
+    private static void writeLab(Row row, int column, boolean lab) {
+        if (lab) {
+            row.createCell(column).setCellValue("LAB");
+        }
+    }
+
+    private static void writeOptional(Row row, int column, String value) {
+        if (value != null && !value.isBlank()) {
+            row.createCell(column).setCellValue(value);
+        }
+    }
+
+    private static void writeCupo(Row row, int column, String cupo) {
+        if (cupo == null || cupo.isBlank()) {
+            return;
+        }
+        Cell cell = row.createCell(column);
+        if ("*".equals(cupo)) {
+            cell.setCellValue("*");
+        } else if (cupo.matches("^[0-9]+$")) {
+            cell.setCellValue(Long.parseLong(cupo));
+        } else {
+            cell.setCellValue(cupo);
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+}

@@ -4,12 +4,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
+import mx.uam.sapcyti.academic.application.service.GetEnrollmentHistoryUseCase;
 import mx.uam.sapcyti.academic.application.service.GetStudentDetailUseCase;
 import mx.uam.sapcyti.academic.application.service.ListStudentsUseCase;
 import mx.uam.sapcyti.academic.application.service.RegisterStudentUseCase;
 import mx.uam.sapcyti.academic.application.service.UpdateStudentUseCase;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
+import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.EnrollmentHistoryEntryResponse;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.StudentDetailResponse;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.StudentResponse;
@@ -39,6 +42,7 @@ public class StudentController {
     private final ListStudentsUseCase listStudentsUseCase;
     private final GetStudentDetailUseCase getStudentDetailUseCase;
     private final UpdateStudentUseCase updateStudentUseCase;
+    private final GetEnrollmentHistoryUseCase getEnrollmentHistoryUseCase;
     private final StudentMapper mapper;
 
     @PostMapping
@@ -93,5 +97,14 @@ public class StudentController {
     public StudentResponse update(
             @PathVariable Long id, @Valid @RequestBody UpdateStudentRequest request) {
         return mapper.toResponse(updateStudentUseCase.execute(mapper.toCommand(id, request)));
+    }
+
+    @GetMapping("/{id}/enrollment-history")
+    @PreAuthorize("hasRole('COORDINATOR')")
+    @Operation(summary = "Student enrollment history by trimester (HU-61)")
+    public List<EnrollmentHistoryEntryResponse> enrollmentHistory(@PathVariable Long id) {
+        return getEnrollmentHistoryUseCase.execute(id).stream()
+                .map(EnrollmentHistoryEntryResponse::from)
+                .toList();
     }
 }

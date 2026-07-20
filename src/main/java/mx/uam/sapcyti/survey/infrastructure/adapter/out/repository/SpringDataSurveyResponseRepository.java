@@ -11,6 +11,18 @@ public interface SpringDataSurveyResponseRepository extends JpaRepository<Studen
 
     Optional<StudentSurveyResponse> findBySurveyIdAndStudentId(Long surveyId, Long studentId);
 
+    List<StudentSurveyResponse> findAllBySurveyId(Long surveyId);
+
+    @Query("""
+            SELECT r
+            FROM StudentSurveyResponse r, EnrollmentSurvey s
+            WHERE r.surveyId = s.id
+              AND r.studentId = :studentId
+              AND s.graduateProgramId = :graduateProgramId
+            """)
+    List<StudentSurveyResponse> findAllByStudentIdAndGraduateProgramId(
+            @Param("studentId") Long studentId, @Param("graduateProgramId") Long graduateProgramId);
+
     long countBySurveyId(Long surveyId);
 
     @Query("""

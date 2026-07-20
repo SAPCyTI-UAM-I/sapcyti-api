@@ -60,7 +60,8 @@ public class UpdateStudentUseCase {
                 command.undergraduateDegree().trim(),
                 command.lastDegreeObtained(),
                 command.programType(),
-                command.admissionDate());
+                command.admissionDate(),
+                normalizeAdmissionTerm(command.admissionTerm()));
 
         student.updateProfile(personalData, academicInformation);
         student = studentRepository.save(student);
@@ -81,5 +82,12 @@ public class UpdateStudentUseCase {
             return null;
         }
         return value.trim();
+    }
+
+    private static String normalizeAdmissionTerm(String admissionTerm) {
+        if (admissionTerm == null || admissionTerm.isBlank()) {
+            return null;
+        }
+        return admissionTerm.trim().toUpperCase(java.util.Locale.ROOT);
     }
 }

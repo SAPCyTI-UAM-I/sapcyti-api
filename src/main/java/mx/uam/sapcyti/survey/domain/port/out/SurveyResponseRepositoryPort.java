@@ -16,6 +16,14 @@ public interface SurveyResponseRepositoryPort {
 
     List<InterestedStudentRow> findInterestedStudents(Long surveyId, Long ueaId, Long graduateProgramId);
 
+    /**
+     * Raw responses for trimestral plan generation (SPEC-035). Includes BLANK modes.
+     */
+    List<StudentSurveyResponse> findAllBySurveyId(Long surveyId);
+
+    /** All responses for a student within a tenant (HU-61 enrollment history). */
+    List<StudentSurveyResponse> findAllByStudentIdAndGraduateProgramId(Long studentId, Long graduateProgramId);
+
     record UeaDemandAggregate(Long ueaId, long totalResponses) {}
 
     record InterestedStudentRow(String fullName, String enrollmentId, String academicTerm) {}

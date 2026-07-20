@@ -67,6 +67,7 @@ public class ListStudentsUseCase {
                 .lastDegreeObtained(student.getAcademicInformation().getLastDegreeObtained())
                 .programType(student.getAcademicInformation().getProgramType())
                 .admissionDate(student.getAcademicInformation().getAdmissionDate())
+                .admissionTerm(student.getAcademicInformation().getAdmissionTerm())
                 .advisorId(student.getAdvisorId())
                 .graduateProgramId(student.getGraduateProgramId())
                 .userId(student.getUserId())
@@ -114,6 +115,7 @@ public class ListStudentsUseCase {
         DegreeLevel lastDegreeObtained;
         ProgramType programType;
         LocalDate admissionDate;
+        String admissionTerm;
         Long advisorId;
         Long graduateProgramId;
         Long userId;

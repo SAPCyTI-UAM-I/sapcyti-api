@@ -117,7 +117,7 @@ class StudentProgramControllerIT {
                 new PersonalData("Paulina", "Valencia", "Franco", "Mexicana", LocalDate.of(1998, 3, 15), "5554821234", null),
                 new mx.uam.sapcyti.academic.domain.model.AcademicInformation(
                         "Computación", mx.uam.sapcyti.academic.domain.model.DegreeLevel.LICENCIATURA,
-                        ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1))));
+                        ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), "23O")));
         studentId = student.getId();
 
         StudentProgram studentProgram = studentProgramRepository.save(new StudentProgram(

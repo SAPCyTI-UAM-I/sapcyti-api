@@ -53,11 +53,18 @@ import mx.uam.sapcyti.survey.domain.exception.StudentSurveyResponseNotFoundExcep
 import mx.uam.sapcyti.survey.domain.exception.SurveyAlreadyExistsForTermException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNoActiveUeasException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotActiveException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyNotClosedException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotDeletableException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyNotFoundException;
+import mx.uam.sapcyti.survey.domain.exception.SurveyReopenBlockedByFinalPlanException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyReopenDatesInvalidException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.exception.UeaNotAvailableException;
+import mx.uam.sapcyti.trimestral.domain.exception.AnnualPlanRequiredException;
+import mx.uam.sapcyti.trimestral.domain.exception.InvalidTrimestralStatusTransitionException;
+import mx.uam.sapcyti.trimestral.domain.exception.TrimestralPlanAlreadyExistsException;
+import mx.uam.sapcyti.trimestral.domain.exception.TrimestralPlanNotEditableException;
+import mx.uam.sapcyti.trimestral.domain.exception.TrimestralPlanNotFoundException;
 
 /**
  * Unified JSON error responses for REST APIs (SPEC-007).
@@ -261,6 +268,72 @@ public class GlobalExceptionHandler {
             .body(new ErrorResponse(
                 SurveyNotFoundException.ERROR_CODE,
                 SurveyNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyNotClosedException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyNotClosed(SurveyNotClosedException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                SurveyNotClosedException.ERROR_CODE,
+                SurveyNotClosedException.MESSAGE));
+    }
+
+    @ExceptionHandler(SurveyReopenBlockedByFinalPlanException.class)
+    public ResponseEntity<ErrorResponse> handleSurveyReopenBlocked(SurveyReopenBlockedByFinalPlanException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                SurveyReopenBlockedByFinalPlanException.ERROR_CODE,
+                SurveyReopenBlockedByFinalPlanException.MESSAGE));
+    }
+
+    @ExceptionHandler(TrimestralPlanNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleTrimestralPlanNotFound(TrimestralPlanNotFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse(
+                TrimestralPlanNotFoundException.ERROR_CODE,
+                TrimestralPlanNotFoundException.MESSAGE));
+    }
+
+    @ExceptionHandler(TrimestralPlanAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleTrimestralPlanAlreadyExists(
+            TrimestralPlanAlreadyExistsException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                TrimestralPlanAlreadyExistsException.ERROR_CODE,
+                TrimestralPlanAlreadyExistsException.MESSAGE));
+    }
+
+    @ExceptionHandler(AnnualPlanRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleAnnualPlanRequired(AnnualPlanRequiredException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                AnnualPlanRequiredException.ERROR_CODE,
+                AnnualPlanRequiredException.MESSAGE));
+    }
+
+    @ExceptionHandler(TrimestralPlanNotEditableException.class)
+    public ResponseEntity<ErrorResponse> handleTrimestralPlanNotEditable(
+            TrimestralPlanNotEditableException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                TrimestralPlanNotEditableException.ERROR_CODE,
+                TrimestralPlanNotEditableException.MESSAGE));
+    }
+
+    @ExceptionHandler(InvalidTrimestralStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidTrimestralStatusTransition(
+            InvalidTrimestralStatusTransitionException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                InvalidTrimestralStatusTransitionException.ERROR_CODE,
+                InvalidTrimestralStatusTransitionException.MESSAGE));
     }
 
     @ExceptionHandler(UeaNotAvailableException.class)

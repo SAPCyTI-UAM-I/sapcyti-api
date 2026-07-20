@@ -5,7 +5,7 @@ import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 /**
- * Command to update student personal and student-level academic fields (HU-18).
+ * Command to update student personal and student-level academic fields (HU-18 / HU-56).
  */
 public record UpdateStudentCommand(
         Long studentId,
@@ -21,5 +21,6 @@ public record UpdateStudentCommand(
         DegreeLevel lastDegreeObtained,
         ProgramType programType,
         LocalDate admissionDate,
+        String admissionTerm,
         boolean active) {
 }

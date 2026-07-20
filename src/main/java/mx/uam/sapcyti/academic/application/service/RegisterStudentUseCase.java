@@ -87,7 +87,8 @@ public class RegisterStudentUseCase {
                 command.undergraduateDegree().trim(),
                 command.lastDegreeObtained(),
                 command.programType(),
-                command.admissionDate());
+                command.admissionDate(),
+                normalizeAdmissionTerm(command.admissionTerm()));
 
         Student student = new Student(
                 command.enrollmentId().trim(),
@@ -132,6 +133,7 @@ public class RegisterStudentUseCase {
                 .lastDegreeObtained(academicInformation.getLastDegreeObtained())
                 .programType(academicInformation.getProgramType())
                 .admissionDate(academicInformation.getAdmissionDate())
+                .admissionTerm(academicInformation.getAdmissionTerm())
                 .advisorId(legacyAdvisorId)
                 .lineOfKnowledge(blankToNull(command.lineOfKnowledge()))
                 .researchArea(blankToNull(command.researchArea()))
@@ -188,6 +190,13 @@ public class RegisterStudentUseCase {
         return value.trim();
     }
 
+    private static String normalizeAdmissionTerm(String admissionTerm) {
+        if (admissionTerm == null || admissionTerm.isBlank()) {
+            return null;
+        }
+        return admissionTerm.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
     @Value
     @Builder
     public static class RegisterStudentResult {
@@ -206,6 +215,7 @@ public class RegisterStudentUseCase {
         mx.uam.sapcyti.academic.domain.model.DegreeLevel lastDegreeObtained;
         mx.uam.sapcyti.academic.domain.model.ProgramType programType;
         java.time.LocalDate admissionDate;
+        String admissionTerm;
         Long advisorId;
         Long tutorId;
         String lineOfKnowledge;

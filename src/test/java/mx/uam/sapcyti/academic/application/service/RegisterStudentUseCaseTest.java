@@ -289,6 +289,7 @@ class RegisterStudentUseCaseTest {
         private DegreeLevel lastDegreeObtained = DegreeLevel.LICENCIATURA;
         private ProgramType programType = ProgramType.MAESTRIA;
         private LocalDate admissionDate = LocalDate.of(2023, 9, 1);
+        private String admissionTerm = "23O";
 
         RegisterStudentCommandBuilder graduateProgramId(Long value) {
             this.graduateProgramId = value;
@@ -330,7 +331,8 @@ class RegisterStudentUseCaseTest {
                     undergraduateDegree,
                     lastDegreeObtained,
                     programType,
-                    admissionDate);
+                    admissionDate,
+                    admissionTerm);
         }
     }
 }

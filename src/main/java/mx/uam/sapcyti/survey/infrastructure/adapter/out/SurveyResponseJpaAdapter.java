@@ -49,4 +49,17 @@ public class SurveyResponseJpaAdapter implements SurveyResponseRepositoryPort {
                 .map(row -> new InterestedStudentRow((String) row[0], (String) row[1], (String) row[2]))
                 .toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentSurveyResponse> findAllBySurveyId(Long surveyId) {
+        return jpaRepository.findAllBySurveyId(surveyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentSurveyResponse> findAllByStudentIdAndGraduateProgramId(
+            Long studentId, Long graduateProgramId) {
+        return jpaRepository.findAllByStudentIdAndGraduateProgramId(studentId, graduateProgramId);
+    }
 }
