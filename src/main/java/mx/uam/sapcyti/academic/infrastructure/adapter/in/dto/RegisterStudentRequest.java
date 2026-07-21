@@ -73,7 +73,9 @@ public class RegisterStudentRequest {
     @NotNull(message = "Admission date is required")
     private LocalDate admissionDate;
 
-    @NotBlank(message = "Admission term is required")
-    @Pattern(regexp = "^\\d{2}[OIPoip]$", message = "Admission term must match AA + O|I|P")
+    // Optional (HU-56): historical students may not have it. Blank is allowed; when
+    // present the format is validated. `@Pattern` treats null as valid, and the empty
+    // branch covers "".
+    @Pattern(regexp = "^(\\d{2}[OIPoip])?$", message = "Admission term must match AA + O|I|P")
     private String admissionTerm;
 }

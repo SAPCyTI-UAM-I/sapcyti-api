@@ -1,6 +1,7 @@
 package mx.uam.sapcyti.academic.infrastructure.adapter.in;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -320,8 +321,8 @@ class StudentControllerIT {
     }
 
     @Test
-    @DisplayName("HU-56: register rejects missing admissionTerm")
-    void registerRejectsMissingAdmissionTerm() throws Exception {
+    @DisplayName("HU-56: register accepts a missing admissionTerm (optional)")
+    void registerAcceptsMissingAdmissionTerm() throws Exception {
         String body = objectMapper.writeValueAsString(sampleRequestBuilder().build())
                 .replace(",\"admissionTerm\":\"23O\"", "");
 
@@ -330,8 +331,8 @@ class StudentControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.admissionTerm").value(nullValue()));
     }
 
     @Test

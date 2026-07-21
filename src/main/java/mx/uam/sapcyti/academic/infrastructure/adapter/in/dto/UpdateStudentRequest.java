@@ -25,8 +25,8 @@ public record UpdateStudentRequest(
         @NotNull(message = "Last degree obtained is required") DegreeLevel lastDegreeObtained,
         @NotNull(message = "Program type is required") ProgramType programType,
         @NotNull(message = "Admission date is required") LocalDate admissionDate,
-        @NotBlank(message = "Admission term is required")
-                @Pattern(regexp = "^\\d{2}[OIPoip]$", message = "Admission term must match AA + O|I|P")
+        // Optional (HU-56): blank allowed, format validated when present.
+        @Pattern(regexp = "^(\\d{2}[OIPoip])?$", message = "Admission term must match AA + O|I|P")
                 String admissionTerm,
         boolean active) {
 }
