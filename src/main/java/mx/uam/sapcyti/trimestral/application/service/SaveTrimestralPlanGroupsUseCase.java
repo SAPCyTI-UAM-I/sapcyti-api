@@ -23,6 +23,7 @@ import mx.uam.sapcyti.offering.domain.port.out.UeaRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import mx.uam.sapcyti.survey.domain.model.AcademicTerm;
 import mx.uam.sapcyti.trimestral.domain.exception.TrimestralPlanNotFoundException;
+import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
 import mx.uam.sapcyti.trimestral.domain.model.PlanWarning;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
@@ -95,20 +96,6 @@ public class SaveTrimestralPlanGroupsUseCase {
                 }
             }
 
-            Long professorId = input.professorId();
-            String employeeNumber = null;
-            String professorName = null;
-            if (professorId != null) {
-                Professor professor = professorRepository
-                        .findByIdAndGraduateProgramId(professorId, graduateProgramId)
-                        .orElseThrow(ProfessorNotFoundException::new);
-                if (!isUserActive(professor.getUserId())) {
-                    throw new ProfessorNotFoundException();
-                }
-                employeeNumber = professor.getEmployeeNumber();
-                professorName = TrimestralPlanGenerationSupport.formatProfessorName(professor.getPersonalData());
-            }
-
             TrimestralPlanGroup group = TrimestralPlanGroup.createEdited(
                     plan,
                     input.ueaId(),
@@ -118,10 +105,35 @@ public class SaveTrimestralPlanGroupsUseCase {
                     tipoUea,
                     input.grupo(),
                     input.cupo(),
-                    professorId,
-                    employeeNumber,
-                    professorName,
                     schedule);
+
+            // Research groups have co-directors: resolve each professor into a snapshot,
+            // preserving the captured order. Duplicates within the same group are rejected.
+            List<GroupProfessor> groupProfessors = new ArrayList<>();
+            Set<Long> seenProfessorIds = new HashSet<>();
+            short professorPos = 1;
+            for (Long professorId : input.professorIds()) {
+                if (professorId == null) {
+                    throw new IllegalArgumentException("professorId is required");
+                }
+                if (!seenProfessorIds.add(professorId)) {
+                    throw new IllegalArgumentException(
+                            "professorId " + professorId + " is repeated in the same group");
+                }
+                Professor professor = professorRepository
+                        .findByIdAndGraduateProgramId(professorId, graduateProgramId)
+                        .orElseThrow(ProfessorNotFoundException::new);
+                if (!isUserActive(professor.getUserId())) {
+                    throw new ProfessorNotFoundException();
+                }
+                groupProfessors.add(GroupProfessor.create(
+                        group,
+                        professorId,
+                        professor.getEmployeeNumber(),
+                        TrimestralPlanGenerationSupport.formatProfessorName(professor.getPersonalData()),
+                        professorPos++));
+            }
+            group.replaceProfessors(groupProfessors);
 
             List<GroupStudent> members = new ArrayList<>();
             short studentPos = 1;
@@ -227,9 +239,13 @@ public class SaveTrimestralPlanGroupsUseCase {
             Long ueaId,
             String grupo,
             String cupo,
-            Long professorId,
+            List<Long> professorIds,
             List<DayScheduleInput> schedule,
             List<StudentInput> students) {
+
+        public GroupInput {
+            professorIds = professorIds == null ? List.of() : List.copyOf(professorIds);
+        }
     }
 
     public record StudentInput(Long studentId, String obs) {

@@ -216,13 +216,12 @@ public class TrimestralPlanGenerationSupport {
 
         Set<Long> activeProfessorIds = new HashSet<>();
         for (TrimestralPlanGroup group : plan.getGroups()) {
-            if (group.getProfessorId() == null) {
-                continue;
-            }
-            Optional<Professor> professor =
-                    professorRepository.findByIdAndGraduateProgramId(group.getProfessorId(), plan.getGraduateProgramId());
-            if (professor.isPresent() && isUserActive(professor.get().getUserId())) {
-                activeProfessorIds.add(professor.get().getId());
+            for (var groupProfessor : group.getProfessors()) {
+                Optional<Professor> professor = professorRepository.findByIdAndGraduateProgramId(
+                        groupProfessor.getProfessorId(), plan.getGraduateProgramId());
+                if (professor.isPresent() && isUserActive(professor.get().getUserId())) {
+                    activeProfessorIds.add(professor.get().getId());
+                }
             }
         }
 

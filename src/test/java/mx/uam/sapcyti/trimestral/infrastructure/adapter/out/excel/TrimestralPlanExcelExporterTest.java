@@ -6,6 +6,7 @@ import java.io.ByteArrayInputStream;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
 import mx.uam.sapcyti.trimestral.domain.model.StudentSource;
@@ -175,6 +176,53 @@ class TrimestralPlanExcelExporterTest {
         }
     }
 
+    @Test
+    @DisplayName("stacks co-director professors on NEMP/PROF rows alongside the students")
+    void professorsStackedOnRows() throws Exception {
+        TrimestralPlan plan = TrimestralPlan.create(1L, 10L, "26O", 5L);
+        TrimestralPlanGroup group = TrimestralPlanGroup.createEdited(
+                plan, 1L, (short) 1, "2156047", "PROYECTO DE INVESTIGACIÓN II", "OBLIGATORIA", "CR43", "1",
+                emptySchedule());
+        group.replaceProfessors(List.of(
+                GroupProfessor.create(group, 41L, "41530", "Leonardo Palacios Luengas", (short) 1),
+                GroupProfessor.create(group, 42L, "42178", "Salvador Gonzalez Arellano", (short) 2)));
+        group.addStudent(GroupStudent.create(
+                group, 300L, "2253800889", "JESUS ALFONSO REYES DE LA VEGA", StudentSource.SURVEY, "IV", null,
+                (short) 1));
+        plan.replaceGroups(List.of(group));
+
+        byte[] content = exporter.export(plan);
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
+            Sheet sheet = workbook.getSheet(TrimestralExcelLayout.SHEET_NAME);
+            DataFormatter formatter = new DataFormatter();
+
+            // Group row: first professor in H/I, single student in Z.
+            Row groupRow = sheet.getRow(1);
+            assertThat(formatter.formatCellValue(groupRow.getCell(TrimestralExcelLayout.COLUMN_NEMP)))
+                    .isEqualTo("41530");
+            assertThat(formatter.formatCellValue(groupRow.getCell(TrimestralExcelLayout.COLUMN_PROF)))
+                    .isEqualTo("Leonardo Palacios Luengas");
+            assertThat(formatter.formatCellValue(groupRow.getCell(TrimestralExcelLayout.COLUMN_STUDENT_NAME)))
+                    .isEqualTo("JESUS ALFONSO REYES DE LA VEGA");
+
+            // Continuation row: second professor in H/I, no student.
+            Row continuation = sheet.getRow(2);
+            assertThat(formatter.formatCellValue(continuation.getCell(TrimestralExcelLayout.COLUMN_NEMP)))
+                    .isEqualTo("42178");
+            assertThat(formatter.formatCellValue(continuation.getCell(TrimestralExcelLayout.COLUMN_PROF)))
+                    .isEqualTo("Salvador Gonzalez Arellano");
+            assertThat(continuation.getCell(TrimestralExcelLayout.COLUMN_STUDENT_NAME)).isNull();
+        }
+    }
+
+    private static Map<ScheduleDay, DaySlot> emptySchedule() {
+        Map<ScheduleDay, DaySlot> map = new EnumMap<>(ScheduleDay.class);
+        for (ScheduleDay day : ScheduleDay.values()) {
+            map.put(day, new DaySlot(null, null, false));
+        }
+        return map;
+    }
+
     private record StudentFixture(String enrollmentId, String fullName, String obs) {}
 
     private static StudentFixture student(String enrollmentId, String fullName) {
@@ -207,18 +255,7 @@ class TrimestralPlanExcelExporterTest {
         schedule.put(ScheduleDay.VIE, new DaySlot(null, null, false));
 
         TrimestralPlanGroup group = TrimestralPlanGroup.createEdited(
-                plan,
-                1L,
-                posicion,
-                clave,
-                nombre,
-                "OBLIGATORIA",
-                "CO43",
-                "25",
-                null,
-                null,
-                null,
-                schedule);
+                plan, 1L, posicion, clave, nombre, "OBLIGATORIA", "CO43", "25", schedule);
         short studentPos = 1;
         for (StudentFixture student : students) {
             group.addStudent(GroupStudent.create(

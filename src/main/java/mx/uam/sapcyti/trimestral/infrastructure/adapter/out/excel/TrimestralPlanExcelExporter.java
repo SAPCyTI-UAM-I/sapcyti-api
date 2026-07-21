@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlan;
@@ -36,13 +37,17 @@ public class TrimestralPlanExcelExporter {
                     rowIndex++; // one blank row between group blocks (reference file has 1..3; we use 1)
                 }
                 List<GroupStudent> students = group.getStudents();
-                if (students.isEmpty()) {
-                    writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, null);
-                    continue;
-                }
-                writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, students.get(0));
-                for (int i = 1; i < students.size(); i++) {
-                    writeStudentContinuationRow(sheet, rowIndex++, students.get(i));
+                List<GroupProfessor> professors = group.getProfessors();
+                // Professors (co-directors) and students both stack from the group row down.
+                int blockRows = Math.max(1, Math.max(students.size(), professors.size()));
+                for (int i = 0; i < blockRows; i++) {
+                    GroupProfessor professor = i < professors.size() ? professors.get(i) : null;
+                    GroupStudent student = i < students.size() ? students.get(i) : null;
+                    if (i == 0) {
+                        writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, professor, student);
+                    } else {
+                        writeContinuationRow(sheet, rowIndex++, professor, student);
+                    }
                 }
             }
 
@@ -55,7 +60,12 @@ public class TrimestralPlanExcelExporter {
     }
 
     private void writeGroupRow(
-            Sheet sheet, int rowIndex, String term, TrimestralPlanGroup group, GroupStudent student) {
+            Sheet sheet,
+            int rowIndex,
+            String term,
+            TrimestralPlanGroup group,
+            GroupProfessor professor,
+            GroupStudent student) {
         Row row = sheet.createRow(rowIndex);
         int column = 0;
         row.createCell(column++).setCellValue(TrimestralExcelLayout.DIVISION);
@@ -65,8 +75,9 @@ public class TrimestralPlanExcelExporter {
         writeOptional(row, column++, group.getGrupo());
         writeCupo(row, column++, group.getCupo());
         row.createCell(column++).setCellValue(group.getTipoUea());
-        writeOptional(row, column++, group.getEmployeeNumber());
-        writeOptional(row, column++, group.getProfessorName());
+        // NEMP (H) / PROF (I): first professor here, the rest stack on continuation rows.
+        writeProfessorCells(row, professor);
+        column += 2;
 
         List<DaySlot> schedule = group.scheduleInOrder();
         ScheduleDay[] days = ScheduleDay.values();
@@ -82,9 +93,20 @@ public class TrimestralPlanExcelExporter {
         writeStudentCells(row, student);
     }
 
-    /** Continuation rows carry only Z (name) / AA (matrícula) / AB (obs); A→Y stay empty. */
-    private static void writeStudentContinuationRow(Sheet sheet, int rowIndex, GroupStudent student) {
-        writeStudentCells(sheet.createRow(rowIndex), student);
+    /** Continuation rows carry only NEMP/PROF (H/I) and Z/AA/AB; the rest stay empty. */
+    private static void writeContinuationRow(
+            Sheet sheet, int rowIndex, GroupProfessor professor, GroupStudent student) {
+        Row row = sheet.createRow(rowIndex);
+        writeProfessorCells(row, professor);
+        writeStudentCells(row, student);
+    }
+
+    private static void writeProfessorCells(Row row, GroupProfessor professor) {
+        if (professor == null) {
+            return;
+        }
+        writeOptional(row, TrimestralExcelLayout.COLUMN_NEMP, professor.getEmployeeNumber());
+        writeOptional(row, TrimestralExcelLayout.COLUMN_PROF, professor.getProfessorName());
     }
 
     private static void writeStudentCells(Row row, GroupStudent student) {

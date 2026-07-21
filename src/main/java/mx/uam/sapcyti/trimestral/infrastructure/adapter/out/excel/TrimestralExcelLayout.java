@@ -8,6 +8,11 @@ public final class TrimestralExcelLayout {
     public static final String SHEET_NAME = "Original CyTI";
     public static final String DIVISION = "CBI";
 
+    /** NEMP (H) and PROF (I): a group may carry co-directors, stacked one per row here. */
+    public static final int COLUMN_NEMP = 7;
+
+    public static final int COLUMN_PROF = 8;
+
     /** Official Sistemas Escolares headers occupy A→Y (0..24). */
     public static final int COLUMN_OBS = 24;
 

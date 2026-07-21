@@ -21,6 +21,7 @@ import mx.uam.sapcyti.survey.domain.model.StudentSurveyResponse;
 import mx.uam.sapcyti.survey.domain.model.SurveyResponseMode;
 import mx.uam.sapcyti.survey.domain.port.out.EnrollmentSurveyRepositoryPort;
 import mx.uam.sapcyti.survey.domain.port.out.SurveyResponseRepositoryPort;
+import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
 import mx.uam.sapcyti.trimestral.domain.model.StudentSource;
@@ -149,11 +150,18 @@ public class EnrollmentHistoryAdapter implements EnrollmentHistoryPort {
             DaySlot slot = slots.get(i);
             schedule.add(new DaySchedule(days[i].name(), slot.start(), slot.end(), slot.lab()));
         }
+        // A group may have co-directors; the history shows their names joined.
+        String professorNames = group.getProfessors().isEmpty()
+                ? null
+                : group.getProfessors().stream()
+                        .map(GroupProfessor::getProfessorName)
+                        .filter(name -> name != null && !name.isBlank())
+                        .collect(java.util.stream.Collectors.joining(", "));
         return new EnrollmentHistoryUea(
                 group.getClave(),
                 group.getNombre(),
                 group.getGrupo(),
-                group.getProfessorName(),
+                professorNames == null || professorNames.isBlank() ? null : professorNames,
                 schedule);
     }
 

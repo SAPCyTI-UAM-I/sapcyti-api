@@ -56,15 +56,6 @@ public class TrimestralPlanGroup {
     @Column(name = "cupo", length = 5)
     private String cupo;
 
-    @Column(name = "professor_id")
-    private Long professorId;
-
-    @Column(name = "employee_number", length = 20)
-    private String employeeNumber;
-
-    @Column(name = "professor_name", length = 300)
-    private String professorName;
-
     @Column(name = "lun_ini", length = 5)
     private String lunIni;
 
@@ -115,6 +106,11 @@ public class TrimestralPlanGroup {
     @BatchSize(size = 50)
     private List<GroupStudent> students = new ArrayList<>();
 
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("posicion ASC")
+    @BatchSize(size = 50)
+    private List<GroupProfessor> professors = new ArrayList<>();
+
     protected TrimestralPlanGroup() {
         // For JPA
     }
@@ -164,15 +160,9 @@ public class TrimestralPlanGroup {
             String tipoUea,
             String grupo,
             String cupo,
-            Long professorId,
-            String employeeNumber,
-            String professorName,
             Map<ScheduleDay, DaySlot> schedule) {
         TrimestralPlanGroup group =
                 new TrimestralPlanGroup(plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo);
-        group.professorId = professorId;
-        group.employeeNumber = employeeNumber;
-        group.professorName = professorName;
         group.applySchedule(schedule);
         return group;
     }
@@ -189,6 +179,21 @@ public class TrimestralPlanGroup {
             student.setPosicion(position++);
             student.assignGroup(this);
             students.add(student);
+        }
+    }
+
+    public void addProfessor(GroupProfessor professor) {
+        professor.assignGroup(this);
+        professors.add(professor);
+    }
+
+    public void replaceProfessors(List<GroupProfessor> newProfessors) {
+        professors.clear();
+        short position = 1;
+        for (GroupProfessor professor : newProfessors) {
+            professor.setPosicion(position++);
+            professor.assignGroup(this);
+            professors.add(professor);
         }
     }
 
@@ -297,16 +302,8 @@ public class TrimestralPlanGroup {
         return cupo;
     }
 
-    public Long getProfessorId() {
-        return professorId;
-    }
-
-    public String getEmployeeNumber() {
-        return employeeNumber;
-    }
-
-    public String getProfessorName() {
-        return professorName;
+    public List<GroupProfessor> getProfessors() {
+        return List.copyOf(professors);
     }
 
     public List<GroupStudent> getStudents() {

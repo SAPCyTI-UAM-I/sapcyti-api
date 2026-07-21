@@ -3,6 +3,7 @@ package mx.uam.sapcyti.trimestral.infrastructure.adapter.in.dto;
 import java.util.ArrayList;
 import java.util.List;
 import mx.uam.sapcyti.trimestral.application.service.TrimestralPlanGenerationSupport.BlankStudentView;
+import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
 import mx.uam.sapcyti.trimestral.domain.model.PlanWarning;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
@@ -52,9 +53,7 @@ public record TrimestralPlanDetailResponse(
             String tipoUea,
             String grupo,
             String cupo,
-            String employeeNumber,
-            Long professorId,
-            String professorName,
+            List<GroupProfessorResponse> professors,
             List<DayScheduleResponse> schedule,
             List<GroupStudentResponse> students) {
 
@@ -66,6 +65,9 @@ public record TrimestralPlanDetailResponse(
                 DaySlot slot = slots.get(i);
                 schedule.add(new DayScheduleResponse(days[i].name(), slot.start(), slot.end(), slot.lab()));
             }
+            List<GroupProfessorResponse> professors = group.getProfessors().stream()
+                    .map(GroupProfessorResponse::from)
+                    .toList();
             List<GroupStudentResponse> students = group.getStudents().stream()
                     .map(GroupStudentResponse::from)
                     .toList();
@@ -77,11 +79,17 @@ public record TrimestralPlanDetailResponse(
                     group.getTipoUea(),
                     group.getGrupo(),
                     group.getCupo(),
-                    group.getEmployeeNumber(),
-                    group.getProfessorId(),
-                    group.getProfessorName(),
+                    professors,
                     schedule,
                     students);
+        }
+    }
+
+    public record GroupProfessorResponse(Long professorId, String employeeNumber, String professorName) {
+
+        static GroupProfessorResponse from(GroupProfessor professor) {
+            return new GroupProfessorResponse(
+                    professor.getProfessorId(), professor.getEmployeeNumber(), professor.getProfessorName());
         }
     }
 

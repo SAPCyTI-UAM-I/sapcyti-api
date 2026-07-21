@@ -521,7 +521,7 @@ class TrimestralPlanControllerIT {
         g.put("ueaId", group.get("ueaId").asLong());
         g.put("grupo", group.get("grupo").asText());
         g.put("cupo", cupo);
-        g.putNull("professorId");
+        g.putArray("professorIds");
         ArrayNode schedule = g.putArray("schedule");
         for (String day : new String[] {"LUN", "MAR", "MIE", "JUE", "VIE"}) {
             ObjectNode slot = schedule.addObject();

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Set;
+import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
 import mx.uam.sapcyti.trimestral.domain.model.PlanWarning;
 import mx.uam.sapcyti.trimestral.domain.model.StudentSource;
@@ -65,10 +66,8 @@ class WarningEngineTest {
                 "OBLIGATORIA",
                 "CO43",
                 "25",
-                8L,
-                "12345",
-                "Prof X",
                 emptySchedule());
+        group.replaceProfessors(List.of(GroupProfessor.create(group, 8L, "12345", "Prof X", (short) 1)));
         group.addStudent(GroupStudent.create(
                 group, 101L, "2123001", "Ana Lopez", StudentSource.SURVEY, "I", null, (short) 1));
         plan.replaceGroups(List.of(group));

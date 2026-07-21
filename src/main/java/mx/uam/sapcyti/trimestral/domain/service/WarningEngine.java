@@ -55,15 +55,17 @@ public class WarningEngine {
                 }
             }
 
-            if (group.getProfessorId() != null
-                    && !ctx.activeProfessorIds().contains(group.getProfessorId())) {
-                warnings.add(PlanWarning.of(
-                        plan,
-                        WarningCode.PROFESSOR_INACTIVE,
-                        null,
-                        null,
-                        group.getEmployeeNumber(),
-                        group.getId()));
+            // A group may carry co-directors: warn once per inactive professor.
+            for (var professor : group.getProfessors()) {
+                if (!ctx.activeProfessorIds().contains(professor.getProfessorId())) {
+                    warnings.add(PlanWarning.of(
+                            plan,
+                            WarningCode.PROFESSOR_INACTIVE,
+                            null,
+                            null,
+                            professor.getEmployeeNumber(),
+                            group.getId()));
+                }
             }
 
             if (group.exceedsCupo()) {

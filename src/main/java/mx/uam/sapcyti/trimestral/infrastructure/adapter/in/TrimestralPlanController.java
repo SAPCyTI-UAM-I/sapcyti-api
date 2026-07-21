@@ -152,7 +152,7 @@ public class TrimestralPlanController {
                     group.ueaId(),
                     group.grupo(),
                     group.cupo(),
-                    group.professorId(),
+                    group.professorIds(),
                     toSchedule(group.schedule()),
                     students));
         }

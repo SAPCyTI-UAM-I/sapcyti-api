@@ -12,7 +12,7 @@ public record SaveTrimestralPlanRequest(List<SaveGroupRequest> groups) {
             Long ueaId,
             String grupo,
             String cupo,
-            Long professorId,
+            List<Long> professorIds,
             List<DayScheduleRequest> schedule,
             List<SaveGroupStudentRequest> students) {}
 
