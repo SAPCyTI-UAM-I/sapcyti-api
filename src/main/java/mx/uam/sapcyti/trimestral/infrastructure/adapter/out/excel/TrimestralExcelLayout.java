@@ -8,9 +8,20 @@ public final class TrimestralExcelLayout {
     public static final String SHEET_NAME = "Original CyTI";
     public static final String DIVISION = "CBI";
 
+    /** Official Sistemas Escolares headers occupy A→Y (0..24). */
+    public static final int COLUMN_OBS = 24;
+
+    /**
+     * Student listing lives past the official headers (no header cells): name in Z, matrícula in AA.
+     * Reference: {@code PCYTI 26O_con_nombres_y_matriculas.xlsx}.
+     */
+    public static final int COLUMN_STUDENT_NAME = 25;
+
+    public static final int COLUMN_STUDENT_ENROLLMENT = 26;
+
     private TrimestralExcelLayout() {}
 
-    /** Verified A→Y header order; TIPO DE UEA is column G (index 6). */
+    /** Verified A→Y header order; TIPO DE UEA is column G (index 6). Students are not in OBS. */
     public static List<String> headers() {
         return List.of(
                 "DIV",

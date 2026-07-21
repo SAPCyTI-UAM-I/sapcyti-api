@@ -35,10 +35,11 @@ public class TrimestralPlanExcelExporter {
                 List<GroupStudent> students = group.getStudents();
                 if (students.isEmpty()) {
                     writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, null);
-                } else {
-                    for (GroupStudent student : students) {
-                        writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, student);
-                    }
+                    continue;
+                }
+                writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, students.get(0));
+                for (int i = 1; i < students.size(); i++) {
+                    writeStudentContinuationRow(sheet, rowIndex++, students.get(i));
                 }
             }
 
@@ -73,18 +74,21 @@ public class TrimestralPlanExcelExporter {
             writeLab(row, column++, slot.lab());
         }
 
-        writeOptional(row, column, buildObs(group.getObs(), student));
+        writeOptional(row, TrimestralExcelLayout.COLUMN_OBS, blankToNull(group.getObs()));
+        writeStudentCells(row, student);
     }
 
-    private static String buildObs(String groupObs, GroupStudent student) {
+    /** Continuation rows carry only Z (name) / AA (matrícula); A→Y stay empty. */
+    private static void writeStudentContinuationRow(Sheet sheet, int rowIndex, GroupStudent student) {
+        writeStudentCells(sheet.createRow(rowIndex), student);
+    }
+
+    private static void writeStudentCells(Row row, GroupStudent student) {
         if (student == null) {
-            return blankToNull(groupObs);
+            return;
         }
-        String listing = student.getEnrollmentId() + " " + student.getFullName();
-        if (groupObs == null || groupObs.isBlank()) {
-            return listing;
-        }
-        return groupObs + "; " + listing;
+        writeOptional(row, TrimestralExcelLayout.COLUMN_STUDENT_NAME, student.getFullName());
+        writeEnrollment(row, TrimestralExcelLayout.COLUMN_STUDENT_ENROLLMENT, student.getEnrollmentId());
     }
 
     private static void writeLab(Row row, int column, boolean lab) {
@@ -96,6 +100,18 @@ public class TrimestralPlanExcelExporter {
     private static void writeOptional(Row row, int column, String value) {
         if (value != null && !value.isBlank()) {
             row.createCell(column).setCellValue(value);
+        }
+    }
+
+    private static void writeEnrollment(Row row, int column, String enrollmentId) {
+        if (enrollmentId == null || enrollmentId.isBlank()) {
+            return;
+        }
+        Cell cell = row.createCell(column);
+        if (enrollmentId.matches("^[0-9]+$")) {
+            cell.setCellValue(Long.parseLong(enrollmentId));
+        } else {
+            cell.setCellValue(enrollmentId);
         }
     }
 
