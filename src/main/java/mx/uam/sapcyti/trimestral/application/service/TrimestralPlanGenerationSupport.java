@@ -309,6 +309,7 @@ public class TrimestralPlanGenerationSupport {
                 formatFullName(student.getPersonalData()),
                 StudentSource.SURVEY,
                 d.academicTerm().name(),
+                null,
                 posicion);
     }
 

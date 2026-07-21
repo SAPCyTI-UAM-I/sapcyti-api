@@ -242,7 +242,18 @@ class TrimestralPlanControllerIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(saveBody.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.warnings[?(@.code=='CUPO_EXCEEDED')]").exists());
+                .andExpect(jsonPath("$.warnings[?(@.code=='CUPO_EXCEEDED')]").exists())
+                .andExpect(jsonPath("$.groups[0].students[0].obs").value("Maestría Física"))
+                .andExpect(jsonPath("$.groups[0].students[1].obs").isEmpty());
+
+        // student obs persisted and returned on GET (students sorted by surname: Diaz before Valencia)
+        mockMvc.perform(get("/api/trimestral-plans/{id}", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groups[0].students[0].studentId").value(student2Id))
+                .andExpect(jsonPath("$.groups[0].students[0].obs").value("Maestría Física"))
+                .andExpect(jsonPath("$.groups[0].students[1].obs").isEmpty());
 
         mockMvc.perform(patch("/api/trimestral-plans/{id}/status", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -279,7 +290,8 @@ class TrimestralPlanControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.outdated").value(false))
-                .andExpect(jsonPath("$.groups[0].cupo").value("25"));
+                .andExpect(jsonPath("$.groups[0].cupo").value("25"))
+                .andExpect(jsonPath("$.groups[0].students[0].obs").isEmpty());
     }
 
     @Test
@@ -376,7 +388,9 @@ class TrimestralPlanControllerIT {
                 .getId();
 
         ObjectNode saveBody = emptyScheduleSaveBody(planId, "25");
-        ((ArrayNode) saveBody.get("groups").get(0).get("studentIds")).removeAll().add(foreignStudentId);
+        ArrayNode students = (ArrayNode) saveBody.get("groups").get(0).get("students");
+        students.removeAll();
+        students.addObject().put("studentId", foreignStudentId).putNull("obs");
 
         mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -508,7 +522,6 @@ class TrimestralPlanControllerIT {
         g.put("grupo", group.get("grupo").asText());
         g.put("cupo", cupo);
         g.putNull("professorId");
-        g.putNull("obs");
         ArrayNode schedule = g.putArray("schedule");
         for (String day : new String[] {"LUN", "MAR", "MIE", "JUE", "VIE"}) {
             ObjectNode slot = schedule.addObject();
@@ -517,9 +530,13 @@ class TrimestralPlanControllerIT {
             slot.putNull("end");
             slot.put("lab", false);
         }
-        ArrayNode students = g.putArray("studentIds");
-        students.add(studentId);
-        students.add(student2Id);
+        ArrayNode students = g.putArray("students");
+        ObjectNode s1 = students.addObject();
+        s1.put("studentId", studentId);
+        s1.putNull("obs");
+        ObjectNode s2 = students.addObject();
+        s2.put("studentId", student2Id);
+        s2.put("obs", "Maestría Física");
         return body;
     }
 

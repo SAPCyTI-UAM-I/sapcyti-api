@@ -18,6 +18,7 @@ import mx.uam.sapcyti.trimestral.application.service.RegenerateTrimestralPlanUse
 import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase;
 import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.DayScheduleInput;
 import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.GroupInput;
+import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.StudentInput;
 import mx.uam.sapcyti.trimestral.application.service.TrimestralPlanGenerationSupport;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlan;
@@ -141,7 +142,11 @@ public class TrimestralPlanController {
             if (group.ueaId() == null) {
                 throw new IllegalArgumentException("ueaId is required");
             }
-            List<Long> studentIds = group.studentIds() == null ? List.of() : group.studentIds();
+            List<StudentInput> students = group.students() == null
+                    ? List.of()
+                    : group.students().stream()
+                            .map(s -> new StudentInput(s.studentId(), s.obs()))
+                            .toList();
             inputs.add(new GroupInput(
                     group.id(),
                     group.ueaId(),
@@ -149,8 +154,7 @@ public class TrimestralPlanController {
                     group.cupo(),
                     group.professorId(),
                     toSchedule(group.schedule()),
-                    group.obs(),
-                    studentIds));
+                    students));
         }
         return inputs;
     }

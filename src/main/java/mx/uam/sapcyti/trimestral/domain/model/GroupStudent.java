@@ -16,6 +16,8 @@ import jakarta.persistence.Table;
 @Table(name = "trimestral_plan_group_students")
 public class GroupStudent {
 
+    public static final int OBS_MAX_LENGTH = 255;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -40,6 +42,9 @@ public class GroupStudent {
     @Column(name = "academic_term", length = 4)
     private String academicTerm;
 
+    @Column(name = "obs", length = OBS_MAX_LENGTH)
+    private String obs;
+
     @Column(name = "posicion", nullable = false)
     private short posicion;
 
@@ -54,6 +59,7 @@ public class GroupStudent {
             String fullName,
             StudentSource source,
             String academicTerm,
+            String obs,
             short posicion) {
         this.group = group;
         this.studentId = studentId;
@@ -61,6 +67,7 @@ public class GroupStudent {
         this.fullName = fullName;
         this.source = source;
         this.academicTerm = academicTerm;
+        this.obs = obs;
         this.posicion = posicion;
     }
 
@@ -71,8 +78,16 @@ public class GroupStudent {
             String fullName,
             StudentSource source,
             String academicTerm,
+            String obs,
             short posicion) {
-        return new GroupStudent(group, studentId, enrollmentId, fullName, source, academicTerm, posicion);
+        validateObs(obs);
+        return new GroupStudent(group, studentId, enrollmentId, fullName, source, academicTerm, obs, posicion);
+    }
+
+    public static void validateObs(String obs) {
+        if (obs != null && obs.length() > OBS_MAX_LENGTH) {
+            throw new IllegalArgumentException("student obs must be at most " + OBS_MAX_LENGTH + " characters");
+        }
     }
 
     void assignGroup(TrimestralPlanGroup group) {
@@ -105,6 +120,10 @@ public class GroupStudent {
 
     public String getAcademicTerm() {
         return academicTerm;
+    }
+
+    public String getObs() {
+        return obs;
     }
 
     public short getPosicion() {

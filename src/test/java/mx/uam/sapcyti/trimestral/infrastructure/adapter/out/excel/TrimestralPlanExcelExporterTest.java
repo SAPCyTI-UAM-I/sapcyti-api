@@ -26,7 +26,7 @@ class TrimestralPlanExcelExporterTest {
     @Test
     @DisplayName("exports Original CyTI headers with TIPO DE UEA in column G")
     void exportLayout() throws Exception {
-        TrimestralPlan plan = samplePlan(List.of(student("2123999101", "Juan Pérez")), null, false);
+        TrimestralPlan plan = samplePlan(List.of(student("2123999101", "Juan Pérez")), false);
         byte[] content = exporter.export(plan);
 
         try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
@@ -62,7 +62,6 @@ class TrimestralPlanExcelExporterTest {
                         student("2123999101", "JHOVANY BADILLO CRUZ"),
                         student("2123999102", "EDGAR SILVA RODRIGUEZ"),
                         student("2123999103", "NATHAEL RAMOS CABRERA")),
-                null,
                 false);
         byte[] content = exporter.export(withStudents);
 
@@ -97,7 +96,7 @@ class TrimestralPlanExcelExporterTest {
                     .isEqualTo("NATHAEL RAMOS CABRERA");
         }
 
-        TrimestralPlan withoutStudents = samplePlan(List.of(), null, false);
+        TrimestralPlan withoutStudents = samplePlan(List.of(), false);
         byte[] emptyStudents = exporter.export(withoutStudents);
         try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(emptyStudents))) {
             assertThat(workbook.getSheet(TrimestralExcelLayout.SHEET_NAME).getPhysicalNumberOfRows())
@@ -106,31 +105,100 @@ class TrimestralPlanExcelExporterTest {
     }
 
     @Test
-    @DisplayName("keeps group OBS in column Y without embedding student listing")
-    void groupObsStaysInColumnY() throws Exception {
+    @DisplayName("keeps OBS header in column Y but always leaves the cell empty")
+    void groupObsColumnAlwaysEmpty() throws Exception {
         TrimestralPlan plan =
-                samplePlan(List.of(student("2123999101", "Juan Pérez")), "Nota de grupo", false);
+                samplePlan(List.of(student("2123999101", "Juan Pérez", "Maestría Física")), false);
 
         byte[] content = exporter.export(plan);
         try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
             Sheet sheet = workbook.getSheet(TrimestralExcelLayout.SHEET_NAME);
             DataFormatter formatter = new DataFormatter();
-            assertThat(formatter.formatCellValue(sheet.getRow(1).getCell(TrimestralExcelLayout.COLUMN_OBS)))
-                    .isEqualTo("Nota de grupo");
+            assertThat(formatter.formatCellValue(sheet.getRow(0).getCell(TrimestralExcelLayout.COLUMN_OBS)))
+                    .isEqualTo("OBS");
+            assertThat(sheet.getRow(1).getCell(TrimestralExcelLayout.COLUMN_OBS)).isNull();
             assertThat(formatter.formatCellValue(
-                            sheet.getRow(1).getCell(TrimestralExcelLayout.COLUMN_STUDENT_NAME)))
-                    .isEqualTo("Juan Pérez");
+                            sheet.getRow(1).getCell(TrimestralExcelLayout.COLUMN_STUDENT_OBS)))
+                    .isEqualTo("Maestría Física");
         }
     }
 
-    private record StudentFixture(String enrollmentId, String fullName) {}
+    @Test
+    @DisplayName("writes student obs in AB and one blank row between group blocks")
+    void studentObsAndBlankRowBetweenBlocks() throws Exception {
+        TrimestralPlan plan = TrimestralPlan.create(1L, 10L, "26O", 5L);
+        TrimestralPlanGroup first = sampleGroup(
+                plan,
+                (short) 1,
+                "2156041",
+                "MÉTODOS MATEMÁTICOS",
+                List.of(
+                        student("2123999101", "JHOVANY BADILLO CRUZ", "Maestría Física"),
+                        student("2123999102", "EDGAR SILVA RODRIGUEZ", null)),
+                false);
+        TrimestralPlanGroup second = sampleGroup(
+                plan,
+                (short) 2,
+                "2156047",
+                "PROYECTO DE INVESTIGACIÓN II",
+                List.of(student("2253800889", "JESUS ALFONSO REYES DE LA VEGA", "PIB")),
+                false);
+        plan.replaceGroups(List.of(first, second));
 
-    private static StudentFixture student(String enrollmentId, String fullName) {
-        return new StudentFixture(enrollmentId, fullName);
+        byte[] content = exporter.export(plan);
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(content))) {
+            Sheet sheet = workbook.getSheet(TrimestralExcelLayout.SHEET_NAME);
+            DataFormatter formatter = new DataFormatter();
+
+            // Block 1: group row (1) + continuation row (2)
+            assertThat(formatter.formatCellValue(sheet.getRow(1).getCell(2))).isEqualTo("2156041");
+            assertThat(formatter.formatCellValue(
+                            sheet.getRow(1).getCell(TrimestralExcelLayout.COLUMN_STUDENT_OBS)))
+                    .isEqualTo("Maestría Física");
+            assertThat(formatter.formatCellValue(
+                            sheet.getRow(2).getCell(TrimestralExcelLayout.COLUMN_STUDENT_NAME)))
+                    .isEqualTo("EDGAR SILVA RODRIGUEZ");
+            assertThat(sheet.getRow(2).getCell(TrimestralExcelLayout.COLUMN_STUDENT_OBS)).isNull();
+
+            // Row 3 is the blank separator between blocks
+            assertThat(sheet.getRow(3)).isNull();
+
+            // Block 2 starts on row 4 with its first student on the group row
+            assertThat(formatter.formatCellValue(sheet.getRow(4).getCell(2))).isEqualTo("2156047");
+            assertThat(formatter.formatCellValue(
+                            sheet.getRow(4).getCell(TrimestralExcelLayout.COLUMN_STUDENT_NAME)))
+                    .isEqualTo("JESUS ALFONSO REYES DE LA VEGA");
+            assertThat(formatter.formatCellValue(
+                            sheet.getRow(4).getCell(TrimestralExcelLayout.COLUMN_STUDENT_OBS)))
+                    .isEqualTo("PIB");
+            assertThat(sheet.getRow(5)).isNull();
+        }
     }
 
-    private static TrimestralPlan samplePlan(List<StudentFixture> students, String obs, boolean marLab) {
+    private record StudentFixture(String enrollmentId, String fullName, String obs) {}
+
+    private static StudentFixture student(String enrollmentId, String fullName) {
+        return new StudentFixture(enrollmentId, fullName, null);
+    }
+
+    private static StudentFixture student(String enrollmentId, String fullName, String obs) {
+        return new StudentFixture(enrollmentId, fullName, obs);
+    }
+
+    private static TrimestralPlan samplePlan(List<StudentFixture> students, boolean marLab) {
         TrimestralPlan plan = TrimestralPlan.create(1L, 10L, "26O", 5L);
+        plan.replaceGroups(List.of(
+                sampleGroup(plan, (short) 1, "2156041", "MÉTODOS MATEMÁTICOS", students, marLab)));
+        return plan;
+    }
+
+    private static TrimestralPlanGroup sampleGroup(
+            TrimestralPlan plan,
+            short posicion,
+            String clave,
+            String nombre,
+            List<StudentFixture> students,
+            boolean marLab) {
         Map<ScheduleDay, DaySlot> schedule = new EnumMap<>(ScheduleDay.class);
         schedule.put(ScheduleDay.LUN, new DaySlot("08:00", "10:00", true));
         schedule.put(ScheduleDay.MAR, new DaySlot("10:00", "12:00", marLab));
@@ -141,30 +209,29 @@ class TrimestralPlanExcelExporterTest {
         TrimestralPlanGroup group = TrimestralPlanGroup.createEdited(
                 plan,
                 1L,
-                (short) 1,
-                "2156041",
-                "MÉTODOS MATEMÁTICOS",
+                posicion,
+                clave,
+                nombre,
                 "OBLIGATORIA",
                 "CO43",
                 "25",
                 null,
                 null,
                 null,
-                obs,
                 schedule);
-        short posicion = 1;
+        short studentPos = 1;
         for (StudentFixture student : students) {
             group.addStudent(GroupStudent.create(
                     group,
-                    50L + posicion,
+                    50L + posicion * 100 + studentPos,
                     student.enrollmentId(),
                     student.fullName(),
                     StudentSource.SURVEY,
                     "I",
-                    posicion));
-            posicion++;
+                    student.obs(),
+                    studentPos));
+            studentPos++;
         }
-        plan.replaceGroups(List.of(group));
-        return plan;
+        return group;
     }
 }

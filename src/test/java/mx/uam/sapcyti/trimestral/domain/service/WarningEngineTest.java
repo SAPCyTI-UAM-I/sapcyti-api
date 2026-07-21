@@ -36,9 +36,9 @@ class WarningEngineTest {
         TrimestralPlanGroup group = TrimestralPlanGroup.createProposed(
                 plan, 40L, (short) 1, "2156041", "METODOS", "OBLIGATORIA", "CO43", "1");
         group.addStudent(GroupStudent.create(
-                group, 101L, "2123001", "Ana Lopez", StudentSource.SURVEY, "I", (short) 1));
+                group, 101L, "2123001", "Ana Lopez", StudentSource.SURVEY, "I", null, (short) 1));
         group.addStudent(GroupStudent.create(
-                group, 102L, "2123002", "Bruno Diaz", StudentSource.SURVEY, "I", (short) 2));
+                group, 102L, "2123002", "Bruno Diaz", StudentSource.SURVEY, "I", null, (short) 2));
         plan.replaceGroups(List.of(group));
 
         List<PlanWarning> warnings = engine.evaluate(
@@ -68,10 +68,9 @@ class WarningEngineTest {
                 8L,
                 "12345",
                 "Prof X",
-                null,
                 emptySchedule());
         group.addStudent(GroupStudent.create(
-                group, 101L, "2123001", "Ana Lopez", StudentSource.SURVEY, "I", (short) 1));
+                group, 101L, "2123001", "Ana Lopez", StudentSource.SURVEY, "I", null, (short) 1));
         plan.replaceGroups(List.of(group));
 
         List<PlanWarning> warnings = engine.evaluate(

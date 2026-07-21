@@ -121,15 +121,14 @@ public class SaveTrimestralPlanGroupsUseCase {
                     professorId,
                     employeeNumber,
                     professorName,
-                    input.obs(),
                     schedule);
 
             List<GroupStudent> members = new ArrayList<>();
             short studentPos = 1;
-            List<Long> orderedStudentIds = new ArrayList<>(input.studentIds());
-            orderedStudentIds.sort((a, b) -> {
-                Student sa = studentsById.get(a);
-                Student sb = studentsById.get(b);
+            List<StudentInput> orderedStudents = new ArrayList<>(input.students());
+            orderedStudents.sort((a, b) -> {
+                Student sa = studentsById.get(a.studentId());
+                Student sb = studentsById.get(b.studentId());
                 if (sa == null || sb == null) {
                     return 0;
                 }
@@ -137,7 +136,12 @@ public class SaveTrimestralPlanGroupsUseCase {
                         .compare(toSnapshot(sa, StudentSource.SURVEY, null), toSnapshot(sb, StudentSource.SURVEY, null));
             });
 
-            for (Long studentId : orderedStudentIds) {
+            for (StudentInput studentInput : orderedStudents) {
+                Long studentId = studentInput.studentId();
+                if (studentId == null) {
+                    throw new IllegalArgumentException("studentId is required");
+                }
+                GroupStudent.validateObs(studentInput.obs());
                 if (!tenantStudentIds.contains(studentId)) {
                     throw new StudentNotFoundException();
                 }
@@ -160,6 +164,7 @@ public class SaveTrimestralPlanGroupsUseCase {
                         TrimestralPlanGenerationSupport.formatFullName(student.getPersonalData()),
                         source,
                         academicTerm,
+                        studentInput.obs(),
                         studentPos++));
             }
             group.replaceStudents(members);
@@ -224,8 +229,10 @@ public class SaveTrimestralPlanGroupsUseCase {
             String cupo,
             Long professorId,
             List<DayScheduleInput> schedule,
-            String obs,
-            List<Long> studentIds) {
+            List<StudentInput> students) {
+    }
+
+    public record StudentInput(Long studentId, String obs) {
     }
 
     public record DayScheduleInput(ScheduleDay day, String start, String end, boolean lab) {

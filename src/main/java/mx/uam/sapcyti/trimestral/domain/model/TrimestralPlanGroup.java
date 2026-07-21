@@ -110,9 +110,6 @@ public class TrimestralPlanGroup {
     @Column(name = "vie_lab", nullable = false)
     private boolean vieLab;
 
-    @Column(name = "obs")
-    private String obs;
-
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("posicion ASC")
     @BatchSize(size = 50)
@@ -170,14 +167,12 @@ public class TrimestralPlanGroup {
             Long professorId,
             String employeeNumber,
             String professorName,
-            String obs,
             Map<ScheduleDay, DaySlot> schedule) {
         TrimestralPlanGroup group =
                 new TrimestralPlanGroup(plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo);
         group.professorId = professorId;
         group.employeeNumber = employeeNumber;
         group.professorName = professorName;
-        group.obs = obs;
         group.applySchedule(schedule);
         return group;
     }
@@ -312,10 +307,6 @@ public class TrimestralPlanGroup {
 
     public String getProfessorName() {
         return professorName;
-    }
-
-    public String getObs() {
-        return obs;
     }
 
     public List<GroupStudent> getStudents() {

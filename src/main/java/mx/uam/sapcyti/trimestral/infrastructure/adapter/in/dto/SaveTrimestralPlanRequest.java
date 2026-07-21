@@ -14,8 +14,9 @@ public record SaveTrimestralPlanRequest(List<SaveGroupRequest> groups) {
             String cupo,
             Long professorId,
             List<DayScheduleRequest> schedule,
-            String obs,
-            List<Long> studentIds) {}
+            List<SaveGroupStudentRequest> students) {}
+
+    public record SaveGroupStudentRequest(Long studentId, String obs) {}
 
     public record DayScheduleRequest(String day, String start, String end, boolean lab) {}
 }

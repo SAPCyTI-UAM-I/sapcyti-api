@@ -254,7 +254,6 @@ class EnrollmentHistoryControllerIT {
         g.put("grupo", group.get("grupo").asText());
         g.put("cupo", group.get("cupo").asText());
         g.putNull("professorId");
-        g.putNull("obs");
         ArrayNode schedule = g.putArray("schedule");
         for (String day : new String[] {"LUN", "MAR", "MIE", "JUE", "VIE"}) {
             ObjectNode slot = schedule.addObject();
@@ -263,9 +262,9 @@ class EnrollmentHistoryControllerIT {
             slot.putNull("end");
             slot.put("lab", false);
         }
-        ArrayNode students = g.putArray("studentIds");
-        students.add(studentId);
-        students.add(student2Id);
+        ArrayNode students = g.putArray("students");
+        students.addObject().put("studentId", studentId).putNull("obs");
+        students.addObject().put("studentId", student2Id).putNull("obs");
 
         mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -291,7 +290,6 @@ class EnrollmentHistoryControllerIT {
         g.put("grupo", "CO99");
         g.put("cupo", group.get("cupo").asText());
         g.putNull("professorId");
-        g.putNull("obs");
         ArrayNode schedule = g.putArray("schedule");
         for (String day : new String[] {"LUN", "MAR", "MIE", "JUE", "VIE"}) {
             ObjectNode slot = schedule.addObject();
@@ -300,7 +298,7 @@ class EnrollmentHistoryControllerIT {
             slot.put("end", "10:00");
             slot.put("lab", "LUN".equals(day));
         }
-        g.putArray("studentIds").add(studentId);
+        g.putArray("students").addObject().put("studentId", studentId).putNull("obs");
 
         mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())

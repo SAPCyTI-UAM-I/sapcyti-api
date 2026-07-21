@@ -32,6 +32,9 @@ public class TrimestralPlanExcelExporter {
 
             int rowIndex = 1;
             for (TrimestralPlanGroup group : plan.getGroups()) {
+                if (rowIndex > 1) {
+                    rowIndex++; // one blank row between group blocks (reference file has 1..3; we use 1)
+                }
                 List<GroupStudent> students = group.getStudents();
                 if (students.isEmpty()) {
                     writeGroupRow(sheet, rowIndex++, plan.getTerm(), group, null);
@@ -74,11 +77,12 @@ public class TrimestralPlanExcelExporter {
             writeLab(row, column++, slot.lab());
         }
 
-        writeOptional(row, TrimestralExcelLayout.COLUMN_OBS, blankToNull(group.getObs()));
+        // Col Y (OBS) is kept in the header for positional validation but always stays empty;
+        // observations are per student (col AB), matching the official reference files.
         writeStudentCells(row, student);
     }
 
-    /** Continuation rows carry only Z (name) / AA (matrícula); A→Y stay empty. */
+    /** Continuation rows carry only Z (name) / AA (matrícula) / AB (obs); A→Y stay empty. */
     private static void writeStudentContinuationRow(Sheet sheet, int rowIndex, GroupStudent student) {
         writeStudentCells(sheet.createRow(rowIndex), student);
     }
@@ -89,6 +93,7 @@ public class TrimestralPlanExcelExporter {
         }
         writeOptional(row, TrimestralExcelLayout.COLUMN_STUDENT_NAME, student.getFullName());
         writeEnrollment(row, TrimestralExcelLayout.COLUMN_STUDENT_ENROLLMENT, student.getEnrollmentId());
+        writeOptional(row, TrimestralExcelLayout.COLUMN_STUDENT_OBS, student.getObs());
     }
 
     private static void writeLab(Row row, int column, boolean lab) {
@@ -129,7 +134,4 @@ public class TrimestralPlanExcelExporter {
         }
     }
 
-    private static String blankToNull(String value) {
-        return value == null || value.isBlank() ? null : value;
-    }
 }

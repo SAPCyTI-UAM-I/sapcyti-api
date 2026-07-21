@@ -56,7 +56,6 @@ public record TrimestralPlanDetailResponse(
             Long professorId,
             String professorName,
             List<DayScheduleResponse> schedule,
-            String obs,
             List<GroupStudentResponse> students) {
 
         static TrimestralGroupResponse from(TrimestralPlanGroup group) {
@@ -82,7 +81,6 @@ public record TrimestralPlanDetailResponse(
                     group.getProfessorId(),
                     group.getProfessorName(),
                     schedule,
-                    group.getObs(),
                     students);
         }
     }
@@ -94,7 +92,8 @@ public record TrimestralPlanDetailResponse(
             String enrollmentId,
             String fullName,
             StudentSource source,
-            String academicTerm) {
+            String academicTerm,
+            String obs) {
 
         static GroupStudentResponse from(GroupStudent student) {
             return new GroupStudentResponse(
@@ -102,7 +101,8 @@ public record TrimestralPlanDetailResponse(
                     student.getEnrollmentId(),
                     student.getFullName(),
                     student.getSource(),
-                    student.getAcademicTerm());
+                    student.getAcademicTerm(),
+                    student.getObs());
         }
     }
 
