@@ -36,6 +36,7 @@ public class GetSurveyResultsSummaryUseCase {
                 .eligibleCount(eligibleCount)
                 .respondedCount(respondedCount)
                 .pendingCount(Math.max(0, eligibleCount - respondedCount))
+                .blankCount(responseRepository.countBlankBySurveyId(surveyId))
                 .build();
     }
 }

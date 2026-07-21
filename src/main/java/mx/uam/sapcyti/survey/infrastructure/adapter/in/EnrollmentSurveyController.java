@@ -12,6 +12,7 @@ import mx.uam.sapcyti.survey.application.service.GetActiveSurveyForStudentUseCas
 import mx.uam.sapcyti.survey.application.service.GetMyResponseUseCase;
 import mx.uam.sapcyti.survey.application.service.GetSurveyResultsSummaryUseCase;
 import mx.uam.sapcyti.survey.application.service.GetSurveyUseCase;
+import mx.uam.sapcyti.survey.application.service.GetBlankStudentsUseCase;
 import mx.uam.sapcyti.survey.application.service.GetUeaDemandUseCase;
 import mx.uam.sapcyti.survey.application.service.GetUeaInterestedStudentsUseCase;
 import mx.uam.sapcyti.survey.application.service.ListSurveysUseCase;
@@ -58,6 +59,7 @@ public class EnrollmentSurveyController {
     private final GetSurveyResultsSummaryUseCase getSurveyResultsSummaryUseCase;
     private final GetUeaDemandUseCase getUeaDemandUseCase;
     private final GetUeaInterestedStudentsUseCase getUeaInterestedStudentsUseCase;
+    private final GetBlankStudentsUseCase getBlankStudentsUseCase;
     private final EnrollmentSurveyMapper mapper;
 
     @PostMapping
@@ -147,6 +149,16 @@ public class EnrollmentSurveyController {
     public List<InterestedStudentResponse> getInterestedStudents(
             @PathVariable Long id, @PathVariable Long ueaId) {
         return getUeaInterestedStudentsUseCase.execute(id, ueaId).stream()
+                .map(mapper::toResponse)
+                .toList();
+    }
+
+    @GetMapping("/{id}/results/blank-students")
+    @PreAuthorize("hasRole('COORDINATOR')")
+    @Operation(summary = "Blank-enrollment students",
+            description = "HU-42: students who answered inscripción en blanco (no UEAs).")
+    public List<InterestedStudentResponse> getBlankStudents(@PathVariable Long id) {
+        return getBlankStudentsUseCase.execute(id).stream()
                 .map(mapper::toResponse)
                 .toList();
     }
