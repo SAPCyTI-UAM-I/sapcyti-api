@@ -19,6 +19,7 @@ public class ChangeTrimestralPlanStatusUseCase {
     private final TrimestralPlanRepositoryPort planRepository;
     private final TrimestralPlanGenerationSupport generationSupport;
     private final WarningEngine warningEngine;
+    private final TrimestralPrerequisiteGuard prerequisiteGuard;
 
     @Transactional
     public TrimestralPlan execute(Long planId, TrimestralPlanStatus newStatus) {
@@ -27,6 +28,7 @@ public class ChangeTrimestralPlanStatusUseCase {
                 .findByIdAndGraduateProgramId(planId, graduateProgramId)
                 .orElseThrow(TrimestralPlanNotFoundException::new);
 
+        prerequisiteGuard.assertSatisfied(plan);
         plan.transitionTo(newStatus);
         TrimestralPlan saved = planRepository.save(plan);
         List<PlanWarning> warnings =

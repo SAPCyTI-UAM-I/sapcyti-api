@@ -47,7 +47,13 @@ public class AnnualPlanJpaAdapter implements AnnualPlanRepositoryPort {
                 .findByYearAndGraduateProgramId(year, graduateProgramId)
                 .map(plan -> plan.getEntries().stream()
                         .map(entry -> new AnnualPlanQuota(
-                                entry.getUeaId(), entry.getCupoI(), entry.getCupoP(), entry.getCupoO()))
+                                entry.getUeaId(),
+                                entry.getGruposI(),
+                                entry.getCupoI(),
+                                entry.getGruposP(),
+                                entry.getCupoP(),
+                                entry.getGruposO(),
+                                entry.getCupoO()))
                         .toList())
                 .orElse(List.of());
     }

@@ -7,12 +7,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.List;
 import java.util.Optional;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorAlreadyInactiveException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorHasActiveAssignmentsException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort.OpenGroupAssignment;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.identity.domain.model.User;
@@ -33,13 +36,17 @@ class DeactivateProfessorUseCaseTest {
     @Mock private ProfessorRepositoryPort professorRepository;
     @Mock private StudentProgramRepositoryPort studentProgramRepository;
     @Mock private UserRepositoryPort userRepository;
+    @Mock private ProfessorTrimestralAssignmentsPort trimestralAssignmentsPort;
 
     private DeactivateProfessorUseCase useCase;
 
     @BeforeEach
     void setUp() {
         useCase = new DeactivateProfessorUseCase(
-                professorRepository, studentProgramRepository, userRepository);
+                professorRepository,
+                studentProgramRepository,
+                userRepository,
+                trimestralAssignmentsPort);
         TenantContext.set(1L);
     }
 
@@ -56,6 +63,7 @@ class DeactivateProfessorUseCaseTest {
         when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(professor));
         when(userRepository.findById(20L)).thenReturn(Optional.of(user));
         when(studentProgramRepository.hasActiveAssignmentAsTutorOrAdvisor(10L)).thenReturn(false);
+        when(trimestralAssignmentsPort.findOpenGroupAssignments(10L, 1L)).thenReturn(List.of());
 
         ListProfessorsUseCase.ProfessorListItem result = useCase.execute(10L);
 
@@ -71,9 +79,39 @@ class DeactivateProfessorUseCaseTest {
         when(professorRepository.findByIdAndGraduateProgramId(10L, 1L)).thenReturn(Optional.of(professor));
         when(userRepository.findById(20L)).thenReturn(Optional.of(sampleUser(20L, true)));
         when(studentProgramRepository.hasActiveAssignmentAsTutorOrAdvisor(10L)).thenReturn(true);
+        when(trimestralAssignmentsPort.findOpenGroupAssignments(10L, 1L)).thenReturn(List.of());
 
         assertThatThrownBy(() -> useCase.execute(10L))
-                .isInstanceOf(ProfessorHasActiveAssignmentsException.class);
+                .isInstanceOfSatisfying(
+                        ProfessorHasActiveAssignmentsException.class,
+                        exception -> {
+                            assertThat(exception.hasTutorOrAdvisorAssignments()).isTrue();
+                            assertThat(exception.getOpenGroupAssignments()).isEmpty();
+                        });
+    }
+
+    @Test
+    @DisplayName("reports every open trimestral group assignment")
+    void openGroupAssignments() {
+        Professor professor = sampleProfessor(10L, 20L);
+        when(professorRepository.findByIdAndGraduateProgramId(10L, 1L))
+                .thenReturn(Optional.of(professor));
+        when(userRepository.findById(20L)).thenReturn(Optional.of(sampleUser(20L, true)));
+        when(studentProgramRepository.hasActiveAssignmentAsTutorOrAdvisor(10L)).thenReturn(false);
+        List<OpenGroupAssignment> assignments = List.of(
+                new OpenGroupAssignment(30L, "26O", 40L, "2156041", "CO43"),
+                new OpenGroupAssignment(31L, "27I", 41L, "2156042", "CI43"));
+        when(trimestralAssignmentsPort.findOpenGroupAssignments(10L, 1L))
+                .thenReturn(assignments);
+
+        assertThatThrownBy(() -> useCase.execute(10L))
+                .isInstanceOfSatisfying(
+                        ProfessorHasActiveAssignmentsException.class,
+                        exception -> {
+                            assertThat(exception.hasTutorOrAdvisorAssignments()).isFalse();
+                            assertThat(exception.getOpenGroupAssignments())
+                                    .containsExactlyElementsOf(assignments);
+                        });
     }
 
     @Test

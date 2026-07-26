@@ -1,19 +1,10 @@
 package mx.uam.sapcyti.survey.domain.port.out;
 
-import java.util.Optional;
-
 /**
- * Gate used by survey reopen (HU-40) to consult trimestral plan status for a term.
+ * Port used by survey reopen to make a related trimestral plan stale.
  * Implemented by {@code trimestral} (SPEC-035).
  */
 public interface TrimestralPlanGatePort {
 
-    Optional<GateStatus> findStatusByTerm(String term, Long graduateProgramId);
-
-    void markOutdatedByTerm(String term, Long graduateProgramId);
-
-    enum GateStatus {
-        BORRADOR,
-        TERMINADA
-    }
+    void markOutdatedBySurveyReopened(String term, Long graduateProgramId);
 }

@@ -56,6 +56,9 @@ public class TrimestralPlanGroup {
     @Column(name = "cupo", length = 5)
     private String cupo;
 
+    @Column(name = "max_groups", length = 5)
+    private String maxGroups;
+
     @Column(name = "lun_ini", length = 5)
     private String lunIni;
 
@@ -123,7 +126,8 @@ public class TrimestralPlanGroup {
             String nombre,
             String tipoUea,
             String grupo,
-            String cupo) {
+            String cupo,
+            String maxGroups) {
         this.plan = plan;
         this.ueaId = ueaId;
         this.posicion = posicion;
@@ -132,6 +136,7 @@ public class TrimestralPlanGroup {
         this.tipoUea = tipoUea;
         this.grupo = grupo;
         this.cupo = cupo;
+        this.maxGroups = maxGroups;
         this.lunLab = false;
         this.marLab = false;
         this.mieLab = false;
@@ -148,7 +153,21 @@ public class TrimestralPlanGroup {
             String tipoUea,
             String grupo,
             String cupo) {
-        return new TrimestralPlanGroup(plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo);
+        return createProposed(plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo, null);
+    }
+
+    public static TrimestralPlanGroup createProposed(
+            TrimestralPlan plan,
+            Long ueaId,
+            short posicion,
+            String clave,
+            String nombre,
+            String tipoUea,
+            String grupo,
+            String cupo,
+            String maxGroups) {
+        return new TrimestralPlanGroup(
+                plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo, maxGroups);
     }
 
     public static TrimestralPlanGroup createEdited(
@@ -161,8 +180,24 @@ public class TrimestralPlanGroup {
             String grupo,
             String cupo,
             Map<ScheduleDay, DaySlot> schedule) {
+        return createEdited(
+                plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo, null, schedule);
+    }
+
+    public static TrimestralPlanGroup createEdited(
+            TrimestralPlan plan,
+            Long ueaId,
+            short posicion,
+            String clave,
+            String nombre,
+            String tipoUea,
+            String grupo,
+            String cupo,
+            String maxGroups,
+            Map<ScheduleDay, DaySlot> schedule) {
         TrimestralPlanGroup group =
-                new TrimestralPlanGroup(plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo);
+                new TrimestralPlanGroup(
+                        plan, ueaId, posicion, clave, nombre, tipoUea, grupo, cupo, maxGroups);
         group.applySchedule(schedule);
         return group;
     }
@@ -249,10 +284,16 @@ public class TrimestralPlanGroup {
         if (slot == null) {
             throw new IllegalArgumentException("schedule day slot is required");
         }
+        if ((slot.start() == null) != (slot.end() == null)) {
+            throw new IllegalArgumentException("schedule start and end must both be provided or both be null");
+        }
+        if (slot.lab() && slot.start() == null) {
+            throw new IllegalArgumentException("LAB requires schedule start and end");
+        }
         validateTime(slot.start());
         validateTime(slot.end());
-        if (slot.start() != null && slot.end() != null && slot.start().compareTo(slot.end()) > 0) {
-            throw new IllegalArgumentException("schedule start must be <= end");
+        if (slot.start() != null && slot.start().compareTo(slot.end()) >= 0) {
+            throw new IllegalArgumentException("schedule start must be before end");
         }
     }
 
@@ -302,6 +343,10 @@ public class TrimestralPlanGroup {
         return cupo;
     }
 
+    public String getMaxGroups() {
+        return maxGroups;
+    }
+
     public List<GroupProfessor> getProfessors() {
         return List.copyOf(professors);
     }
@@ -344,7 +389,8 @@ public class TrimestralPlanGroup {
     public static Comparator<GroupStudentSnapshot> surnameComparator() {
         return Comparator.comparing(GroupStudentSnapshot::firstLastName, Comparator.nullsLast(String::compareToIgnoreCase))
                 .thenComparing(GroupStudentSnapshot::secondLastName, Comparator.nullsLast(String::compareToIgnoreCase))
-                .thenComparing(GroupStudentSnapshot::firstName, Comparator.nullsLast(String::compareToIgnoreCase));
+                .thenComparing(GroupStudentSnapshot::firstName, Comparator.nullsLast(String::compareToIgnoreCase))
+                .thenComparing(GroupStudentSnapshot::enrollmentId, Comparator.nullsLast(String::compareTo));
     }
 
     public record DaySlot(String start, String end, boolean lab) {

@@ -1,6 +1,8 @@
 package mx.uam.sapcyti.trimestral.infrastructure.adapter.in;
 
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.sampleAcademicInformation;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
+import static mx.uam.sapcyti.academic.AcademicTestFixtures.minimalProfessorPersonalData;
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.studentPersonalData;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -20,7 +22,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
+import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.Student;
+import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataStudentRepository;
 import mx.uam.sapcyti.configuration.domain.model.GraduateProgram;
 import mx.uam.sapcyti.configuration.infrastructure.adapter.out.GraduateProgramJpaAdapter;
@@ -73,6 +77,9 @@ class TrimestralPlanControllerIT {
     private SpringDataStudentRepository studentRepository;
 
     @Autowired
+    private SpringDataProfessorRepository professorRepository;
+
+    @Autowired
     private SpringDataUeaRepository ueaRepository;
 
     @Autowired
@@ -102,6 +109,7 @@ class TrimestralPlanControllerIT {
         surveyRepository.deleteAll();
         annualPlanRepository.deleteAll();
         studentRepository.deleteAll();
+        professorRepository.deleteAll();
         ueaRepository.deleteAll();
         userRepository.deleteAll();
 
@@ -188,6 +196,69 @@ class TrimestralPlanControllerIT {
     }
 
     @Test
+    @DisplayName("rejects generation while the annual plan remains BORRADOR")
+    void annualPlanMustBeTerminated() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanDraftWithCapacity(2026, "*", "25");
+
+        mockMvc.perform(post("/api/trimestral-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"surveyId\":" + surveyId + "}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("ANNUAL_PLAN_NOT_TERMINATED"));
+    }
+
+    @Test
+    @DisplayName("all trimestral mutations are blocked while annual plan is not TERMINADA; GET remains available")
+    void annualPrerequisiteGuardsEveryMutation() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+        ObjectNode saveBody = saveBodyFromDetail(getPlanDetail(planId));
+
+        mockMvc.perform(patch("/api/annual-plans/{year}/status", 2026)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"BORRADOR\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/trimestral-plans/{id}", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outdatedReasons[0]").value("ANNUAL_PLAN_CHANGED"))
+                .andExpect(jsonPath("$.prerequisites.annualPlanTerminated").value(false));
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(saveBody.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("ANNUAL_PLAN_NOT_TERMINATED"));
+        mockMvc.perform(post("/api/trimestral-plans/{id}/regenerate", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("ANNUAL_PLAN_NOT_TERMINATED"));
+        mockMvc.perform(patch("/api/trimestral-plans/{id}/status", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"TERMINADA\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("ANNUAL_PLAN_NOT_TERMINATED"));
+        mockMvc.perform(get("/api/trimestral-plans/{id}/export", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("ANNUAL_PLAN_NOT_TERMINATED"));
+    }
+
+    @Test
     @DisplayName("rejects duplicate term")
     void duplicateTerm() throws Exception {
         long surveyId = createClosedSurveyWithResponse("26O");
@@ -235,14 +306,14 @@ class TrimestralPlanControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.groups[0].students[0].studentId").value(studentId));
 
-        ObjectNode saveBody = emptyScheduleSaveBody(planId, "1");
+        ObjectNode saveBody = emptyScheduleSaveBody(planId, "25");
         mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(saveBody.toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.warnings[?(@.code=='CUPO_EXCEEDED')]").exists())
+                .andExpect(jsonPath("$.warnings[?(@.code=='CUPO_EXCEEDED')]").doesNotExist())
                 .andExpect(jsonPath("$.groups[0].students[0].obs").value("Maestría Física"))
                 .andExpect(jsonPath("$.groups[0].students[1].obs").isEmpty());
 
@@ -295,6 +366,349 @@ class TrimestralPlanControllerIT {
     }
 
     @Test
+    @DisplayName("manual removal becomes unassigned demand and history labels the removed UEA")
+    void manualRemovalReconcilesUnassignedDemandAndHistory() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+
+        JsonNode detail = getPlanDetail(planId);
+        ObjectNode saveBody = saveBodyFromDetail(detail);
+        ((ArrayNode) saveBody.get("groups").get(0).get("students")).removeAll();
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(saveBody.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unassignedDemand.length()").value(1))
+                .andExpect(jsonPath("$.unassignedDemand[0].studentId").value(studentId))
+                .andExpect(jsonPath("$.unassignedDemand[0].reason").value("MANUALLY_UNASSIGNED"));
+
+        markTerminada(planId);
+        mockMvc.perform(get("/api/students/{id}/enrollment-history", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ueas[0].status").value("REMOVED_FROM_FINAL_PLAN"))
+                .andExpect(jsonPath("$[0].ueas[0].grupo").isEmpty())
+                .andExpect(jsonPath("$[0].ueas[0].professors").isEmpty())
+                .andExpect(jsonPath("$[0].ueas[0].schedule").isEmpty());
+    }
+
+    @Test
+    @DisplayName("persists and reloads ordered co-directors")
+    void multipleProfessorsRoundTrip() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+        Professor first = createProfessor("41001", "Ada", "Lovelace", "ada-prof@uam.mx");
+        Professor second = createProfessor("41002", "Grace", "Hopper", "grace-prof@uam.mx");
+
+        ObjectNode saveBody = emptyScheduleSaveBody(planId, "25");
+        ArrayNode professorIds = (ArrayNode) saveBody.get("groups").get(0).get("professorIds");
+        professorIds.add(first.getId()).add(second.getId());
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(saveBody.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groups[0].professors[0].professorId").value(first.getId()))
+                .andExpect(jsonPath("$.groups[0].professors[1].professorId").value(second.getId()));
+
+        // A separate GET crosses the repository transaction boundary and catches lazy
+        // collection regressions that an in-memory save response would hide.
+        mockMvc.perform(get("/api/trimestral-plans/{id}", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groups[0].professors.length()").value(2))
+                .andExpect(jsonPath("$.groups[0].professors[0].employeeNumber").value("41001"))
+                .andExpect(jsonPath("$.groups[0].professors[1].employeeNumber").value("41002"));
+
+        markTerminada(planId);
+        mockMvc.perform(get("/api/students/{id}/enrollment-history", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].ueas[0].professors.length()").value(2))
+                .andExpect(jsonPath("$[0].ueas[0].professors[0].professorId").value(first.getId()))
+                .andExpect(jsonPath("$[0].ueas[0].professors[0].employeeNumber").value("41001"))
+                .andExpect(jsonPath("$[0].ueas[0].professors[1].professorName").value("Grace Hopper"));
+    }
+
+    @Test
+    @DisplayName("keeps an already assigned inactive professor but rejects a new inactive assignment")
+    void inactiveProfessorAssignmentRules() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+        Professor assigned = createProfessor("42001", "Dorothy", "Vaughan", "assigned-prof@uam.mx");
+
+        ObjectNode initial = emptyScheduleSaveBody(planId, "25");
+        ((ArrayNode) initial.get("groups").get(0).get("professorIds")).add(assigned.getId());
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(initial.toString()))
+                .andExpect(status().isOk());
+
+        User assignedUser = userRepository.findById(assigned.getUserId()).orElseThrow();
+        assignedUser.setActive(false);
+        userRepository.save(assignedUser);
+
+        JsonNode detail = getPlanDetail(planId);
+        ObjectNode unchanged = saveBodyFromDetail(detail);
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(unchanged.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groups[0].professors[0].employeeNumber").value("42001"))
+                .andExpect(jsonPath("$.warnings[?(@.code=='PROFESSOR_INACTIVE')]").exists());
+
+        Professor neverAssigned = createProfessor("42002", "Katherine", "Johnson", "new-inactive@uam.mx");
+        User newUser = userRepository.findById(neverAssigned.getUserId()).orElseThrow();
+        newUser.setActive(false);
+        userRepository.save(newUser);
+        JsonNode refreshed = getPlanDetail(planId);
+        ObjectNode invalid = saveBodyFromDetail(refreshed);
+        ((ArrayNode) invalid.get("groups").get(0).get("professorIds")).add(neverAssigned.getId());
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalid.toString()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("keeps an inactive student in place but rejects moving that student")
+    void inactiveStudentAssignmentRules() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+        JsonNode detail = getPlanDetail(planId);
+
+        Student student = studentRepository.findById(studentId).orElseThrow();
+        User studentUser = userRepository.findById(student.getUserId()).orElseThrow();
+        studentUser.setActive(false);
+        userRepository.save(studentUser);
+
+        ObjectNode unchanged = saveBodyFromDetail(detail);
+        MvcResult kept = mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(unchanged.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.warnings[?(@.code=='STUDENT_INACTIVE')]").exists())
+                .andReturn();
+
+        JsonNode refreshed = objectMapper.readTree(kept.getResponse().getContentAsString());
+        ObjectNode moved = saveBodyFromDetail(refreshed);
+        ArrayNode groups = (ArrayNode) moved.get("groups");
+        ObjectNode original = (ObjectNode) groups.get(0);
+        ObjectNode destination = original.deepCopy();
+        destination.remove("id");
+        destination.put("grupo", "CO43A");
+        ((ArrayNode) original.get("students")).removeAll();
+        groups.add(destination);
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(moved.toString()))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("mixes ordinary UEA demand in one base and still saves a student taking several UEAs")
+    void mixedTermsAndMultipleUeasRoundTrip() throws Exception {
+        long secondUeaId = createUea("2156042", "OPTIMIZACIÓN");
+        long surveyId = createActiveSurvey("26O");
+        submitEnrollResponse(surveyId, studentToken(), "I", ueaId, secondUeaId);
+        submitEnrollResponse(surveyId, login(STUDENT2_EMAIL), "II", ueaId);
+        closeSurvey(surveyId);
+        createAnnualPlanWithCupo(2026, "25");
+
+        MvcResult generated = mockMvc.perform(post("/api/trimestral-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"surveyId\":" + surveyId + "}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        JsonNode detail = objectMapper.readTree(generated.getResponse().getContentAsString());
+        java.util.List<String> firstUeaGroups = new java.util.ArrayList<>();
+        for (JsonNode group : detail.get("groups")) {
+            if (group.get("ueaId").asLong() == ueaId) {
+                firstUeaGroups.add(group.get("grupo").asText());
+            }
+        }
+        assertThat(firstUeaGroups).containsExactly("CO43");
+        long planId = detail.get("id").asLong();
+        ObjectNode saveBody = saveBodyFromDetail(detail);
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(saveBody.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unassignedDemand[?(@.ueaId==" + secondUeaId + ")].studentId")
+                        .value(studentId.intValue()))
+                .andExpect(jsonPath("$.unassignedDemand[?(@.ueaId==" + secondUeaId + ")].reason")
+                        .value("UEA_NOT_OFFERED"));
+    }
+
+    @Test
+    @DisplayName("enforces authorized annual groups and persists overflow as unassigned demand")
+    void annualCapacityDistribution() throws Exception {
+        String thirdToken = createStudentAndLogin(
+                "trimestral-student3@uam.mx", "2123999103", "Clara", "Evans", "Smith");
+        long surveyId = createActiveSurvey("26O");
+        submitEnrollResponse(surveyId, studentToken(), "I", ueaId);
+        submitEnrollResponse(surveyId, login(STUDENT2_EMAIL), "I", ueaId);
+        submitEnrollResponse(surveyId, thirdToken, "I", ueaId);
+        closeSurvey(surveyId);
+        createAnnualPlanWithCapacity(2026, "1", "2");
+
+        MvcResult created = mockMvc.perform(post("/api/trimestral-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"surveyId\":" + surveyId + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.groups.length()").value(1))
+                .andExpect(jsonPath("$.groups[0].grupo").value("CO43"))
+                .andExpect(jsonPath("$.groups[0].students.length()").value(2))
+                .andExpect(jsonPath("$.unassignedDemand.length()").value(1))
+                .andExpect(jsonPath("$.unassignedDemand[0].reason").value("GROUP_LIMIT_REACHED"))
+                .andReturn();
+
+        JsonNode detail = objectMapper.readTree(created.getResponse().getContentAsString());
+        ObjectNode overCapacity = saveBodyFromDetail(detail);
+        ((ArrayNode) overCapacity.get("groups").get(0).get("students"))
+                .addObject()
+                .put("studentId", detail.get("unassignedDemand").get(0).get("studentId").asLong())
+                .putNull("obs");
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", detail.get("id").asLong())
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(overCapacity.toString()))
+                .andExpect(status().isBadRequest());
+
+        ObjectNode tooManyGroups = saveBodyFromDetail(detail);
+        ArrayNode groups = (ArrayNode) tooManyGroups.get("groups");
+        ObjectNode extraGroup = ((ObjectNode) groups.get(0)).deepCopy();
+        extraGroup.remove("id");
+        extraGroup.put("grupo", "CO43A");
+        ArrayNode extraStudents = (ArrayNode) extraGroup.get("students");
+        extraStudents.removeAll();
+        extraStudents.addObject()
+                .put("studentId", detail.get("unassignedDemand").get(0).get("studentId").asLong())
+                .putNull("obs");
+        groups.add(extraGroup);
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", detail.get("id").asLong())
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(tooManyGroups.toString()))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("annual wildcard groups open as many capacity groups as demand requires")
+    void annualWildcardGroups() throws Exception {
+        String thirdToken = createStudentAndLogin(
+                "trimestral-student4@uam.mx", "2123999104", "Diana", "Ross", "King");
+        long surveyId = createActiveSurvey("26O");
+        submitEnrollResponse(surveyId, studentToken(), "I", ueaId);
+        submitEnrollResponse(surveyId, login(STUDENT2_EMAIL), "I", ueaId);
+        submitEnrollResponse(surveyId, thirdToken, "I", ueaId);
+        closeSurvey(surveyId);
+        createAnnualPlanWithCapacity(2026, "*", "2");
+
+        mockMvc.perform(post("/api/trimestral-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"surveyId\":" + surveyId + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.groups.length()").value(2))
+                .andExpect(jsonPath("$.groups[0].students.length()").value(2))
+                .andExpect(jsonPath("$.groups[1].grupo").value("CO43A"))
+                .andExpect(jsonPath("$.groups[1].students.length()").value(1))
+                .andExpect(jsonPath("$.warnings[?(@.code=='CUPO_EXCEEDED')]").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("fills a second authorized numeric group after the first reaches capacity")
+    void annualNumericGroupsFillSequentially() throws Exception {
+        String thirdToken = createStudentAndLogin(
+                "trimestral-student5@uam.mx", "2123999105", "Emmy", "Noether", "Smith");
+        long surveyId = createActiveSurvey("26O");
+        submitEnrollResponse(surveyId, studentToken(), "I", ueaId);
+        submitEnrollResponse(surveyId, login(STUDENT2_EMAIL), "I", ueaId);
+        submitEnrollResponse(surveyId, thirdToken, "I", ueaId);
+        closeSurvey(surveyId);
+        createAnnualPlanWithCapacity(2026, "2", "2");
+
+        mockMvc.perform(post("/api/trimestral-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"surveyId\":" + surveyId + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.groups.length()").value(2))
+                .andExpect(jsonPath("$.groups[0].grupo").value("CO43"))
+                .andExpect(jsonPath("$.groups[0].students.length()").value(2))
+                .andExpect(jsonPath("$.groups[1].grupo").value("CO43A"))
+                .andExpect(jsonPath("$.groups[1].students.length()").value(1))
+                .andExpect(jsonPath("$.warnings[?(@.code=='CUPO_EXCEEDED')]").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("research group limit preserves global surname priority across academic-term bases")
+    void researchGroupLimitUsesGlobalPriorityAcrossBases() throws Exception {
+        long researchUeaId =
+                createUea("2156099", "PROYECTO DE INVESTIGACIÓN", FormationType.INVESTIGACION);
+        String anaToken = createStudentAndLogin(
+                "trimestral-priority@uam.mx", "2123999000", "Ana", "Aguirre", "Lopez");
+        long surveyId = createActiveSurvey("26O");
+        submitEnrollResponse(surveyId, anaToken, "I", researchUeaId);
+        submitEnrollResponse(surveyId, login(STUDENT2_EMAIL), "II", researchUeaId);
+        submitEnrollResponse(surveyId, studentToken(), "I", researchUeaId);
+        closeSurvey(surveyId);
+        createAnnualPlanForUeaWithCapacity(2026, researchUeaId, "2", "1");
+
+        mockMvc.perform(post("/api/trimestral-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"surveyId\":" + surveyId + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.groups.length()").value(2))
+                .andExpect(jsonPath("$.groups[0].grupo").value("CO43"))
+                .andExpect(jsonPath("$.groups[0].students[0].enrollmentId").value("2123999000"))
+                .andExpect(jsonPath("$.groups[1].grupo").value("CP43"))
+                .andExpect(jsonPath("$.groups[1].students[0].studentId").value(student2Id))
+                .andExpect(jsonPath("$.unassignedDemand.length()").value(1))
+                .andExpect(jsonPath("$.unassignedDemand[0].studentId").value(studentId))
+                .andExpect(jsonPath("$.unassignedDemand[0].reason").value("GROUP_LIMIT_REACHED"));
+    }
+
+    @Test
     @DisplayName("BORRADOR check runs before format validation")
     void editableBeforeFormat() throws Exception {
         long surveyId = createClosedSurveyWithResponse("26O");
@@ -319,7 +733,7 @@ class TrimestralPlanControllerIT {
     }
 
     @Test
-    @DisplayName("reopen survey blocked by TERMINADA plan; marks outdated on BORRADOR")
+    @DisplayName("reopen survey marks even a TERMINADA plan outdated without changing its content")
     void surveyReopenGate() throws Exception {
         long surveyId = createClosedSurveyWithResponse("26O");
         createAnnualPlanWithCupo(2026, "25");
@@ -343,28 +757,64 @@ class TrimestralPlanControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(reopen.toString()))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("SURVEY_REOPEN_BLOCKED_TERMINATED_PLAN"));
-
-        mockMvc.perform(patch("/api/trimestral-plans/{id}/status", planId)
-                        .header("Authorization", "Bearer " + coordinatorToken())
-                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"BORRADOR\"}"))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(put("/api/enrollment-surveys/{id}", surveyId)
-                        .header("Authorization", "Bearer " + coordinatorToken())
-                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(reopen.toString()))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/trimestral-plans/{id}", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.outdated").value(true));
+                .andExpect(jsonPath("$.status").value("TERMINADA"))
+                .andExpect(jsonPath("$.groups.length()").value(1))
+                .andExpect(jsonPath("$.outdated").value(true))
+                .andExpect(jsonPath("$.outdatedReasons[0]").value("SURVEY_REOPENED"))
+                .andExpect(jsonPath("$.prerequisites.surveyClosed").value(false));
+
+        ObjectNode blockedSave = saveBodyFromDetail(getPlanDetail(planId));
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(blockedSave.toString()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("SURVEY_NOT_CLOSED"));
+
+        mockMvc.perform(post("/api/trimestral-plans/{id}/regenerate", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("SURVEY_NOT_CLOSED"));
+
+        mockMvc.perform(get("/api/trimestral-plans/{id}/export", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("SURVEY_NOT_CLOSED"));
+
+        mockMvc.perform(patch("/api/trimestral-plans/{id}/status", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"BORRADOR\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("SURVEY_NOT_CLOSED"));
+
+        closeSurvey(surveyId);
+        mockMvc.perform(patch("/api/trimestral-plans/{id}/status", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"BORRADOR\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outdated").value(true))
+                .andExpect(jsonPath("$.outdatedReasons[0]").value("SURVEY_REOPENED"))
+                .andExpect(jsonPath("$.prerequisites.surveyClosed").value(true));
+
+        mockMvc.perform(post("/api/trimestral-plans/{id}/regenerate", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.outdated").value(false))
+                .andExpect(jsonPath("$.outdatedReasons").isEmpty());
     }
 
     @Test
@@ -429,7 +879,7 @@ class TrimestralPlanControllerIT {
     }
 
     @Test
-    @DisplayName("HU-60: export BORRADOR plan returns official Excel")
+    @DisplayName("HU-60: export BORRADOR plan is allowed")
     void exportBorradorPlan() throws Exception {
         long surveyId = createClosedSurveyWithResponse("26O");
         createAnnualPlanWithCupo(2026, "25");
@@ -439,9 +889,6 @@ class TrimestralPlanControllerIT {
                         .header("Authorization", "Bearer " + coordinatorToken())
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
-                .andExpect(header().string(
-                        "Content-Type",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .andExpect(header().string(
                         "Content-Disposition", "attachment; filename=\"PCYTI 26O.xlsx\""));
     }
@@ -453,17 +900,20 @@ class TrimestralPlanControllerIT {
         createAnnualPlanWithCupo(2026, "25");
         long planId = generatePlan(surveyId);
 
-        mockMvc.perform(patch("/api/trimestral-plans/{id}/status", planId)
-                        .header("Authorization", "Bearer " + coordinatorToken())
-                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"status\":\"TERMINADA\"}"))
-                .andExpect(status().isOk());
+        markTerminada(planId);
 
         mockMvc.perform(get("/api/trimestral-plans/{id}/export", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Disposition", "attachment; filename=\"PCYTI 26O.xlsx\""));
+
+        mockMvc.perform(get("/api/trimestral-plans/{id}", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exportedAt").isNotEmpty());
     }
 
     @Test
@@ -492,6 +942,7 @@ class TrimestralPlanControllerIT {
                 .andExpect(status().isCreated())
                 .andReturn();
         long planId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asLong();
+        markTerminada(planId);
 
         MvcResult exported = mockMvc.perform(get("/api/trimestral-plans/{id}/export", planId)
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -540,6 +991,51 @@ class TrimestralPlanControllerIT {
         return body;
     }
 
+    private void markTerminada(long planId) throws Exception {
+        mockMvc.perform(patch("/api/trimestral-plans/{id}/status", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"TERMINADA\"}"))
+                .andExpect(status().isOk());
+    }
+
+    private ObjectNode saveBodyFromDetail(JsonNode detail) {
+        ObjectNode body = objectMapper.createObjectNode();
+        ArrayNode groups = body.putArray("groups");
+        for (JsonNode source : detail.get("groups")) {
+            ObjectNode target = groups.addObject();
+            target.put("id", source.get("id").asLong());
+            target.put("ueaId", source.get("ueaId").asLong());
+            if (source.get("grupo").isNull()) target.putNull("grupo");
+            else target.put("grupo", source.get("grupo").asText());
+            if (source.get("cupo").isNull()) target.putNull("cupo");
+            else target.put("cupo", source.get("cupo").asText());
+            ArrayNode professorIds = target.putArray("professorIds");
+            for (JsonNode professor : source.get("professors")) {
+                professorIds.add(professor.get("professorId").asLong());
+            }
+            target.set("schedule", source.get("schedule").deepCopy());
+            ArrayNode students = target.putArray("students");
+            for (JsonNode student : source.get("students")) {
+                ObjectNode member = students.addObject();
+                member.put("studentId", student.get("studentId").asLong());
+                if (student.get("obs").isNull()) member.putNull("obs");
+                else member.put("obs", student.get("obs").asText());
+            }
+        }
+        return body;
+    }
+
+    private JsonNode getPlanDetail(long planId) throws Exception {
+        MvcResult detail = mockMvc.perform(get("/api/trimestral-plans/{id}", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andReturn();
+        return objectMapper.readTree(detail.getResponse().getContentAsString());
+    }
+
     private long generatePlan(long surveyId) throws Exception {
         MvcResult result = mockMvc.perform(post("/api/trimestral-plans")
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -583,16 +1079,47 @@ class TrimestralPlanControllerIT {
     }
 
     private void submitEnrollResponse(long surveyId) throws Exception {
+        submitEnrollResponse(surveyId, studentToken(), "I", ueaId);
+    }
+
+    private void submitEnrollResponse(long surveyId, String token, String academicTerm, long... ueaIds)
+            throws Exception {
         ObjectNode submit = objectMapper.createObjectNode();
-        submit.put("academicTerm", "I");
+        submit.put("academicTerm", academicTerm);
         submit.put("mode", "ENROLL_UEAS");
-        submit.set("ueaIds", objectMapper.createArrayNode().add(ueaId));
+        ArrayNode selected = submit.putArray("ueaIds");
+        for (long selectedUeaId : ueaIds) {
+            selected.add(selectedUeaId);
+        }
         mockMvc.perform(post("/api/enrollment-surveys/{id}/responses", surveyId)
-                        .header("Authorization", "Bearer " + studentToken())
+                        .header("Authorization", "Bearer " + token)
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(submit.toString()))
                 .andExpect(status().isOk());
+    }
+
+    private Professor createProfessor(String nemp, String firstName, String lastName, String email) {
+        User user = userRepository.save(new User(
+                email, new BCryptPasswordEncoder().encode(PASSWORD), RoleType.PROFESSOR, programId));
+        return professorRepository.save(internoProfessor(
+                nemp, user.getId(), programId, minimalProfessorPersonalData(firstName, lastName)));
+    }
+
+    private String createStudentAndLogin(
+            String email, String enrollmentId, String firstName, String firstLastName, String secondLastName)
+            throws Exception {
+        User user = userRepository.save(new User(
+                email, new BCryptPasswordEncoder().encode(PASSWORD), RoleType.STUDENT, programId));
+        studentRepository.save(new Student(
+                enrollmentId,
+                user.getId(),
+                programId,
+                null,
+                new PersonalData(
+                        firstName, firstLastName, secondLastName, "Mexicana", null, "5554820000", null),
+                sampleAcademicInformation()));
+        return login(email);
     }
 
     private void submitBlankResponse(long surveyId) throws Exception {
@@ -609,6 +1136,21 @@ class TrimestralPlanControllerIT {
     }
 
     private void createAnnualPlanWithCupo(int year, String cupoO) throws Exception {
+        createAnnualPlanWithCapacity(year, "*", cupoO);
+    }
+
+    private void createAnnualPlanWithCapacity(int year, String gruposO, String cupoO) throws Exception {
+        createAnnualPlanDraftWithCapacity(year, gruposO, cupoO);
+
+        mockMvc.perform(patch("/api/annual-plans/{year}/status", year)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"TERMINADA\"}"))
+                .andExpect(status().isOk());
+    }
+
+    private void createAnnualPlanDraftWithCapacity(int year, String gruposO, String cupoO) throws Exception {
         MvcResult created = mockMvc.perform(post("/api/annual-plans")
                         .header("Authorization", "Bearer " + coordinatorToken())
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)
@@ -623,6 +1165,11 @@ class TrimestralPlanControllerIT {
         ArrayNode entries = payload.putArray("entries");
         ObjectNode entry = entries.addObject();
         entry.put("id", entryId);
+        if (gruposO == null) {
+            entry.putNull("gruposO");
+        } else {
+            entry.put("gruposO", gruposO);
+        }
         entry.put("cupoO", cupoO);
         entry.putObject("marks");
 
@@ -634,7 +1181,50 @@ class TrimestralPlanControllerIT {
                 .andExpect(status().isOk());
     }
 
+    private void createAnnualPlanForUeaWithCapacity(
+            int year, long targetUeaId, String gruposO, String cupoO) throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/annual-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"year\":" + year + "}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        JsonNode body = objectMapper.readTree(created.getResponse().getContentAsString());
+        JsonNode targetEntry = null;
+        for (JsonNode entry : body.get("entries")) {
+            if (entry.get("ueaId").asLong() == targetUeaId) {
+                targetEntry = entry;
+                break;
+            }
+        }
+        assertThat(targetEntry).isNotNull();
+
+        ObjectNode payload = objectMapper.createObjectNode();
+        ObjectNode entry = payload.putArray("entries").addObject();
+        entry.put("id", targetEntry.get("id").asLong());
+        entry.put("gruposO", gruposO);
+        entry.put("cupoO", cupoO);
+        entry.putObject("marks");
+        mockMvc.perform(put("/api/annual-plans/{year}/entries", year)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload.toString()))
+                .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/annual-plans/{year}/status", year)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"TERMINADA\"}"))
+                .andExpect(status().isOk());
+    }
+
     private long createUea(String clave, String nombre) throws Exception {
+        return createUea(clave, nombre, FormationType.BASICA);
+    }
+
+    private long createUea(String clave, String nombre, FormationType formationType) throws Exception {
         RegisterUeaRequest request = new RegisterUeaRequest(
                 clave,
                 nombre,
@@ -642,7 +1232,7 @@ class TrimestralPlanControllerIT {
                 UeaModality.MIXTA,
                 new BigDecimal("3"),
                 new BigDecimal("3"),
-                FormationType.BASICA,
+                formationType,
                 9);
         MvcResult created = mockMvc.perform(post("/api/ueas")
                         .header("Authorization", "Bearer " + coordinatorToken())

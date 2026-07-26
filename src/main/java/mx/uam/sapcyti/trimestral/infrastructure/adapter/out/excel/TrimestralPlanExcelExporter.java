@@ -135,7 +135,11 @@ public class TrimestralPlanExcelExporter {
             return;
         }
         Cell cell = row.createCell(column);
-        if (enrollmentId.matches("^[0-9]+$")) {
+        // Excel only preserves 15 significant numeric digits and Long cannot hold every
+        // VARCHAR(20) enrollment id. Keep long/zero-padded identifiers as text.
+        if (enrollmentId.matches("^[0-9]+$")
+                && enrollmentId.length() <= 15
+                && (enrollmentId.length() == 1 || enrollmentId.charAt(0) != '0')) {
             cell.setCellValue(Long.parseLong(enrollmentId));
         } else {
             cell.setCellValue(enrollmentId);

@@ -66,8 +66,11 @@ public class TrimestralPlanJpaAdapter implements TrimestralPlanRepositoryPort {
 
     private void initializeCollections(TrimestralPlan plan) {
         plan.getWarnings().size();
+        plan.getUnassignedDemand().size();
+        plan.getOutdatedReasons().size();
         for (TrimestralPlanGroup group : plan.getGroups()) {
             group.getStudents().size();
+            group.getProfessors().size();
         }
     }
 }

@@ -27,7 +27,7 @@ public class AcademicInformation {
     @Column(name = "admission_date", nullable = false)
     private LocalDate admissionDate;
 
-    /** Nullable for legacy rows predating V19; required on API create/update. */
+    /** Optional admission-term snapshot; nullable for legacy rows and manual omission. */
     @Column(name = "admission_term", length = 4)
     private String admissionTerm;
 

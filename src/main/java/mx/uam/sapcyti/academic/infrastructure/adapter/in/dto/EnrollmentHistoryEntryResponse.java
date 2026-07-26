@@ -4,7 +4,9 @@ import java.util.List;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.DaySchedule;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.EnrollmentHistoryEntry;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.EnrollmentHistoryUea;
+import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.HistoryProfessor;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.HistoryPlanStatus;
+import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.HistoryUeaStatus;
 
 public record EnrollmentHistoryEntryResponse(
         String term,
@@ -28,18 +30,29 @@ public record EnrollmentHistoryEntryResponse(
     }
 
     public record EnrollmentHistoryUeaResponse(
+            HistoryUeaStatus status,
             String clave,
             String nombre,
             String grupo,
-            String professorName,
+            List<HistoryProfessorResponse> professors,
             List<DayScheduleResponse> schedule) {
 
         static EnrollmentHistoryUeaResponse from(EnrollmentHistoryUea uea) {
+            List<HistoryProfessorResponse> professors = uea.professors().stream()
+                    .map(HistoryProfessorResponse::from)
+                    .toList();
             List<DayScheduleResponse> schedule = uea.schedule() == null
                     ? null
                     : uea.schedule().stream().map(DayScheduleResponse::from).toList();
             return new EnrollmentHistoryUeaResponse(
-                    uea.clave(), uea.nombre(), uea.grupo(), uea.professorName(), schedule);
+                    uea.status(), uea.clave(), uea.nombre(), uea.grupo(), professors, schedule);
+        }
+    }
+
+    public record HistoryProfessorResponse(Long professorId, String employeeNumber, String professorName) {
+        static HistoryProfessorResponse from(HistoryProfessor professor) {
+            return new HistoryProfessorResponse(
+                    professor.professorId(), professor.employeeNumber(), professor.professorName());
         }
     }
 

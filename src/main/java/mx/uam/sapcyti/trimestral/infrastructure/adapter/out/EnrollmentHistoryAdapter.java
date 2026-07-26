@@ -13,7 +13,9 @@ import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.DaySchedule;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.EnrollmentHistoryEntry;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.EnrollmentHistoryUea;
+import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.HistoryProfessor;
 import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.HistoryPlanStatus;
+import mx.uam.sapcyti.academic.domain.port.out.EnrollmentHistoryPort.HistoryUeaStatus;
 import mx.uam.sapcyti.offering.domain.model.UEA;
 import mx.uam.sapcyti.offering.domain.port.out.UeaRepositoryPort;
 import mx.uam.sapcyti.survey.domain.model.EnrollmentSurvey;
@@ -21,7 +23,6 @@ import mx.uam.sapcyti.survey.domain.model.StudentSurveyResponse;
 import mx.uam.sapcyti.survey.domain.model.SurveyResponseMode;
 import mx.uam.sapcyti.survey.domain.port.out.EnrollmentSurveyRepositoryPort;
 import mx.uam.sapcyti.survey.domain.port.out.SurveyResponseRepositoryPort;
-import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
 import mx.uam.sapcyti.trimestral.domain.model.StudentSource;
@@ -29,6 +30,7 @@ import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlan;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanGroup;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanGroup.DaySlot;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanStatus;
+import mx.uam.sapcyti.trimestral.domain.model.UnassignedDemand;
 import mx.uam.sapcyti.trimestral.domain.port.out.TrimestralPlanRepositoryPort;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -119,9 +121,24 @@ public class EnrollmentHistoryAdapter implements EnrollmentHistoryPort {
         if (response != null && response.getMode() == SurveyResponseMode.BLANK) {
             ueas = List.of();
         } else {
-            ueas = groupsForStudent(plan, studentId).stream()
-                    .map(this::terminadaUea)
-                    .toList();
+            Map<Long, EnrollmentHistoryUea> assignedByUea = new java.util.LinkedHashMap<>();
+            for (TrimestralPlanGroup group : groupsForStudent(plan, studentId)) {
+                assignedByUea.put(group.getUeaId(), terminadaUea(group));
+            }
+            List<EnrollmentHistoryUea> finalUeas = new ArrayList<>();
+            if (response != null && response.getMode() == SurveyResponseMode.ENROLL_UEAS) {
+                for (Long requestedUeaId : response.getUeaIds()) {
+                    EnrollmentHistoryUea assigned = assignedByUea.remove(requestedUeaId);
+                    if (assigned != null) {
+                        finalUeas.add(assigned);
+                    } else {
+                        removedUea(plan, studentId, requestedUeaId, graduateProgramId)
+                                .ifPresent(finalUeas::add);
+                    }
+                }
+            }
+            finalUeas.addAll(assignedByUea.values());
+            ueas = List.copyOf(finalUeas);
         }
 
         return new EnrollmentHistoryEntry(
@@ -150,18 +167,18 @@ public class EnrollmentHistoryAdapter implements EnrollmentHistoryPort {
             DaySlot slot = slots.get(i);
             schedule.add(new DaySchedule(days[i].name(), slot.start(), slot.end(), slot.lab()));
         }
-        // A group may have co-directors; the history shows their names joined.
-        String professorNames = group.getProfessors().isEmpty()
-                ? null
-                : group.getProfessors().stream()
-                        .map(GroupProfessor::getProfessorName)
-                        .filter(name -> name != null && !name.isBlank())
-                        .collect(java.util.stream.Collectors.joining(", "));
+        List<HistoryProfessor> professors = group.getProfessors().stream()
+                .map(professor -> new HistoryProfessor(
+                        professor.getProfessorId(),
+                        professor.getEmployeeNumber(),
+                        professor.getProfessorName()))
+                .toList();
         return new EnrollmentHistoryUea(
+                HistoryUeaStatus.ASSIGNED,
                 group.getClave(),
                 group.getNombre(),
                 group.getGrupo(),
-                professorNames == null || professorNames.isBlank() ? null : professorNames,
+                professors,
                 schedule);
     }
 
@@ -172,6 +189,40 @@ public class EnrollmentHistoryAdapter implements EnrollmentHistoryPort {
     }
 
     private EnrollmentHistoryUea pendingUeaFromCatalog(UEA uea) {
-        return new EnrollmentHistoryUea(uea.getClave(), uea.getNombre(), null, null, null);
+        return new EnrollmentHistoryUea(
+                HistoryUeaStatus.PENDING,
+                uea.getClave(),
+                uea.getNombre(),
+                null,
+                List.of(),
+                null);
+    }
+
+    private Optional<EnrollmentHistoryUea> removedUea(
+            TrimestralPlan plan,
+            Long studentId,
+            Long ueaId,
+            Long graduateProgramId) {
+        Optional<UnassignedDemand> snapshot = plan.getUnassignedDemand().stream()
+                .filter(item -> item.getStudentId().equals(studentId) && item.getUeaId().equals(ueaId))
+                .findFirst();
+        if (snapshot.isPresent()) {
+            UnassignedDemand demand = snapshot.orElseThrow();
+            return Optional.of(new EnrollmentHistoryUea(
+                    HistoryUeaStatus.REMOVED_FROM_FINAL_PLAN,
+                    demand.getClave(),
+                    demand.getNombre(),
+                    null,
+                    List.of(),
+                    null));
+        }
+        return ueaRepository.findByIdAndGraduateProgramId(ueaId, graduateProgramId)
+                .map(uea -> new EnrollmentHistoryUea(
+                        HistoryUeaStatus.REMOVED_FROM_FINAL_PLAN,
+                        uea.getClave(),
+                        uea.getNombre(),
+                        null,
+                        List.of(),
+                        null));
     }
 }

@@ -15,16 +15,25 @@ public interface EnrollmentHistoryPort {
             List<EnrollmentHistoryUea> ueas) {}
 
     record EnrollmentHistoryUea(
+            HistoryUeaStatus status,
             String clave,
             String nombre,
             String grupo,
-            String professorName,
+            List<HistoryProfessor> professors,
             List<DaySchedule> schedule) {}
+
+    record HistoryProfessor(Long professorId, String employeeNumber, String professorName) {}
 
     record DaySchedule(String day, String start, String end, boolean lab) {}
 
     enum HistoryPlanStatus {
         PENDING,
         TERMINADA
+    }
+
+    enum HistoryUeaStatus {
+        PENDING,
+        ASSIGNED,
+        REMOVED_FROM_FINAL_PLAN
     }
 }

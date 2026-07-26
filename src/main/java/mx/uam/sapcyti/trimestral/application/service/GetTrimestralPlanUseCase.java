@@ -16,6 +16,7 @@ public class GetTrimestralPlanUseCase {
 
     private final TrimestralPlanRepositoryPort planRepository;
     private final TrimestralPlanGenerationSupport generationSupport;
+    private final TrimestralPrerequisiteGuard prerequisiteGuard;
 
     @Transactional(readOnly = true)
     public PlanDetail execute(Long planId) {
@@ -23,7 +24,10 @@ public class GetTrimestralPlanUseCase {
         TrimestralPlan plan = planRepository
                 .findByIdAndGraduateProgramId(planId, graduateProgramId)
                 .orElseThrow(TrimestralPlanNotFoundException::new);
-        return new PlanDetail(plan, generationSupport.deriveBlankStudents(plan));
+        return new PlanDetail(
+                plan,
+                generationSupport.deriveBlankStudents(plan),
+                prerequisiteGuard.evaluate(plan));
     }
 
     private static Long requireTenant() {
@@ -34,6 +38,9 @@ public class GetTrimestralPlanUseCase {
         return graduateProgramId;
     }
 
-    public record PlanDetail(TrimestralPlan plan, List<BlankStudentView> blankStudents) {
+    public record PlanDetail(
+            TrimestralPlan plan,
+            List<BlankStudentView> blankStudents,
+            TrimestralPrerequisiteGuard.Prerequisites prerequisites) {
     }
 }

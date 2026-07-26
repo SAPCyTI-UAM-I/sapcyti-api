@@ -1,5 +1,6 @@
 package mx.uam.sapcyti.trimestral.infrastructure.adapter.in.dto;
 
+import java.time.Instant;
 import java.util.List;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlan;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanStatus;
@@ -10,6 +11,7 @@ public record TrimestralPlanSummaryResponse(
         TrimestralPlanStatus status,
         Long surveyId,
         boolean outdated,
+        Instant exportedAt,
         int groupCount,
         int blankCount) {
 
@@ -20,6 +22,7 @@ public record TrimestralPlanSummaryResponse(
                 plan.getStatus(),
                 plan.getSurveyId(),
                 plan.isOutdated(),
+                plan.getExportedAt(),
                 groupCount,
                 blankCount);
     }

@@ -147,7 +147,7 @@ class EnrollmentHistoryControllerIT {
                 .andExpect(jsonPath("$[0].planStatus").value("PENDING"))
                 .andExpect(jsonPath("$[0].note").value("PENDING"))
                 .andExpect(jsonPath("$[0].ueas[0].grupo").doesNotExist())
-                .andExpect(jsonPath("$[0].ueas[0].professorName").doesNotExist())
+                .andExpect(jsonPath("$[0].ueas[0].professors").isEmpty())
                 .andExpect(jsonPath("$[0].ueas[0].schedule").doesNotExist());
     }
 
@@ -167,6 +167,7 @@ class EnrollmentHistoryControllerIT {
                 .andExpect(jsonPath("$[0].term").value("26O"))
                 .andExpect(jsonPath("$[0].planStatus").value("TERMINADA"))
                 .andExpect(jsonPath("$[0].ueas[0].grupo").isNotEmpty())
+                .andExpect(jsonPath("$[0].ueas[0].professors").isArray())
                 .andExpect(jsonPath("$[0].ueas[0].schedule[0].day").value("LUN"));
     }
 
@@ -253,7 +254,7 @@ class EnrollmentHistoryControllerIT {
         g.put("ueaId", group.get("ueaId").asLong());
         g.put("grupo", group.get("grupo").asText());
         g.put("cupo", group.get("cupo").asText());
-        g.putNull("professorId");
+        g.putArray("professorIds");
         ArrayNode schedule = g.putArray("schedule");
         for (String day : new String[] {"LUN", "MAR", "MIE", "JUE", "VIE"}) {
             ObjectNode slot = schedule.addObject();
@@ -289,7 +290,7 @@ class EnrollmentHistoryControllerIT {
         g.put("ueaId", group.get("ueaId").asLong());
         g.put("grupo", "CO99");
         g.put("cupo", group.get("cupo").asText());
-        g.putNull("professorId");
+        g.putArray("professorIds");
         ArrayNode schedule = g.putArray("schedule");
         for (String day : new String[] {"LUN", "MAR", "MIE", "JUE", "VIE"}) {
             ObjectNode slot = schedule.addObject();

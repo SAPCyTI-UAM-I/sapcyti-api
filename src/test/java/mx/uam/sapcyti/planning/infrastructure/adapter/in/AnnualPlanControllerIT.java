@@ -212,6 +212,40 @@ class AnnualPlanControllerIT {
     }
 
     @Test
+    @DisplayName("incomplete and zero-valued quota pairs reject the whole annual save")
+    void invalidQuotaPairsRejectWholeSave() throws Exception {
+        createPlan2027();
+        long entryId = firstEntryId(2027);
+
+        mockMvc.perform(put("/api/annual-plans/2027/entries")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"entries":[{"id":%d,"gruposI":"1"}]}
+                                """.formatted(entryId)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+
+        mockMvc.perform(put("/api/annual-plans/2027/entries")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"entries":[{"id":%d,"gruposI":"0","cupoI":"15"}]}
+                                """.formatted(entryId)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+
+        mockMvc.perform(get("/api/annual-plans/2027")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.entries[0].gruposI").isEmpty())
+                .andExpect(jsonPath("$.entries[0].cupoI").isEmpty());
+    }
+
+    @Test
     @DisplayName("save rejected when plan is TERMINADA")
     void saveNotEditable() throws Exception {
         createPlan2027();

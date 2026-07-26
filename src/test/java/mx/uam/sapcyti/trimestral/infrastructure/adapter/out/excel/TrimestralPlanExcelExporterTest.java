@@ -13,6 +13,7 @@ import mx.uam.sapcyti.trimestral.domain.model.StudentSource;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlan;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanGroup;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlanGroup.DaySlot;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -52,6 +53,26 @@ class TrimestralPlanExcelExporterTest {
             assertThat(formatter.formatCellValue(
                             sheet.getRow(1).getCell(TrimestralExcelLayout.COLUMN_STUDENT_ENROLLMENT)))
                     .isEqualTo("2123999101");
+        }
+    }
+
+    @Test
+    @DisplayName("preserves 20-digit and zero-padded enrollment identifiers as text")
+    void preservesEnrollmentIdentifiers() throws Exception {
+        TrimestralPlan plan = samplePlan(
+                List.of(
+                        student("12345678901234567890", "Identificador Largo"),
+                        student("0012345678", "Identificador con Ceros")),
+                false);
+
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(exporter.export(plan)))) {
+            Sheet sheet = workbook.getSheet(TrimestralExcelLayout.SHEET_NAME);
+            var first = sheet.getRow(1).getCell(TrimestralExcelLayout.COLUMN_STUDENT_ENROLLMENT);
+            var second = sheet.getRow(2).getCell(TrimestralExcelLayout.COLUMN_STUDENT_ENROLLMENT);
+            assertThat(first.getCellType()).isEqualTo(CellType.STRING);
+            assertThat(first.getStringCellValue()).isEqualTo("12345678901234567890");
+            assertThat(second.getCellType()).isEqualTo(CellType.STRING);
+            assertThat(second.getStringCellValue()).isEqualTo("0012345678");
         }
     }
 

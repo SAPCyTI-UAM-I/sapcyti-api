@@ -13,7 +13,9 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.ConstraintMode;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import mx.uam.sapcyti.offering.domain.model.UEA;
 import mx.uam.sapcyti.offering.domain.model.UeaType;
@@ -143,7 +145,7 @@ public class AnnualPlanEntry {
         this.pcyti = derivePcyti(uea);
     }
 
-    public void updateValues(
+    public Set<Character> updateValues(
             String gruposI,
             String cupoI,
             String gruposP,
@@ -151,13 +153,24 @@ public class AnnualPlanEntry {
             String gruposO,
             String cupoO,
             Map<GraduateProgramMark, String> marks) {
-        this.gruposI = validateGroupQuota("gruposI", gruposI);
-        this.cupoI = validateGroupQuota("cupoI", cupoI);
-        this.gruposP = validateGroupQuota("gruposP", gruposP);
-        this.cupoP = validateGroupQuota("cupoP", cupoP);
-        this.gruposO = validateGroupQuota("gruposO", gruposO);
-        this.cupoO = validateGroupQuota("cupoO", cupoO);
-        applyMarks(marks);
+        QuotaPair trimesterI = validateQuotaPair("I", gruposI, cupoI);
+        QuotaPair trimesterP = validateQuotaPair("P", gruposP, cupoP);
+        QuotaPair trimesterO = validateQuotaPair("O", gruposO, cupoO);
+        Map<GraduateProgramMark, String> validatedMarks = validateMarks(marks);
+
+        Set<Character> changedTrimesters = new HashSet<>();
+        addIfChanged(changedTrimesters, 'I', this.gruposI, this.cupoI, trimesterI);
+        addIfChanged(changedTrimesters, 'P', this.gruposP, this.cupoP, trimesterP);
+        addIfChanged(changedTrimesters, 'O', this.gruposO, this.cupoO, trimesterO);
+
+        this.gruposI = trimesterI.groups();
+        this.cupoI = trimesterI.capacity();
+        this.gruposP = trimesterP.groups();
+        this.cupoP = trimesterP.capacity();
+        this.gruposO = trimesterO.groups();
+        this.cupoO = trimesterO.capacity();
+        applyValidatedMarks(validatedMarks);
+        return Set.copyOf(changedTrimesters);
     }
 
     private void copyEditableValuesFrom(AnnualPlanEntry previous) {
@@ -178,7 +191,7 @@ public class AnnualPlanEntry {
         this.efmc = previous.efmc;
     }
 
-    private void applyMarks(Map<GraduateProgramMark, String> marks) {
+    private void applyValidatedMarks(Map<GraduateProgramMark, String> marks) {
         this.pFis = null;
         this.pMat = null;
         this.mcmai = null;
@@ -195,10 +208,46 @@ public class AnnualPlanEntry {
             if (mark.getKey() == GraduateProgramMark.PCYTI) {
                 continue; // derived from tipo; ignore any client-provided value
             }
-            String value = validateMark(mark.getKey().name(), mark.getValue());
-            setMark(mark.getKey(), value);
+            setMark(mark.getKey(), mark.getValue());
         }
     }
+
+    private static Map<GraduateProgramMark, String> validateMarks(
+            Map<GraduateProgramMark, String> marks) {
+        if (marks == null || marks.isEmpty()) {
+            return Map.of();
+        }
+        Map<GraduateProgramMark, String> validated = new EnumMap<>(GraduateProgramMark.class);
+        for (Map.Entry<GraduateProgramMark, String> mark : marks.entrySet()) {
+            validated.put(mark.getKey(), validateMark(mark.getKey().name(), mark.getValue()));
+        }
+        return validated;
+    }
+
+    private static QuotaPair validateQuotaPair(String trimester, String groups, String capacity) {
+        String normalizedGroups = validateGroupQuota("grupos" + trimester, groups);
+        String normalizedCapacity = validateGroupQuota("cupo" + trimester, capacity);
+        if ((normalizedGroups == null) != (normalizedCapacity == null)) {
+            throw new IllegalArgumentException(
+                    "grupos" + trimester + " and cupo" + trimester
+                            + " must both be provided or both be omitted");
+        }
+        return new QuotaPair(normalizedGroups, normalizedCapacity);
+    }
+
+    private static void addIfChanged(
+            Set<Character> changedTrimesters,
+            char trimester,
+            String currentGroups,
+            String currentCapacity,
+            QuotaPair replacement) {
+        if (!java.util.Objects.equals(currentGroups, replacement.groups())
+                || !java.util.Objects.equals(currentCapacity, replacement.capacity())) {
+            changedTrimesters.add(trimester);
+        }
+    }
+
+    private record QuotaPair(String groups, String capacity) {}
 
     private static String validateGroupQuota(String field, String value) {
         if (value == null || value.isBlank()) {

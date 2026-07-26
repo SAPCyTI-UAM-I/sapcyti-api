@@ -16,6 +16,7 @@ public class ExportTrimestralPlanUseCase {
 
     private final TrimestralPlanRepositoryPort planRepository;
     private final TrimestralPlanExcelExporter exporter;
+    private final TrimestralPrerequisiteGuard prerequisiteGuard;
 
     // Not readOnly: the @AfterReturning audit aspect may insert within this transaction.
     @Transactional
@@ -25,7 +26,11 @@ public class ExportTrimestralPlanUseCase {
                 .findByIdAndGraduateProgramId(id, graduateProgramId)
                 .orElseThrow(TrimestralPlanNotFoundException::new);
 
-        return new ExportResult(TrimestralExcelLayout.filename(plan.getTerm()), exporter.export(plan));
+        prerequisiteGuard.assertSatisfied(plan);
+        byte[] content = exporter.export(plan);
+        plan.markExported();
+        planRepository.save(plan);
+        return new ExportResult(TrimestralExcelLayout.filename(plan.getTerm()), content);
     }
 
     private static Long requireTenant() {

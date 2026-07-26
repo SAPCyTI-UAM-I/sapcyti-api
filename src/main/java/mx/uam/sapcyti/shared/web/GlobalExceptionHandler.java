@@ -61,6 +61,7 @@ import mx.uam.sapcyti.survey.domain.exception.SurveyReopenDatesInvalidException;
 import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.exception.UeaNotAvailableException;
 import mx.uam.sapcyti.trimestral.domain.exception.AnnualPlanRequiredException;
+import mx.uam.sapcyti.trimestral.domain.exception.AnnualPlanNotTerminatedException;
 import mx.uam.sapcyti.trimestral.domain.exception.InvalidTrimestralStatusTransitionException;
 import mx.uam.sapcyti.trimestral.domain.exception.TrimestralPlanAlreadyExistsException;
 import mx.uam.sapcyti.trimestral.domain.exception.TrimestralPlanNotEditableException;
@@ -316,6 +317,16 @@ public class GlobalExceptionHandler {
                 AnnualPlanRequiredException.MESSAGE));
     }
 
+    @ExceptionHandler(AnnualPlanNotTerminatedException.class)
+    public ResponseEntity<ErrorResponse> handleAnnualPlanNotTerminated(
+            AnnualPlanNotTerminatedException ex) {
+        return ResponseEntity
+            .status(HttpStatus.CONFLICT)
+            .body(new ErrorResponse(
+                AnnualPlanNotTerminatedException.ERROR_CODE,
+                AnnualPlanNotTerminatedException.MESSAGE));
+    }
+
     @ExceptionHandler(TrimestralPlanNotEditableException.class)
     public ResponseEntity<ErrorResponse> handleTrimestralPlanNotEditable(
             TrimestralPlanNotEditableException ex) {
@@ -473,11 +484,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ProfessorHasActiveAssignmentsException.class)
-    public ResponseEntity<ErrorResponse> handleProfessorHasActiveAssignments(
+    public ResponseEntity<ProfessorAssignmentsErrorResponse> handleProfessorHasActiveAssignments(
             ProfessorHasActiveAssignmentsException ex) {
         return ResponseEntity
             .status(HttpStatus.CONFLICT)
-            .body(new ErrorResponse("CONFLICT", ProfessorHasActiveAssignmentsException.MESSAGE));
+            .body(ProfessorAssignmentsErrorResponse.from(ex));
     }
 
     @ExceptionHandler(StudentNotFoundException.class)

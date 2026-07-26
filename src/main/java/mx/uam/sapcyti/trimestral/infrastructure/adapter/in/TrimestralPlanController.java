@@ -20,6 +20,7 @@ import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUse
 import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.GroupInput;
 import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.StudentInput;
 import mx.uam.sapcyti.trimestral.application.service.TrimestralPlanGenerationSupport;
+import mx.uam.sapcyti.trimestral.application.service.TrimestralPrerequisiteGuard;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
 import mx.uam.sapcyti.trimestral.domain.model.TrimestralPlan;
 import mx.uam.sapcyti.trimestral.infrastructure.adapter.in.dto.ChangeTrimestralPlanStatusRequest;
@@ -57,6 +58,7 @@ public class TrimestralPlanController {
     private final ChangeTrimestralPlanStatusUseCase changeTrimestralPlanStatusUseCase;
     private final ExportTrimestralPlanUseCase exportTrimestralPlanUseCase;
     private final TrimestralPlanGenerationSupport generationSupport;
+    private final TrimestralPrerequisiteGuard prerequisiteGuard;
 
     @PostMapping
     @PreAuthorize("hasRole('COORDINATOR')")
@@ -82,7 +84,8 @@ public class TrimestralPlanController {
     @Operation(summary = "Get trimestral plan detail (HU-58)")
     public ResponseEntity<TrimestralPlanDetailResponse> get(@PathVariable Long id) {
         PlanDetail detail = getTrimestralPlanUseCase.execute(id);
-        return ResponseEntity.ok(TrimestralPlanDetailResponse.from(detail.plan(), detail.blankStudents()));
+        return ResponseEntity.ok(TrimestralPlanDetailResponse.from(
+                detail.plan(), detail.blankStudents(), detail.prerequisites()));
     }
 
     @PutMapping("/{id}/groups")
@@ -126,7 +129,8 @@ public class TrimestralPlanController {
     }
 
     private TrimestralPlanDetailResponse toDetail(TrimestralPlan plan) {
-        return TrimestralPlanDetailResponse.from(plan, generationSupport.deriveBlankStudents(plan));
+        return TrimestralPlanDetailResponse.from(
+                plan, generationSupport.deriveBlankStudents(plan), prerequisiteGuard.evaluate(plan));
     }
 
     private TrimestralPlanSummaryResponse toSummary(PlanSummary summary) {

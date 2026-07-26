@@ -45,9 +45,6 @@ public class TrimestralPlan {
     @Column(name = "status", nullable = false, length = 10)
     private TrimestralPlanStatus status;
 
-    @Column(name = "outdated", nullable = false)
-    private boolean outdated;
-
     @Column(name = "created_by", nullable = false)
     private Long createdBy;
 
@@ -56,6 +53,9 @@ public class TrimestralPlan {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "exported_at")
+    private Instant exportedAt;
 
     @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("posicion ASC")
@@ -66,6 +66,16 @@ public class TrimestralPlan {
     @BatchSize(size = 50)
     private List<PlanWarning> warnings = new ArrayList<>();
 
+    @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("posicion ASC")
+    @BatchSize(size = 50)
+    private List<UnassignedDemand> unassignedDemand = new ArrayList<>();
+
+    @OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("reason ASC")
+    @BatchSize(size = 10)
+    private List<PlanOutdatedReason> outdatedReasons = new ArrayList<>();
+
     protected TrimestralPlan() {
         // For JPA
     }
@@ -75,7 +85,6 @@ public class TrimestralPlan {
         this.surveyId = surveyId;
         this.term = term;
         this.status = TrimestralPlanStatus.BORRADOR;
-        this.outdated = false;
         this.createdBy = createdBy;
         Instant now = Instant.now();
         this.createdAt = now;
@@ -100,13 +109,24 @@ public class TrimestralPlan {
         }
     }
 
-    public void markOutdated() {
-        this.outdated = true;
-        touch();
+    public void markOutdated(OutdatedReason reason) {
+        boolean alreadyPresent = outdatedReasons.stream()
+                .anyMatch(item -> item.getReason() == reason);
+        if (!alreadyPresent) {
+            outdatedReasons.add(PlanOutdatedReason.create(this, reason));
+            touch();
+        }
     }
 
     public void clearOutdated() {
-        this.outdated = false;
+        if (!outdatedReasons.isEmpty()) {
+            outdatedReasons.clear();
+            touch();
+        }
+    }
+
+    public void markExported() {
+        this.exportedAt = Instant.now();
         touch();
     }
 
@@ -130,9 +150,21 @@ public class TrimestralPlan {
         touch();
     }
 
+    public void replaceUnassignedDemand(List<UnassignedDemand> newDemand) {
+        unassignedDemand.clear();
+        short position = 1;
+        for (UnassignedDemand demand : newDemand) {
+            demand.setPosicion(position++);
+            demand.assignPlan(this);
+            unassignedDemand.add(demand);
+        }
+        touch();
+    }
+
     public void clearContent() {
         groups.clear();
         warnings.clear();
+        unassignedDemand.clear();
         touch();
     }
 
@@ -198,7 +230,7 @@ public class TrimestralPlan {
     }
 
     public boolean isOutdated() {
-        return outdated;
+        return !outdatedReasons.isEmpty();
     }
 
     public Long getCreatedBy() {
@@ -213,11 +245,23 @@ public class TrimestralPlan {
         return updatedAt;
     }
 
+    public Instant getExportedAt() {
+        return exportedAt;
+    }
+
     public List<TrimestralPlanGroup> getGroups() {
         return List.copyOf(groups);
     }
 
     public List<PlanWarning> getWarnings() {
         return List.copyOf(warnings);
+    }
+
+    public List<UnassignedDemand> getUnassignedDemand() {
+        return List.copyOf(unassignedDemand);
+    }
+
+    public List<OutdatedReason> getOutdatedReasons() {
+        return outdatedReasons.stream().map(PlanOutdatedReason::getReason).toList();
     }
 }

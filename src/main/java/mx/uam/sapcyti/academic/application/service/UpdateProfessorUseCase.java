@@ -9,6 +9,7 @@ import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort;
 import mx.uam.sapcyti.academic.domain.service.ProfessorTypeRules;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
@@ -23,6 +24,7 @@ public class UpdateProfessorUseCase {
 
     private final ProfessorRepositoryPort professorRepository;
     private final UserRepositoryPort userRepository;
+    private final ProfessorTrimestralAssignmentsPort trimestralAssignmentsPort;
 
     @Transactional
     public ListProfessorsUseCase.ProfessorListItem execute(UpdateProfessorCommand command) {
@@ -72,6 +74,11 @@ public class UpdateProfessorUseCase {
         professor.updateProfessorInformation(professorInformation);
         professor.updateTypeAndEmployeeNumber(command.professorType(), normalizedEmployeeNumber);
         professor = professorRepository.save(professor);
+        trimestralAssignmentsPort.refreshOpenPlanSnapshots(
+                professor.getId(),
+                graduateProgramId,
+                professor.getEmployeeNumber(),
+                fullName(professor.getPersonalData()));
 
         return ListProfessorsUseCase.toListItem(professor, user);
     }
@@ -122,5 +129,13 @@ public class UpdateProfessorUseCase {
             return null;
         }
         return value.trim();
+    }
+
+    private static String fullName(PersonalData personalData) {
+        String secondLastName = blankToNull(personalData.getSecondLastName());
+        return secondLastName == null
+                ? personalData.getFirstName() + " " + personalData.getFirstLastName()
+                : personalData.getFirstName() + " " + personalData.getFirstLastName()
+                        + " " + secondLastName;
     }
 }

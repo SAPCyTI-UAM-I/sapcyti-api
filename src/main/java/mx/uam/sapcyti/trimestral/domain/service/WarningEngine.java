@@ -28,6 +28,7 @@ public class WarningEngine {
         Set<Long> seenInactiveStudents = new HashSet<>();
         Set<String> seenDeactivatedClaves = new HashSet<>();
         Set<String> seenNoQuotaClaves = new HashSet<>();
+        Map<Long, Integer> seenGroupsByUea = new java.util.HashMap<>();
 
         for (TrimestralPlanGroup group : plan.getGroups()) {
             if (!ctx.activeUeaIds().contains(group.getUeaId())
@@ -68,7 +69,12 @@ public class WarningEngine {
                 }
             }
 
-            if (group.exceedsCupo()) {
+            int groupNumber = seenGroupsByUea.merge(group.getUeaId(), 1, Integer::sum);
+            Integer maxGroups = ctx.maxGroupsByUeaId().get(group.getUeaId());
+            boolean exceedsAuthorizedGroups = maxGroups != null
+                    && groupNumber > maxGroups
+                    && !"1".equals(group.getCupo());
+            if (group.exceedsCupo() || exceedsAuthorizedGroups) {
                 warnings.add(PlanWarning.of(
                         plan, WarningCode.CUPO_EXCEEDED, null, null, null, group.getId()));
             }
@@ -82,10 +88,26 @@ public class WarningEngine {
             Set<Long> activeUeaIds,
             Set<Long> ueasWithoutQuota,
             Set<Long> activeStudentIds,
-            Set<Long> activeProfessorIds) {
+            Set<Long> activeProfessorIds,
+            Map<Long, Integer> maxGroupsByUeaId) {
+
+        public WarningContext(
+                boolean noEnrollResponses,
+                Set<Long> activeUeaIds,
+                Set<Long> ueasWithoutQuota,
+                Set<Long> activeStudentIds,
+                Set<Long> activeProfessorIds) {
+            this(
+                    noEnrollResponses,
+                    activeUeaIds,
+                    ueasWithoutQuota,
+                    activeStudentIds,
+                    activeProfessorIds,
+                    Map.of());
+        }
 
         public static WarningContext empty() {
-            return new WarningContext(false, Set.of(), Set.of(), Set.of(), Set.of());
+            return new WarningContext(false, Set.of(), Set.of(), Set.of(), Set.of(), Map.of());
         }
 
         public WarningContext {
@@ -93,6 +115,7 @@ public class WarningEngine {
             ueasWithoutQuota = ueasWithoutQuota == null ? Set.of() : Set.copyOf(ueasWithoutQuota);
             activeStudentIds = activeStudentIds == null ? Set.of() : Set.copyOf(activeStudentIds);
             activeProfessorIds = activeProfessorIds == null ? Set.of() : Set.copyOf(activeProfessorIds);
+            maxGroupsByUeaId = maxGroupsByUeaId == null ? Map.of() : Map.copyOf(maxGroupsByUeaId);
         }
 
         public static Set<Long> ueasWithoutQuotaFrom(

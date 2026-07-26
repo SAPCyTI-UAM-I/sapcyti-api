@@ -20,6 +20,7 @@ import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorType;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort;
 import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
@@ -38,12 +39,14 @@ class UpdateProfessorUseCaseTest {
 
     @Mock private ProfessorRepositoryPort professorRepository;
     @Mock private UserRepositoryPort userRepository;
+    @Mock private ProfessorTrimestralAssignmentsPort trimestralAssignmentsPort;
 
     private UpdateProfessorUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new UpdateProfessorUseCase(professorRepository, userRepository);
+        useCase = new UpdateProfessorUseCase(
+                professorRepository, userRepository, trimestralAssignmentsPort);
         TenantContext.set(1L);
     }
 
@@ -69,6 +72,8 @@ class UpdateProfessorUseCaseTest {
         assertThat(result.getEmail()).isEqualTo("humberto.nuevo@uam.mx");
         assertThat(result.getProfessorType()).isEqualTo(ProfessorType.INTERNO);
         verify(userRepository).save(user);
+        verify(trimestralAssignmentsPort).refreshOpenPlanSnapshots(
+                10L, 1L, "30568", "Humberto Gustavo Cervantes Maceda");
         assertThat(user.getEmail()).isEqualTo("humberto.nuevo@uam.mx");
     }
 

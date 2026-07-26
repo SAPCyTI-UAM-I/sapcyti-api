@@ -1,13 +1,16 @@
 package mx.uam.sapcyti.planning.application.service;
 
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.planning.domain.exception.AnnualPlanNotFoundException;
 import mx.uam.sapcyti.planning.domain.model.AnnualPlan;
 import mx.uam.sapcyti.planning.domain.model.AnnualPlanEntry;
 import mx.uam.sapcyti.planning.domain.model.GraduateProgramMark;
+import mx.uam.sapcyti.planning.domain.port.out.AnnualPlanChangePort;
 import mx.uam.sapcyti.planning.domain.port.out.AnnualPlanRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -18,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SaveEntriesUseCase {
 
     private final AnnualPlanRepositoryPort annualPlanRepository;
+    private final AnnualPlanChangePort annualPlanChangePort;
 
     @Transactional
     public AnnualPlan execute(int year, List<EntryUpdate> updates) {
@@ -28,9 +32,10 @@ public class SaveEntriesUseCase {
 
         plan.assertEditable();
 
+        Map<Character, Set<Long>> changedUeaIdsByTrimester = new java.util.HashMap<>();
         for (EntryUpdate update : updates) {
             AnnualPlanEntry entry = plan.requireEntry(update.id());
-            entry.updateValues(
+            Set<Character> changedTrimesters = entry.updateValues(
                     update.gruposI(),
                     update.cupoI(),
                     update.gruposP(),
@@ -38,9 +43,19 @@ public class SaveEntriesUseCase {
                     update.gruposO(),
                     update.cupoO(),
                     toMarkMap(update.marks()));
+            for (Character trimester : changedTrimesters) {
+                changedUeaIdsByTrimester
+                        .computeIfAbsent(trimester, ignored -> new HashSet<>())
+                        .add(entry.getUeaId());
+            }
         }
 
-        return annualPlanRepository.save(plan);
+        AnnualPlan saved = annualPlanRepository.save(plan);
+        if (!changedUeaIdsByTrimester.isEmpty()) {
+            annualPlanChangePort.markOutdatedByChangedUeas(
+                    year, graduateProgramId, immutableChanges(changedUeaIdsByTrimester));
+        }
+        return saved;
     }
 
     private static Map<GraduateProgramMark, String> toMarkMap(Map<String, String> marks) {
@@ -55,6 +70,14 @@ public class SaveEntriesUseCase {
             result.put(mark, entry.getValue());
         }
         return result;
+    }
+
+    private static Map<Character, Set<Long>> immutableChanges(
+            Map<Character, Set<Long>> changedUeaIdsByTrimester) {
+        Map<Character, Set<Long>> result = new java.util.HashMap<>();
+        changedUeaIdsByTrimester.forEach(
+                (trimester, ueaIds) -> result.put(trimester, Set.copyOf(ueaIds)));
+        return Map.copyOf(result);
     }
 
     private static Long requireTenant() {

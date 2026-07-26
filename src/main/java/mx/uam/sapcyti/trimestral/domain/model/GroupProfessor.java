@@ -9,6 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 /**
  * A professor assigned to a group (HU-57/59). Research groups have co-directors, so a
@@ -16,7 +17,12 @@ import jakarta.persistence.Table;
  * are snapshots, like {@link GroupStudent}. The Excel stacks them in the NEMP/PROF rows.
  */
 @Entity
-@Table(name = "trimestral_plan_group_professors")
+@Table(
+        name = "trimestral_plan_group_professors",
+        uniqueConstraints = {
+            @UniqueConstraint(columnNames = {"group_id", "professor_id"}),
+            @UniqueConstraint(columnNames = {"group_id", "posicion"})
+        })
 public class GroupProfessor {
 
     @Id
@@ -33,7 +39,7 @@ public class GroupProfessor {
     @Column(name = "employee_number", length = 20)
     private String employeeNumber;
 
-    @Column(name = "professor_name", length = 300)
+    @Column(name = "professor_name", nullable = false, length = 300)
     private String professorName;
 
     @Column(name = "posicion", nullable = false)
@@ -71,6 +77,11 @@ public class GroupProfessor {
 
     void setPosicion(short posicion) {
         this.posicion = posicion;
+    }
+
+    public void refreshSnapshot(String employeeNumber, String professorName) {
+        this.employeeNumber = employeeNumber;
+        this.professorName = professorName;
     }
 
     public Long getId() {
