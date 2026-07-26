@@ -366,6 +366,47 @@ class TrimestralPlanControllerIT {
     }
 
     @Test
+    @DisplayName("new group inherits annual capacity when cupo is omitted")
+    void newGroupInheritsAnnualCapacity() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+
+        ObjectNode saveBody = saveBodyFromDetail(getPlanDetail(planId));
+        ObjectNode group = (ObjectNode) saveBody.get("groups").get(0);
+        group.putNull("id");
+        group.putNull("cupo");
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(saveBody.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.groups[0].cupo").value("25"))
+                .andExpect(jsonPath("$.groups[0].maxGroups").value("*"));
+    }
+
+    @Test
+    @DisplayName("explicit group capacity must match the annual plan")
+    void explicitGroupCapacityMustMatchAnnualPlan() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+
+        ObjectNode saveBody = saveBodyFromDetail(getPlanDetail(planId));
+        ((ObjectNode) saveBody.get("groups").get(0)).put("cupo", "10");
+
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(saveBody.toString()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     @DisplayName("manual removal becomes unassigned demand and history labels the removed UEA")
     void manualRemovalReconcilesUnassignedDemandAndHistory() throws Exception {
         long surveyId = createClosedSurveyWithResponse("26O");

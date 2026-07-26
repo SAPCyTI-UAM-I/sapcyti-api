@@ -16,9 +16,9 @@ import mx.uam.sapcyti.trimestral.application.service.ListTrimestralPlansUseCase;
 import mx.uam.sapcyti.trimestral.application.service.ListTrimestralPlansUseCase.PlanSummary;
 import mx.uam.sapcyti.trimestral.application.service.RegenerateTrimestralPlanUseCase;
 import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase;
-import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.DayScheduleInput;
-import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.GroupInput;
-import mx.uam.sapcyti.trimestral.application.service.SaveTrimestralPlanGroupsUseCase.StudentInput;
+import mx.uam.sapcyti.trimestral.application.service.TrimestralGroupInput;
+import mx.uam.sapcyti.trimestral.application.service.TrimestralGroupInput.DaySchedule;
+import mx.uam.sapcyti.trimestral.application.service.TrimestralGroupInput.Student;
 import mx.uam.sapcyti.trimestral.application.service.TrimestralPlanGenerationSupport;
 import mx.uam.sapcyti.trimestral.application.service.TrimestralPrerequisiteGuard;
 import mx.uam.sapcyti.trimestral.domain.model.ScheduleDay;
@@ -137,21 +137,21 @@ public class TrimestralPlanController {
         return TrimestralPlanSummaryResponse.from(summary.plan(), summary.groupCount(), summary.blankCount());
     }
 
-    private static List<GroupInput> toGroupInputs(SaveTrimestralPlanRequest request) {
+    private static List<TrimestralGroupInput> toGroupInputs(SaveTrimestralPlanRequest request) {
         if (request == null || request.groups() == null) {
             throw new IllegalArgumentException("groups is required");
         }
-        List<GroupInput> inputs = new ArrayList<>();
+        List<TrimestralGroupInput> inputs = new ArrayList<>();
         for (SaveGroupRequest group : request.groups()) {
             if (group.ueaId() == null) {
                 throw new IllegalArgumentException("ueaId is required");
             }
-            List<StudentInput> students = group.students() == null
+            List<Student> students = group.students() == null
                     ? List.of()
                     : group.students().stream()
-                            .map(s -> new StudentInput(s.studentId(), s.obs()))
+                            .map(s -> new Student(s.studentId(), s.obs()))
                             .toList();
-            inputs.add(new GroupInput(
+            inputs.add(new TrimestralGroupInput(
                     group.id(),
                     group.ueaId(),
                     group.grupo(),
@@ -163,11 +163,11 @@ public class TrimestralPlanController {
         return inputs;
     }
 
-    private static List<DayScheduleInput> toSchedule(List<DayScheduleRequest> schedule) {
+    private static List<DaySchedule> toSchedule(List<DayScheduleRequest> schedule) {
         if (schedule == null) {
             throw new IllegalArgumentException("schedule must contain exactly 5 days LUN..VIE");
         }
-        List<DayScheduleInput> result = new ArrayList<>();
+        List<DaySchedule> result = new ArrayList<>();
         for (DayScheduleRequest day : schedule) {
             if (day == null || day.day() == null || day.day().isBlank()) {
                 throw new IllegalArgumentException("schedule day is required");
@@ -178,7 +178,7 @@ public class TrimestralPlanController {
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("schedule day must be LUN, MAR, MIE, JUE or VIE");
             }
-            result.add(new DayScheduleInput(scheduleDay, day.start(), day.end(), day.lab()));
+            result.add(new DaySchedule(scheduleDay, day.start(), day.end(), day.lab()));
         }
         return result;
     }

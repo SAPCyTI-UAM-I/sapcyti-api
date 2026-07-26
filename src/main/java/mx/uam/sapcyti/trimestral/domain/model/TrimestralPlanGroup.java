@@ -13,7 +13,6 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -386,24 +385,6 @@ public class TrimestralPlanGroup {
         }
     }
 
-    public static Comparator<GroupStudentSnapshot> surnameComparator() {
-        return Comparator.comparing(GroupStudentSnapshot::firstLastName, Comparator.nullsLast(String::compareToIgnoreCase))
-                .thenComparing(GroupStudentSnapshot::secondLastName, Comparator.nullsLast(String::compareToIgnoreCase))
-                .thenComparing(GroupStudentSnapshot::firstName, Comparator.nullsLast(String::compareToIgnoreCase))
-                .thenComparing(GroupStudentSnapshot::enrollmentId, Comparator.nullsLast(String::compareTo));
-    }
-
     public record DaySlot(String start, String end, boolean lab) {
-    }
-
-    public record GroupStudentSnapshot(
-            Long studentId,
-            String enrollmentId,
-            String fullName,
-            String firstName,
-            String firstLastName,
-            String secondLastName,
-            StudentSource source,
-            String academicTerm) {
     }
 }

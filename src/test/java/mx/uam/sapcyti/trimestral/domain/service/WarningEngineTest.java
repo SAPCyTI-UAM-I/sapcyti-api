@@ -3,7 +3,6 @@ package mx.uam.sapcyti.trimestral.domain.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import mx.uam.sapcyti.trimestral.domain.model.GroupProfessor;
 import mx.uam.sapcyti.trimestral.domain.model.GroupStudent;
@@ -29,12 +28,13 @@ class WarningEngineTest {
 
     @Test
     void noResponsesWarning() {
-        List<PlanWarning> warnings = engine.evaluate(plan, new WarningContext(true, Set.of(), Set.of(), Set.of(), Set.of()));
+        List<PlanWarning> warnings =
+                engine.evaluate(plan, new WarningContext(true, Set.of(), Set.of(), Set.of()));
         assertThat(warnings).extracting(PlanWarning::getCode).containsExactly(WarningCode.NO_RESPONSES);
     }
 
     @Test
-    void ueaDeactivatedAndNoQuotaAndCupoExceeded() {
+    void ueaDeactivatedAndCupoExceeded() {
         TrimestralPlanGroup group = TrimestralPlanGroup.createProposed(
                 plan, 40L, (short) 1, "2156041", "METODOS", "OBLIGATORIA", "CO43", "1");
         group.addStudent(GroupStudent.create(
@@ -48,12 +48,11 @@ class WarningEngineTest {
                 new WarningContext(
                         false,
                         Set.of(),
-                        Set.of(40L),
                         Set.of(101L, 102L),
                         Set.of()));
 
         assertThat(warnings).extracting(PlanWarning::getCode)
-                .contains(WarningCode.UEA_DEACTIVATED, WarningCode.UEA_NO_QUOTA, WarningCode.CUPO_EXCEEDED);
+                .containsExactly(WarningCode.UEA_DEACTIVATED, WarningCode.CUPO_EXCEEDED);
     }
 
     @Test
@@ -75,35 +74,10 @@ class WarningEngineTest {
 
         List<PlanWarning> warnings = engine.evaluate(
                 plan,
-                new WarningContext(false, Set.of(40L), Set.of(), Set.of(), Set.of()));
+                new WarningContext(false, Set.of(40L), Set.of(), Set.of()));
 
         assertThat(warnings).extracting(PlanWarning::getCode)
                 .contains(WarningCode.STUDENT_INACTIVE, WarningCode.PROFESSOR_INACTIVE);
-    }
-
-    @Test
-    void cupoOneMayExpandPastAnnualGroupCountWithoutWarning() {
-        TrimestralPlanGroup first = TrimestralPlanGroup.createProposed(
-                plan, 40L, (short) 1, "2156041", "METODOS", "OBLIGATORIA", "CO43", "1");
-        first.addStudent(GroupStudent.create(
-                first, 101L, "2123001", "Ana Lopez", StudentSource.SURVEY, "I", null, (short) 1));
-        TrimestralPlanGroup second = TrimestralPlanGroup.createProposed(
-                plan, 40L, (short) 2, "2156041", "METODOS", "OBLIGATORIA", "CO43A", "1");
-        second.addStudent(GroupStudent.create(
-                second, 102L, "2123002", "Bruno Diaz", StudentSource.SURVEY, "I", null, (short) 1));
-        plan.replaceGroups(List.of(first, second));
-
-        List<PlanWarning> warnings = engine.evaluate(
-                plan,
-                new WarningContext(
-                        false,
-                        Set.of(40L),
-                        Set.of(),
-                        Set.of(101L, 102L),
-                        Set.of(),
-                        Map.of(40L, 1)));
-
-        assertThat(warnings).extracting(PlanWarning::getCode).doesNotContain(WarningCode.CUPO_EXCEEDED);
     }
 
     private static java.util.Map<mx.uam.sapcyti.trimestral.domain.model.ScheduleDay, TrimestralPlanGroup.DaySlot>

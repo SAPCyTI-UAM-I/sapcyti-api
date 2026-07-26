@@ -166,7 +166,7 @@ class TrimestralPlanGenerationSupportTest {
                 students,
                 professors,
                 users,
-                new GroupLetterService(),
+                new TrimestralDemandAllocator(new GroupLetterService()),
                 new WarningEngine());
         TrimestralPlan plan = TrimestralPlan.create(1L, 7L, "26O", 5L);
 

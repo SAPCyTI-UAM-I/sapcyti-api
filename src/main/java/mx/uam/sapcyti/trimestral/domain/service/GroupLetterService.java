@@ -1,8 +1,5 @@
 package mx.uam.sapcyti.trimestral.domain.service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 
@@ -30,39 +27,4 @@ public class GroupLetterService {
         return "C" + letter + "43";
     }
 
-    /**
-     * When several groups share the same base (UEA with cupo 1 requested by multiple
-     * students), sort by surnames and apply suffixes {@code ""}, {@code A}, {@code B}, …
-     *
-     * @param sameBase groups that already share one base group code; order is ignored
-     * @return proposed {@code grupo} values in surname sort order (same length as input)
-     */
-    public List<String> assignSuffixes(List<Group> sameBase) {
-        if (sameBase == null || sameBase.isEmpty()) {
-            return List.of();
-        }
-
-        String base = sameBase.getFirst().baseGroup();
-        List<Group> sorted = sameBase.stream()
-                .sorted(Comparator.comparing(Group::firstLastName, Comparator.nullsLast(String::compareToIgnoreCase))
-                        .thenComparing(Group::secondLastName, Comparator.nullsLast(String::compareToIgnoreCase))
-                        .thenComparing(Group::firstName, Comparator.nullsLast(String::compareToIgnoreCase)))
-                .toList();
-
-        List<String> assigned = new ArrayList<>(sorted.size());
-        for (int i = 0; i < sorted.size(); i++) {
-            if (i == 0) {
-                assigned.add(base);
-            } else {
-                assigned.add(base + (char) ('A' + i - 1));
-            }
-        }
-        return assigned;
-    }
-
-    /**
-     * Sort key + shared base for {@link #assignSuffixes(List)}.
-     */
-    public record Group(String baseGroup, String firstLastName, String secondLastName, String firstName) {
-    }
 }
