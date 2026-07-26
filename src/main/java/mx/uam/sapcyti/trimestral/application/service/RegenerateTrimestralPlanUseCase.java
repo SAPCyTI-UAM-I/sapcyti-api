@@ -28,6 +28,11 @@ public class RegenerateTrimestralPlanUseCase {
 
         plan.clearContent();
         plan.clearOutdated();
+        // El contenido regenerado repite los pares (plan, UEA, alumno) de la demanda sin
+        // asignar. Con IDENTITY los INSERT salen durante el save y los DELETE de los
+        // huérfanos hasta el flush, así que sin bajarlos aquí chocan contra
+        // uq_trimestral_unassigned_pair.
+        planRepository.flush();
         generationSupport.populateFromSurvey(plan);
         TrimestralPlan saved = planRepository.save(plan);
         generationSupport.refreshWarnings(saved);

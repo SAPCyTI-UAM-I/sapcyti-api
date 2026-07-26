@@ -669,6 +669,38 @@ class TrimestralPlanControllerIT {
     }
 
     @Test
+    @DisplayName("regenerating a plan that already has unassigned demand rebuilds the same pairs")
+    void regenerateRebuildsUnassignedDemand() throws Exception {
+        String thirdToken = createStudentAndLogin(
+                "trimestral-student8@uam.mx", "2123999108", "Grace", "Hopper", "Murray");
+        long surveyId = createActiveSurvey("26O");
+        submitEnrollResponse(surveyId, studentToken(), "I", ueaId);
+        submitEnrollResponse(surveyId, login(STUDENT2_EMAIL), "I", ueaId);
+        submitEnrollResponse(surveyId, thirdToken, "I", ueaId);
+        closeSurvey(surveyId);
+        createAnnualPlanWithCapacity(2026, "1", "2");
+
+        MvcResult created = mockMvc.perform(post("/api/trimestral-plans")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"surveyId\":" + surveyId + "}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.unassignedDemand.length()").value(1))
+                .andReturn();
+        long planId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id").asLong();
+
+        // La demanda regenerada repite el par (plan, UEA, alumno) que ya está en la tabla.
+        mockMvc.perform(post("/api/trimestral-plans/{id}/regenerate", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unassignedDemand.length()").value(1))
+                .andExpect(jsonPath("$.unassignedDemand[0].reason").value("GROUP_LIMIT_REACHED"));
+    }
+
+    @Test
     @DisplayName("annual wildcard groups open as many capacity groups as demand requires")
     void annualWildcardGroups() throws Exception {
         String thirdToken = createStudentAndLogin(

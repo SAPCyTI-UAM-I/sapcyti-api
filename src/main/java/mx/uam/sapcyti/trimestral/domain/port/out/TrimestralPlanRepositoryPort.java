@@ -8,6 +8,9 @@ public interface TrimestralPlanRepositoryPort {
 
     TrimestralPlan save(TrimestralPlan plan);
 
+    /** Baja lo pendiente a la base: vaciar y repoblar en un solo guardado invierte el orden. */
+    void flush();
+
     Optional<TrimestralPlan> findByIdAndGraduateProgramId(Long id, Long graduateProgramId);
 
     Optional<TrimestralPlan> findByTermAndGraduateProgramId(String term, Long graduateProgramId);

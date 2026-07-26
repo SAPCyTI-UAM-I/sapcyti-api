@@ -25,6 +25,12 @@ public class TrimestralPlanJpaAdapter implements TrimestralPlanRepositoryPort {
     }
 
     @Override
+    @Transactional
+    public void flush() {
+        jpaRepository.flush();
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<TrimestralPlan> findByIdAndGraduateProgramId(Long id, Long graduateProgramId) {
         Optional<TrimestralPlan> plan = jpaRepository.findByIdAndGraduateProgramId(id, graduateProgramId);

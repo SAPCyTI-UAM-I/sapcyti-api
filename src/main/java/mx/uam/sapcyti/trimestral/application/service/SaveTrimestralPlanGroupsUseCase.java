@@ -79,6 +79,11 @@ public class SaveTrimestralPlanGroupsUseCase {
 
         // Manual save keeps outdated reasons; regeneration is the operation that clears them.
         plan.replaceGroups(rebuilt);
+        // La demanda reconciliada son filas nuevas que repiten (plan, UEA, alumno) de las
+        // que ya están guardadas. Vaciar y bajar el borrado antes de repoblar: con IDENTITY
+        // el INSERT sale al persistir y chocaría contra uq_trimestral_unassigned_pair.
+        plan.replaceUnassignedDemand(List.of());
+        planRepository.flush();
         plan.replaceUnassignedDemand(reconciledUnassigned);
         TrimestralPlan saved = planRepository.save(plan);
         List<PlanWarning> warnings =

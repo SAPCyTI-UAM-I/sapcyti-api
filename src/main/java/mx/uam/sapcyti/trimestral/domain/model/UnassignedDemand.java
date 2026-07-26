@@ -11,9 +11,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "trimestral_plan_unassigned_demand")
+// La restricción vive en V20; declararla aquí también hace que el esquema generado en
+// pruebas la tenga, que es donde se detectan las colisiones al recrear la demanda.
+@Table(name = "trimestral_plan_unassigned_demand", uniqueConstraints = {
+        @UniqueConstraint(
+                name = "uq_trimestral_unassigned_pair",
+                columnNames = {"trimestral_plan_id", "uea_id", "student_id"})
+})
 public class UnassignedDemand {
 
     @Id
