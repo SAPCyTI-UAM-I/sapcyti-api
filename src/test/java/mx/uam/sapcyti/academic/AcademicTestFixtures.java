@@ -41,7 +41,8 @@ public final class AcademicTestFixtures {
                 "Computación",
                 DegreeLevel.LICENCIATURA,
                 ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1));
+                LocalDate.of(2023, 9, 1),
+                "23O");
     }
 
     public static PersonalData professorPersonalData() {

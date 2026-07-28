@@ -200,6 +200,34 @@ class EnrollmentSurveyControllerIT {
     }
 
     @Test
+    @DisplayName("blank response counts as responded and shows up in blank-students")
+    void coordinatorSeesBlankResponses() throws Exception {
+        long surveyId = createActiveSurvey("27O");
+        submitBlankResponse(surveyId);
+
+        // Respondió pero en blanco: cuenta en el summary y no genera filas de demanda.
+        mockMvc.perform(get("/api/enrollment-surveys/{id}/results/summary", surveyId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.respondedCount").value(1))
+                .andExpect(jsonPath("$.blankCount").value(1));
+
+        mockMvc.perform(get("/api/enrollment-surveys/{id}/results/ueas", surveyId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+
+        mockMvc.perform(get("/api/enrollment-surveys/{id}/results/blank-students", surveyId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].enrollmentId").value("2123999001"))
+                .andExpect(jsonPath("$[0].academicTerm").value("III"));
+    }
+
+    @Test
     @DisplayName("deactivate UEA in active survey requires confirm")
     void deactivateUeaInActiveSurvey() throws Exception {
         createActiveSurvey("26O");
@@ -265,6 +293,19 @@ class EnrollmentSurveyControllerIT {
         submit.put("academicTerm", "II");
         submit.put("mode", "ENROLL_UEAS");
         submit.set("ueaIds", objectMapper.createArrayNode().add(ueaId));
+        mockMvc.perform(post("/api/enrollment-surveys/{id}/responses", surveyId)
+                        .header("Authorization", "Bearer " + studentToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(submit.toString()))
+                .andExpect(status().isOk());
+    }
+
+    private void submitBlankResponse(long surveyId) throws Exception {
+        ObjectNode submit = objectMapper.createObjectNode();
+        submit.put("academicTerm", "III");
+        submit.put("mode", "BLANK");
+        submit.set("ueaIds", objectMapper.createArrayNode());
         mockMvc.perform(post("/api/enrollment-surveys/{id}/responses", surveyId)
                         .header("Authorization", "Bearer " + studentToken())
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)

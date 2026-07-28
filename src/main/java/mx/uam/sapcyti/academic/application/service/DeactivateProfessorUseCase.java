@@ -1,11 +1,14 @@
 package mx.uam.sapcyti.academic.application.service;
 
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorAlreadyInactiveException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorHasActiveAssignmentsException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.port.out.ProfessorRepositoryPort;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort.OpenGroupAssignment;
 import mx.uam.sapcyti.academic.domain.port.out.StudentProgramRepositoryPort;
 import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.domain.port.out.UserRepositoryPort;
@@ -21,6 +24,7 @@ public class DeactivateProfessorUseCase {
     private final ProfessorRepositoryPort professorRepository;
     private final StudentProgramRepositoryPort studentProgramRepository;
     private final UserRepositoryPort userRepository;
+    private final ProfessorTrimestralAssignmentsPort trimestralAssignmentsPort;
 
     @Transactional
     public ListProfessorsUseCase.ProfessorListItem execute(Long professorId) {
@@ -36,8 +40,13 @@ public class DeactivateProfessorUseCase {
             throw new ProfessorAlreadyInactiveException();
         }
 
-        if (studentProgramRepository.hasActiveAssignmentAsTutorOrAdvisor(professorId)) {
-            throw new ProfessorHasActiveAssignmentsException();
+        boolean hasTutorOrAdvisorAssignments =
+                studentProgramRepository.hasActiveAssignmentAsTutorOrAdvisor(professorId);
+        List<OpenGroupAssignment> openGroupAssignments =
+                trimestralAssignmentsPort.findOpenGroupAssignments(professorId, graduateProgramId);
+        if (hasTutorOrAdvisorAssignments || !openGroupAssignments.isEmpty()) {
+            throw new ProfessorHasActiveAssignmentsException(
+                    hasTutorOrAdvisorAssignments, openGroupAssignments);
         }
 
         user.setActive(false);

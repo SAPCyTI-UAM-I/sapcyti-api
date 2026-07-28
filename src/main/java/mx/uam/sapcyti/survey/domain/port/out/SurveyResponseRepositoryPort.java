@@ -12,9 +12,23 @@ public interface SurveyResponseRepositoryPort {
 
     long countBySurveyId(Long surveyId);
 
+    /** Responses with mode BLANK (inscripción en blanco) for the survey (HU-42). */
+    long countBlankBySurveyId(Long surveyId);
+
     List<UeaDemandAggregate> countResponsesByUeaId(Long surveyId);
 
     List<InterestedStudentRow> findInterestedStudents(Long surveyId, Long ueaId, Long graduateProgramId);
+
+    /** Students who answered inscripción en blanco, matrícula ascending (HU-42). */
+    List<InterestedStudentRow> findBlankStudents(Long surveyId, Long graduateProgramId);
+
+    /**
+     * Raw responses for trimestral plan generation (SPEC-035). Includes BLANK modes.
+     */
+    List<StudentSurveyResponse> findAllBySurveyId(Long surveyId);
+
+    /** All responses for a student within a tenant (HU-61 enrollment history). */
+    List<StudentSurveyResponse> findAllByStudentIdAndGraduateProgramId(Long studentId, Long graduateProgramId);
 
     record UeaDemandAggregate(Long ueaId, long totalResponses) {}
 

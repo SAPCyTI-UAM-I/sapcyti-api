@@ -5,7 +5,7 @@ import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 /**
- * Command to register a new student (HU-15).
+ * Command to register a new student (HU-15 / HU-56).
  */
 public record RegisterStudentCommand(
         String enrollmentId,
@@ -26,5 +26,6 @@ public record RegisterStudentCommand(
         String undergraduateDegree,
         DegreeLevel lastDegreeObtained,
         ProgramType programType,
-        LocalDate admissionDate) {
+        LocalDate admissionDate,
+        String admissionTerm) {
 }

@@ -27,6 +27,52 @@ class AnnualPlanEntryTest {
     }
 
     @Test
+    @DisplayName("accepts omitted pairs and every positive or wildcard combination")
+    void validQuotaPairs() {
+        AnnualPlanEntry entry = emptyEntry(UeaType.OBLIGATORIA);
+
+        entry.updateValues(null, null, "2", "*", "*", "15", Map.of());
+
+        assertThat(entry.getGruposI()).isNull();
+        assertThat(entry.getCupoI()).isNull();
+        assertThat(entry.getGruposP()).isEqualTo("2");
+        assertThat(entry.getCupoP()).isEqualTo("*");
+        assertThat(entry.getGruposO()).isEqualTo("*");
+        assertThat(entry.getCupoO()).isEqualTo("15");
+    }
+
+    @Test
+    @DisplayName("rejects incomplete and zero-valued quota pairs")
+    void invalidQuotaPairs() {
+        AnnualPlanEntry entry = emptyEntry(UeaType.OBLIGATORIA);
+
+        assertThatThrownBy(() ->
+                        entry.updateValues("1", null, null, null, null, null, Map.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("gruposI and cupoI");
+        assertThatThrownBy(() ->
+                        entry.updateValues(null, null, "0", "15", null, null, Map.of()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("gruposP");
+    }
+
+    @Test
+    @DisplayName("validates every quota pair before changing the entry")
+    void quotaUpdateIsAtomic() {
+        AnnualPlanEntry entry = emptyEntry(UeaType.OBLIGATORIA);
+        entry.updateValues("2", "15", null, null, null, null, Map.of());
+
+        assertThatThrownBy(() ->
+                        entry.updateValues("3", "20", "*", null, null, null, Map.of()))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThat(entry.getGruposI()).isEqualTo("2");
+        assertThat(entry.getCupoI()).isEqualTo("15");
+        assertThat(entry.getGruposP()).isNull();
+        assertThat(entry.getCupoP()).isNull();
+    }
+
+    @Test
     @DisplayName("rejects invalid group quota values")
     void invalidGroupQuota() {
         AnnualPlanEntry entry = emptyEntry(UeaType.OBLIGATORIA);

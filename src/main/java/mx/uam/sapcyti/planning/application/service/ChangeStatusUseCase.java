@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.planning.domain.exception.AnnualPlanNotFoundException;
 import mx.uam.sapcyti.planning.domain.model.AnnualPlan;
 import mx.uam.sapcyti.planning.domain.model.AnnualPlanStatus;
+import mx.uam.sapcyti.planning.domain.port.out.AnnualPlanChangePort;
 import mx.uam.sapcyti.planning.domain.port.out.AnnualPlanRepositoryPort;
 import mx.uam.sapcyti.shared.tenant.TenantContext;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ChangeStatusUseCase {
 
     private final AnnualPlanRepositoryPort annualPlanRepository;
+    private final AnnualPlanChangePort annualPlanChangePort;
 
     @Transactional
     public AnnualPlan execute(int year, AnnualPlanStatus newStatus) {
@@ -22,8 +24,14 @@ public class ChangeStatusUseCase {
                 .findByYearAndGraduateProgramId(year, graduateProgramId)
                 .orElseThrow(AnnualPlanNotFoundException::new);
 
+        AnnualPlanStatus previousStatus = plan.getStatus();
         plan.transitionTo(newStatus);
-        return annualPlanRepository.save(plan);
+        AnnualPlan saved = annualPlanRepository.save(plan);
+        if (previousStatus == AnnualPlanStatus.TERMINADA
+                && newStatus != AnnualPlanStatus.TERMINADA) {
+            annualPlanChangePort.markAllOutdatedByYear(year, graduateProgramId);
+        }
+        return saved;
     }
 
     private static Long requireTenant() {

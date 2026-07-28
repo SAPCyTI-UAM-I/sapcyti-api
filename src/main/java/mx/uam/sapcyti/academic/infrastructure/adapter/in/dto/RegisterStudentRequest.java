@@ -3,6 +3,7 @@ package mx.uam.sapcyti.academic.infrastructure.adapter.in.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
@@ -71,4 +72,10 @@ public class RegisterStudentRequest {
 
     @NotNull(message = "Admission date is required")
     private LocalDate admissionDate;
+
+    // Optional (HU-56): historical students may not have it. Blank is allowed; when
+    // present the format is validated. `@Pattern` treats null as valid, and the empty
+    // branch covers "".
+    @Pattern(regexp = "^(\\d{2}[OIPoip])?$", message = "Admission term must match AA + O|I|P")
+    private String admissionTerm;
 }

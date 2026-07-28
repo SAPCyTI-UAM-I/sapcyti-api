@@ -7,7 +7,8 @@ import jakarta.persistence.Enumerated;
 import java.time.LocalDate;
 
 /**
- * Student program data: undergraduate degree, last degree obtained, program type, admission date (HU-15).
+ * Student program data: undergraduate degree, last degree obtained, program type,
+ * admission date, and admission term (HU-15 / HU-56).
  */
 @Embeddable
 public class AcademicInformation {
@@ -26,6 +27,10 @@ public class AcademicInformation {
     @Column(name = "admission_date", nullable = false)
     private LocalDate admissionDate;
 
+    /** Optional admission-term snapshot; nullable for legacy rows and manual omission. */
+    @Column(name = "admission_term", length = 4)
+    private String admissionTerm;
+
     protected AcademicInformation() {
         // For JPA
     }
@@ -34,11 +39,13 @@ public class AcademicInformation {
             String undergraduateDegree,
             DegreeLevel lastDegreeObtained,
             ProgramType programType,
-            LocalDate admissionDate) {
+            LocalDate admissionDate,
+            String admissionTerm) {
         this.undergraduateDegree = undergraduateDegree;
         this.lastDegreeObtained = lastDegreeObtained;
         this.programType = programType;
         this.admissionDate = admissionDate;
+        this.admissionTerm = admissionTerm;
     }
 
     public String getUndergraduateDegree() {
@@ -55,5 +62,9 @@ public class AcademicInformation {
 
     public LocalDate getAdmissionDate() {
         return admissionDate;
+    }
+
+    public String getAdmissionTerm() {
+        return admissionTerm;
     }
 }

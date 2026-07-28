@@ -1,6 +1,7 @@
 package mx.uam.sapcyti.academic.infrastructure.adapter.in;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -110,6 +111,7 @@ class StudentControllerIT {
                 .andExpect(jsonPath("$.advisorId").value(advisorId.intValue()))
                 .andExpect(jsonPath("$.birthDate").value("1998-03-15"))
                 .andExpect(jsonPath("$.lastDegreeObtained").value("LICENCIATURA"))
+                .andExpect(jsonPath("$.admissionTerm").value("23O"))
                 .andExpect(jsonPath("$.userId").isNumber())
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.generatedPassword").isNotEmpty())
@@ -312,9 +314,88 @@ class StudentControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enrollmentId").value("2123803361"))
+                .andExpect(jsonPath("$.admissionTerm").value("23O"))
                 .andExpect(jsonPath("$.generatedPassword").doesNotExist())
                 .andExpect(jsonPath("$.program.id").isNumber())
                 .andExpect(jsonPath("$.program.enrollmentId").value("2123803361"));
+    }
+
+    @Test
+    @DisplayName("HU-56: register accepts a missing admissionTerm (optional)")
+    void registerAcceptsMissingAdmissionTerm() throws Exception {
+        String body = objectMapper.writeValueAsString(sampleRequestBuilder().build())
+                .replace(",\"admissionTerm\":\"23O\"", "");
+
+        mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.admissionTerm").value(nullValue()));
+    }
+
+    @Test
+    @DisplayName("HU-56: register rejects invalid admissionTerm format")
+    void registerRejectsInvalidAdmissionTerm() throws Exception {
+        mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                sampleRequestBuilder().admissionTerm("26X").build())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    @DisplayName("HU-56: register accepts lowercase admissionTerm and normalizes")
+    void registerAcceptsLowercaseAdmissionTerm() throws Exception {
+        mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                sampleRequestBuilder().admissionTerm("26o").build())))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.admissionTerm").value("26O"));
+    }
+
+    @Test
+    @DisplayName("HU-56: PUT updates admissionTerm")
+    void updateAdmissionTerm() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                sampleRequestBuilder().admissionTerm("26O").build())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        Long studentId = objectMapper.readTree(created.getResponse().getContentAsString())
+                .get("id")
+                .asLong();
+
+        UpdateStudentRequest updateRequest = new UpdateStudentRequest(
+                "Paulina", "Valencia", "Franco", "paulina.valencia@uam.mx", "Mexicana",
+                LocalDate.of(1998, 3, 15), "5554821234", "1234",
+                "Computación", DegreeLevel.LICENCIATURA,
+                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), "26I", true);
+
+        mockMvc.perform(put("/api/students/{id}", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.admissionTerm").value("26I"));
+
+        mockMvc.perform(get("/api/students/{id}", studentId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.admissionTerm").value("26I"));
     }
 
     @Test
@@ -345,6 +426,7 @@ class StudentControllerIT {
                 DegreeLevel.LICENCIATURA,
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1),
+                "23O",
                 true);
 
         mockMvc.perform(put("/api/students/{id}", studentId)
@@ -381,7 +463,7 @@ class StudentControllerIT {
                 "Paulina", "Valencia", "Franco", "existing@uam.mx", "Mexicana",
                 LocalDate.of(1998, 3, 15), "5554821234", null,
                 "Computación", DegreeLevel.LICENCIATURA,
-                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), true);
+                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), "23O", true);
 
         mockMvc.perform(put("/api/students/{id}", studentId)
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -458,7 +540,7 @@ class StudentControllerIT {
                 "Paulina", "Valencia", "Franco", "paulina.valencia@uam.mx", "Mexicana",
                 LocalDate.of(1998, 3, 15), "5554821234", null,
                 "Computación", DegreeLevel.LICENCIATURA,
-                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), true))
+                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), "23O", true))
                 .replace("\"lastDegreeObtained\":\"LICENCIATURA\"",
                         "\"lastDegreeObtained\":\"Licenciatura en Computación\"");
 
@@ -490,7 +572,7 @@ class StudentControllerIT {
                 "Paulina", "Valencia", "Franco", "paulina.valencia@uam.mx", "Mexicana",
                 LocalDate.of(1998, 3, 15), "5554821234", null,
                 "Computación", DegreeLevel.DOCTORADO,
-                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), true);
+                ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), "23O", true);
 
         mockMvc.perform(put("/api/students/{id}", studentId)
                         .header("Authorization", "Bearer " + coordinatorToken())
@@ -521,7 +603,8 @@ class StudentControllerIT {
                 .undergraduateDegree("Computación")
                 .lastDegreeObtained(DegreeLevel.LICENCIATURA)
                 .programType(ProgramType.MAESTRIA)
-                .admissionDate(LocalDate.of(2023, 9, 1));
+                .admissionDate(LocalDate.of(2023, 9, 1))
+                .admissionTerm("23O");
     }
 
     private String coordinatorToken() throws Exception {

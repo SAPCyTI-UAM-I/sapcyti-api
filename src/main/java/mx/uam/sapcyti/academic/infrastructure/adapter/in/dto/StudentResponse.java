@@ -6,7 +6,7 @@ import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 /**
- * Read model for student data (HU-15).
+ * Read model for student data (HU-15 / HU-56).
  */
 public record StudentResponse(
         Long id,
@@ -23,6 +23,8 @@ public record StudentResponse(
         DegreeLevel lastDegreeObtained,
         ProgramType programType,
         LocalDate admissionDate,
+        @Schema(description = "Admission trimester AA + O|I|P (e.g. 26O). Null for legacy rows.", example = "26O")
+        String admissionTerm,
         Long advisorId,
         Long graduateProgramId,
         @Schema(description = "Identifier of the user account linked to this student.", accessMode = Schema.AccessMode.READ_ONLY)

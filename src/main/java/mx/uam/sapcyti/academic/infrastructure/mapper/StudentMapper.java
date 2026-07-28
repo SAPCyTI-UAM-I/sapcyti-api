@@ -41,6 +41,7 @@ public interface StudentMapper {
     @Mapping(target = "lastDegreeObtained", source = "student.lastDegreeObtained")
     @Mapping(target = "programType", source = "student.programType")
     @Mapping(target = "admissionDate", source = "student.admissionDate")
+    @Mapping(target = "admissionTerm", source = "student.admissionTerm")
     @Mapping(target = "advisorId", source = "student.advisorId")
     @Mapping(target = "graduateProgramId", source = "student.graduateProgramId")
     @Mapping(target = "userId", source = "student.userId")

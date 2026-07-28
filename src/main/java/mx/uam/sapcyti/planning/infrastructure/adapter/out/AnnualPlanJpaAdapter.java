@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.planning.domain.model.AnnualPlan;
+import mx.uam.sapcyti.planning.domain.model.AnnualPlanQuota;
 import mx.uam.sapcyti.planning.domain.port.out.AnnualPlanRepositoryPort;
 import mx.uam.sapcyti.planning.infrastructure.adapter.out.repository.SpringDataAnnualPlanRepository;
 import org.springframework.stereotype.Repository;
@@ -37,5 +38,23 @@ public class AnnualPlanJpaAdapter implements AnnualPlanRepositoryPort {
     @Transactional(readOnly = true)
     public List<AnnualPlan> findAllByGraduateProgramIdOrderByYearDesc(Long graduateProgramId) {
         return jpaRepository.findAllByGraduateProgramIdOrderByYearDesc(graduateProgramId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AnnualPlanQuota> findQuotas(int year, Long graduateProgramId) {
+        return jpaRepository
+                .findByYearAndGraduateProgramId(year, graduateProgramId)
+                .map(plan -> plan.getEntries().stream()
+                        .map(entry -> new AnnualPlanQuota(
+                                entry.getUeaId(),
+                                entry.getGruposI(),
+                                entry.getCupoI(),
+                                entry.getGruposP(),
+                                entry.getCupoP(),
+                                entry.getGruposO(),
+                                entry.getCupoO()))
+                        .toList())
+                .orElse(List.of());
     }
 }

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import mx.uam.sapcyti.survey.domain.model.StudentSurveyResponse;
+import mx.uam.sapcyti.survey.domain.model.SurveyResponseMode;
 import mx.uam.sapcyti.survey.domain.port.out.SurveyResponseRepositoryPort;
 import mx.uam.sapcyti.survey.infrastructure.adapter.out.repository.SpringDataSurveyResponseRepository;
 import org.springframework.stereotype.Repository;
@@ -35,6 +36,12 @@ public class SurveyResponseJpaAdapter implements SurveyResponseRepositoryPort {
 
     @Override
     @Transactional(readOnly = true)
+    public long countBlankBySurveyId(Long surveyId) {
+        return jpaRepository.countBySurveyIdAndMode(surveyId, SurveyResponseMode.BLANK);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<UeaDemandAggregate> countResponsesByUeaId(Long surveyId) {
         return jpaRepository.countResponsesGroupedByUeaId(surveyId).stream()
                 .map(row -> new UeaDemandAggregate((Long) row[0], (Long) row[1]))
@@ -48,5 +55,26 @@ public class SurveyResponseJpaAdapter implements SurveyResponseRepositoryPort {
         return jpaRepository.findInterestedStudentsNative(surveyId, ueaId, graduateProgramId).stream()
                 .map(row -> new InterestedStudentRow((String) row[0], (String) row[1], (String) row[2]))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<InterestedStudentRow> findBlankStudents(Long surveyId, Long graduateProgramId) {
+        return jpaRepository.findBlankStudentsNative(surveyId, graduateProgramId).stream()
+                .map(row -> new InterestedStudentRow((String) row[0], (String) row[1], (String) row[2]))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentSurveyResponse> findAllBySurveyId(Long surveyId) {
+        return jpaRepository.findAllBySurveyId(surveyId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StudentSurveyResponse> findAllByStudentIdAndGraduateProgramId(
+            Long studentId, Long graduateProgramId) {
+        return jpaRepository.findAllByStudentIdAndGraduateProgramId(studentId, graduateProgramId);
     }
 }

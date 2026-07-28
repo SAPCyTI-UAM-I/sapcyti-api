@@ -12,6 +12,7 @@ import mx.uam.sapcyti.survey.domain.exception.SurveyWindowOverlapException;
 import mx.uam.sapcyti.survey.domain.model.EnrollmentSurvey;
 import mx.uam.sapcyti.survey.domain.model.SurveyStatus;
 import mx.uam.sapcyti.survey.domain.port.out.EnrollmentSurveyRepositoryPort;
+import mx.uam.sapcyti.survey.domain.port.out.TrimestralPlanGatePort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class UpdateSurveyUseCase {
     private final EnrollmentSurveyRepositoryPort surveyRepository;
     private final UeaRepositoryPort ueaRepository;
     private final SurveyDetailFactory surveyDetailFactory;
+    private final TrimestralPlanGatePort trimestralPlanGate;
 
     @Transactional
     public SurveyDetail execute(Long surveyId, UpdateSurveyCommand command) {
@@ -47,11 +49,15 @@ public class UpdateSurveyUseCase {
             if (snapshotUeaIds.isEmpty()) {
                 throw new SurveyNoActiveUeasException();
             }
+
             survey.reopen(command.opensAt(), command.closesAt(), command.introMessage(), snapshotUeaIds);
-        } else {
-            survey.updateSchedule(command.opensAt(), command.closesAt(), command.introMessage());
+            EnrollmentSurvey saved = surveyRepository.save(survey);
+            trimestralPlanGate.markOutdatedBySurveyReopened(
+                    survey.getTerm(), survey.getGraduateProgramId());
+            return surveyDetailFactory.toDetail(saved);
         }
 
+        survey.updateSchedule(command.opensAt(), command.closesAt(), command.introMessage());
         return surveyDetailFactory.toDetail(surveyRepository.save(survey));
     }
 }

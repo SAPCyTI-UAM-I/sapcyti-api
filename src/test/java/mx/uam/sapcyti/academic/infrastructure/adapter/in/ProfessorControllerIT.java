@@ -1,6 +1,8 @@
 package mx.uam.sapcyti.academic.infrastructure.adapter.in;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -11,10 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.util.List;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
 import mx.uam.sapcyti.academic.domain.model.ProfessorInformation;
 import mx.uam.sapcyti.academic.domain.model.ProfessorType;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort;
+import mx.uam.sapcyti.academic.domain.port.out.ProfessorTrimestralAssignmentsPort.OpenGroupAssignment;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterProfessorRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.UpdateProfessorRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
@@ -34,6 +39,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -60,6 +66,9 @@ class ProfessorControllerIT {
 
     @Autowired
     private GraduateProgramJpaAdapter programAdapter;
+
+    @MockitoBean
+    private ProfessorTrimestralAssignmentsPort trimestralAssignmentsPort;
 
     private Long programId;
 
@@ -372,6 +381,32 @@ class ProfessorControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    @DisplayName("deactivate returns structured details for tutor and every open group assignment")
+    void deactivateAssignmentConflictDetails() throws Exception {
+        Long professorId = createProfessor();
+        when(trimestralAssignmentsPort.findOpenGroupAssignments(professorId, programId))
+                .thenReturn(List.of(
+                        new OpenGroupAssignment(
+                                31L, "26O", 41L, "2156041", "CO43"),
+                        new OpenGroupAssignment(
+                                32L, "27I", 42L, "2156042", "CI43")));
+
+        mockMvc.perform(put("/api/professors/{id}/deactivate", professorId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("PROFESSOR_HAS_ACTIVE_ASSIGNMENTS"))
+                .andExpect(jsonPath("$.hasTutorOrAdvisorAssignments").value(false))
+                .andExpect(jsonPath("$.openGroupAssignments.length()").value(2))
+                .andExpect(jsonPath("$.openGroupAssignments[0].planId").value(31))
+                .andExpect(jsonPath("$.openGroupAssignments[0].term").value("26O"))
+                .andExpect(jsonPath("$.openGroupAssignments[0].ueaId").value(41))
+                .andExpect(jsonPath("$.openGroupAssignments[0].clave").value("2156041"))
+                .andExpect(jsonPath("$.openGroupAssignments[0].grupo").value("CO43"))
+                .andExpect(jsonPath("$.openGroupAssignments[1].planId").value(32));
     }
 
     @Test

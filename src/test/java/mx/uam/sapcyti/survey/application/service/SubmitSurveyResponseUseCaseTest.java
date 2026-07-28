@@ -138,7 +138,7 @@ class SubmitSurveyResponseUseCaseTest {
                 1L,
                 null,
                 new PersonalData("Ana", "Lopez", "Perez", "MX", null, "555", null),
-                new AcademicInformation("CS", DegreeLevel.LICENCIATURA, ProgramType.MAESTRIA, null));
+                new AcademicInformation("CS", DegreeLevel.LICENCIATURA, ProgramType.MAESTRIA, null, "23O"));
         try {
             var field = Student.class.getDeclaredField("id");
             field.setAccessible(true);

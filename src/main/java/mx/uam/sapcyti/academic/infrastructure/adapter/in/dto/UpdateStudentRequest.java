@@ -3,13 +3,14 @@ package mx.uam.sapcyti.academic.infrastructure.adapter.in.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 
 /**
- * Request body for updating student personal and student-level academic fields (HU-18).
+ * Request body for updating student personal and student-level academic fields (HU-18 / HU-56).
  */
 public record UpdateStudentRequest(
         @NotBlank(message = "First name is required") String firstName,
@@ -24,5 +25,8 @@ public record UpdateStudentRequest(
         @NotNull(message = "Last degree obtained is required") DegreeLevel lastDegreeObtained,
         @NotNull(message = "Program type is required") ProgramType programType,
         @NotNull(message = "Admission date is required") LocalDate admissionDate,
+        // Optional (HU-56): blank allowed, format validated when present.
+        @Pattern(regexp = "^(\\d{2}[OIPoip])?$", message = "Admission term must match AA + O|I|P")
+                String admissionTerm,
         boolean active) {
 }
