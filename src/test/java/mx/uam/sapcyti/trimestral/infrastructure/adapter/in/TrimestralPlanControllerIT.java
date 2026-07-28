@@ -669,6 +669,36 @@ class TrimestralPlanControllerIT {
     }
 
     @Test
+    @DisplayName("saving again over existing unassigned demand rebuilds the same pairs")
+    void repeatedSaveRebuildsUnassignedDemand() throws Exception {
+        long surveyId = createClosedSurveyWithResponse("26O");
+        createAnnualPlanWithCupo(2026, "25");
+        long planId = generatePlan(surveyId);
+
+        ObjectNode withoutStudents = saveBodyFromDetail(getPlanDetail(planId));
+        ((ArrayNode) withoutStudents.get("groups").get(0).get("students")).removeAll();
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(withoutStudents.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unassignedDemand.length()").value(1));
+
+        // El segundo guardado reconcilia el mismo par (plan, UEA, alumno) que ya está en la
+        // tabla: sin bajar el borrado a la base antes de repoblar, el INSERT sale primero y
+        // choca con uq_trimestral_unassigned_pair.
+        mockMvc.perform(put("/api/trimestral-plans/{id}/groups", planId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(saveBodyFromDetail(getPlanDetail(planId)).toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.unassignedDemand.length()").value(1))
+                .andExpect(jsonPath("$.unassignedDemand[0].reason").value("MANUALLY_UNASSIGNED"));
+    }
+
+    @Test
     @DisplayName("regenerating a plan that already has unassigned demand rebuilds the same pairs")
     void regenerateRebuildsUnassignedDemand() throws Exception {
         String thirdToken = createStudentAndLogin(

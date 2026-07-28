@@ -405,6 +405,9 @@ class EnrollmentHistoryControllerIT {
         ArrayNode entries = payload.putArray("entries");
         ObjectNode entry = entries.addObject();
         entry.put("id", entryId);
+        // Los grupos y el cupo van juntos o no van (AnnualPlanEntry): mandar solo el cupo
+        // dejó este helper en 400 desde que se alineó la regla.
+        entry.put("gruposO", "*");
         entry.put("cupoO", cupoO);
         entry.putObject("marks");
 
@@ -413,6 +416,15 @@ class EnrollmentHistoryControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, programId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload.toString()))
+                .andExpect(status().isOk());
+
+        // Generar la trimestral exige la anual terminada, como ya hace el helper gemelo de
+        // TrimestralPlanControllerIT; sin esto el POST del plan responde 409.
+        mockMvc.perform(patch("/api/annual-plans/{year}/status", year)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"TERMINADA\"}"))
                 .andExpect(status().isOk());
     }
 
