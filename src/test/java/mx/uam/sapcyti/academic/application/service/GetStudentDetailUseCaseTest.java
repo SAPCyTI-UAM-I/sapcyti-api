@@ -88,7 +88,7 @@ class GetStudentDetailUseCaseTest {
                         100L, 50L, 1L, "2123803361", ProgramType.MAESTRIA,
                         LocalDate.of(2023, 9, 1), null,
                         StudentProgram.UNCLASSIFIED, StudentProgram.UNCLASSIFIED,
-                        ProgramStatus.ACTIVO, null, null, null, List.of(), List.of()));
+                        ProgramStatus.EN_INVESTIGACION, null, null, null, List.of(), List.of()));
 
         GetStudentDetailUseCase.StudentDetail detail = useCase.execute(50L);
 
@@ -100,7 +100,7 @@ class GetStudentDetailUseCaseTest {
         return new GetStudentProgramUseCase.StudentProgramDetail(
                 100L, 50L, 1L, "2123803361", ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1), null, null, null,
-                ProgramStatus.ACTIVO, null, null, null, List.of(), List.of());
+                ProgramStatus.EN_INVESTIGACION, null, null, null, List.of(), List.of());
     }
 
     private static Student sampleStudent() {
@@ -116,7 +116,7 @@ class GetStudentDetailUseCaseTest {
 
     private static StudentProgram sampleProgram() {
         StudentProgram program = new StudentProgram(
-                50L, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.ACTIVO);
+                50L, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION);
         ReflectionTestUtils.setField(program, "id", 100L);
         return program;
     }

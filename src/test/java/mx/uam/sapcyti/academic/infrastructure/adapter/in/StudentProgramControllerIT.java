@@ -126,7 +126,7 @@ class StudentProgramControllerIT {
                 "2123803361",
                 ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1),
-                ProgramStatus.ACTIVO));
+                ProgramStatus.EN_INVESTIGACION));
         studentProgramId = studentProgram.getId();
     }
 
@@ -163,7 +163,7 @@ class StudentProgramControllerIT {
                 null,
                 "Ciencias e Ingeniería de la Computación",
                 "Inteligencia artificial",
-                ProgramStatus.ACTIVO,
+                ProgramStatus.EN_INVESTIGACION,
                 null,
                 tutorId,
                 List.of(advisorId));
@@ -179,6 +179,118 @@ class StudentProgramControllerIT {
                 .andExpect(jsonPath("$.advisorIds[0]").value(advisorId.intValue()))
                 .andExpect(jsonPath("$.researchArea").value("Inteligencia artificial"))
                 .andExpect(jsonPath("$.lineOfKnowledge").value("Ciencias e Ingeniería de la Computación"));
+    }
+
+    @Test
+    @DisplayName("HU-20: coordinator updates status to EN_INVESTIGACION")
+    void updateStatusEnInvestigacion() throws Exception {
+        UpdateStudentProgramRequest request = new UpdateStudentProgramRequest(
+                LocalDate.of(2023, 9, 1),
+                null,
+                null,
+                null,
+                ProgramStatus.EN_INVESTIGACION,
+                null,
+                null,
+                List.of());
+
+        mockMvc.perform(put("/api/students/{studentId}/programs/{programId}", studentId, studentProgramId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("EN_INVESTIGACION"));
+    }
+
+    @Test
+    @DisplayName("HU-20: coordinator records BAJA with withdrawal reason")
+    void recordBajaWithReason() throws Exception {
+        UpdateStudentProgramRequest request = new UpdateStudentProgramRequest(
+                LocalDate.of(2023, 9, 1),
+                null,
+                null,
+                null,
+                ProgramStatus.BAJA,
+                "Abandono",
+                null,
+                List.of());
+
+        mockMvc.perform(put("/api/students/{studentId}/programs/{programId}", studentId, studentProgramId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("BAJA"))
+                .andExpect(jsonPath("$.withdrawalReason").value("Abandono"));
+    }
+
+    @Test
+    @DisplayName("HU-20: coordinator records SUSPENSION with reason")
+    void recordSuspensionWithReason() throws Exception {
+        UpdateStudentProgramRequest request = new UpdateStudentProgramRequest(
+                LocalDate.of(2023, 9, 1),
+                null,
+                null,
+                null,
+                ProgramStatus.SUSPENSION,
+                "Suspensión temporal",
+                null,
+                List.of());
+
+        mockMvc.perform(put("/api/students/{studentId}/programs/{programId}", studentId, studentProgramId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUSPENSION"))
+                .andExpect(jsonPath("$.withdrawalReason").value("Suspensión temporal"));
+    }
+
+    @Test
+    @DisplayName("HU-20: rejects BAJA without withdrawal reason")
+    void rejectBajaWithoutReason() throws Exception {
+        UpdateStudentProgramRequest request = new UpdateStudentProgramRequest(
+                LocalDate.of(2023, 9, 1),
+                null,
+                null,
+                null,
+                ProgramStatus.BAJA,
+                null,
+                null,
+                List.of());
+
+        mockMvc.perform(put("/api/students/{studentId}/programs/{programId}", studentId, studentProgramId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Withdrawal reason")));
+    }
+
+    @Test
+    @DisplayName("HU-20: rejects SUSPENSION without withdrawal reason")
+    void rejectSuspensionWithoutReason() throws Exception {
+        UpdateStudentProgramRequest request = new UpdateStudentProgramRequest(
+                LocalDate.of(2023, 9, 1),
+                null,
+                null,
+                null,
+                ProgramStatus.SUSPENSION,
+                " ",
+                null,
+                List.of());
+
+        mockMvc.perform(put("/api/students/{studentId}/programs/{programId}", studentId, studentProgramId)
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Withdrawal reason")));
     }
 
     @Test
@@ -247,7 +359,7 @@ class StudentProgramControllerIT {
                 null,
                 null,
                 null,
-                ProgramStatus.ACTIVO,
+                ProgramStatus.EN_INVESTIGACION,
                 null,
                 tutorId,
                 advisorIds);

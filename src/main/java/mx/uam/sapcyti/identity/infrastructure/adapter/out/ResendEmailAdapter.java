@@ -1,35 +1,34 @@
 package mx.uam.sapcyti.identity.infrastructure.adapter.out;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import mx.uam.sapcyti.identity.domain.port.out.EmailPort;
 import mx.uam.sapcyti.identity.infrastructure.config.PasswordResetProperties;
-import org.springframework.beans.factory.annotation.Value;
+import mx.uam.sapcyti.identity.infrastructure.config.ResendProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientResponseException;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 /**
- * SMTP email delivery for non-prod profiles (MailHog / local SMTP). Prod uses {@link ResendEmailAdapter}.
+ * Production email delivery via Resend HTTPS API (SPEC-038 / closes SPEC-015 pending).
  */
 @Component
-@ConditionalOnProperty(name = "app.email.provider", havingValue = "smtp", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.email.provider", havingValue = "resend")
 @RequiredArgsConstructor
 @Slf4j
-public class EmailAdapter implements EmailPort {
+public class ResendEmailAdapter implements EmailPort {
 
-    private final JavaMailSender mailSender;
+    private final RestClient resendRestClient;
     private final SpringTemplateEngine templateEngine;
     private final PasswordResetProperties passwordResetProperties;
-
-    @Value("${spring.mail.username:noreply@uam.mx}")
-    private String fromAddress;
+    private final ResendProperties resendProperties;
 
     @Override
     public void sendPasswordReset(String toEmail, String rawToken, Locale locale) {
@@ -46,17 +45,26 @@ public class EmailAdapter implements EmailPort {
                 ? "SAPCyTI — Password recovery"
                 : "SAPCyTI — Recuperación de contraseña";
 
+        Map<String, Object> body = Map.of(
+                "from", resendProperties.from(),
+                "to", List.of(toEmail),
+                "subject", subject,
+                "html", htmlBody
+        );
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(htmlBody, true);
-            mailSender.send(message);
-            log.debug("Password reset email sent to {}", toEmail);
-        } catch (MessagingException e) {
-            throw new IllegalStateException("Failed to send password reset email", e);
+            resendRestClient.post()
+                    .uri("/emails")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.debug("Password reset email sent via Resend to {}", toEmail);
+        } catch (RestClientResponseException e) {
+            throw new IllegalStateException(
+                    "Failed to send password reset email via Resend (HTTP " + e.getStatusCode().value() + ")", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to send password reset email via Resend", e);
         }
     }
 }

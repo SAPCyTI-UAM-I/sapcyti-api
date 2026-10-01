@@ -163,7 +163,7 @@ public class StudentProgramController {
                                                           "admissionDate": "2023-09-01",
                                                           "graduationDate": "2026-07-15",
                                                           "researchArea": "Inteligencia Artificial",
-                                                          "status": "ACTIVO",
+                                                          "status": "EN_INVESTIGACION",
                                                           "withdrawalReason": null,
                                                           "tutorId": 10,
                                                           "advisorIds": [10, 11]
@@ -178,6 +178,19 @@ public class StudentProgramController {
                                                           "researchArea": null,
                                                           "status": "BAJA",
                                                           "withdrawalReason": "Abandono",
+                                                          "tutorId": null,
+                                                          "advisorIds": []
+                                                        }
+                                                        """),
+                                        @ExampleObject(
+                                                name = "Record suspension",
+                                                value = """
+                                                        {
+                                                          "admissionDate": "2023-09-01",
+                                                          "graduationDate": null,
+                                                          "researchArea": null,
+                                                          "status": "SUSPENSION",
+                                                          "withdrawalReason": "Suspensión temporal",
                                                           "tutorId": null,
                                                           "advisorIds": []
                                                         }

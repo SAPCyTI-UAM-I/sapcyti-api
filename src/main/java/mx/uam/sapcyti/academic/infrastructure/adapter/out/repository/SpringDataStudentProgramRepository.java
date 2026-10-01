@@ -33,7 +33,7 @@ public interface SpringDataStudentProgramRepository extends JpaRepository<Studen
             SELECT CASE WHEN COUNT(sp) > 0 THEN true ELSE false END
             FROM StudentProgram sp
             LEFT JOIN sp.advisors advisor
-            WHERE sp.status = mx.uam.sapcyti.academic.domain.model.ProgramStatus.ACTIVO
+            WHERE sp.status = mx.uam.sapcyti.academic.domain.model.ProgramStatus.EN_INVESTIGACION
             AND (sp.tutorId = :professorId OR advisor.professorId = :professorId)
             """)
     boolean hasActiveAssignmentAsTutorOrAdvisor(@Param("professorId") Long professorId);

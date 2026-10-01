@@ -165,7 +165,7 @@ class GetStudentProgramUseCaseTest {
 
     private static StudentProgram sampleProgram(Long id, Long studentId) {
         StudentProgram program = new StudentProgram(
-                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.ACTIVO);
+                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION);
         ReflectionTestUtils.setField(program, "id", id);
         return program;
     }

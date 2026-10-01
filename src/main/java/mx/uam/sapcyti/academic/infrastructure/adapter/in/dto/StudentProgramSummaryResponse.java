@@ -14,7 +14,7 @@ public record StudentProgramSummaryResponse(
         @Schema(description = "Student program identifier.", example = "100") Long id,
         @Schema(description = "Program level.", example = "MAESTRIA") ProgramType programType,
         @Schema(description = "Enrollment or matricula identifier.", example = "2123803361") String enrollmentId,
-        @Schema(description = "Program lifecycle status.", example = "ACTIVO") ProgramStatus status,
+        @Schema(description = "Program lifecycle status.", example = "EN_INVESTIGACION") ProgramStatus status,
         @Schema(description = "Assigned tutor professor id, if any.", example = "10") Long tutorId,
         @Schema(description = "Whether a tutor is currently assigned.", example = "true") boolean hasTutor) {
 }

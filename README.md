@@ -89,6 +89,13 @@ On Linux or macOS use `./mvnw` instead of `.\mvnw.cmd`.
 | [http://localhost:8080/docs](http://localhost:8080/docs) | Swagger UI (OpenAPI) |
 | [http://localhost:8080/api-docs](http://localhost:8080/api-docs) | OpenAPI JSON |
 
+Profile → management / docs surface (SPEC-039):
+
+| Profile | Actuator exposed | Springdoc / Swagger UI |
+|---------|------------------|------------------------|
+| `dev` / `docker` / `qa` (non-prod) | `health`, `info`, `prometheus` (base) | Enabled |
+| `prod` | `health` only | Disabled; `/docs`, `/api-docs`, `/swagger-ui/**` not public |
+
 Or run:
 
 ```powershell

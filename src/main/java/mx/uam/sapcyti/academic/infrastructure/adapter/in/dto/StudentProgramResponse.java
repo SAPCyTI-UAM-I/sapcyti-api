@@ -22,8 +22,9 @@ public record StudentProgramResponse(
         @Schema(description = "Expected or actual graduation date.", example = "2026-07-15") LocalDate graduationDate,
         @Schema(description = "Line of knowledge from HU-44 catalog.", example = "Ciencias e Ingeniería de la Computación") String lineOfKnowledge,
         @Schema(description = "Research area from HU-44 catalog.", example = "Inteligencia artificial") String researchArea,
-        @Schema(description = "Program lifecycle status.", example = "ACTIVO") ProgramStatus status,
-        @Schema(description = "Withdrawal reason when status is BAJA.", example = "Abandono") String withdrawalReason,
+        @Schema(description = "Program lifecycle status.", example = "EN_INVESTIGACION") ProgramStatus status,
+        @Schema(description = "Withdrawal reason when status is BAJA or SUSPENSION.", example = "Abandono")
+                String withdrawalReason,
         @Schema(description = "Assigned tutor professor id, if any.", example = "10") Long tutorId,
         @Schema(description = "Resolved tutor display data.") ProfessorReferenceResponse tutor,
         @Schema(description = "Assigned advisor professor ids.") List<Long> advisorIds,

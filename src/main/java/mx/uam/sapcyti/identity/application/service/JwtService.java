@@ -34,11 +34,18 @@ public class JwtService {
     @Value("${jwt.public-key:}")
     private String publicKeyPem;
 
-    @Value("${jwt.private-key-path:classpath:jwt/dev-private.pem}")
+    @Value("${jwt.private-key-path:#{null}}")
     private Resource privateKeyResource;
 
-    @Value("${jwt.public-key-path:classpath:jwt/dev-public.pem}")
+    @Value("${jwt.public-key-path:#{null}}")
     private Resource publicKeyResource;
+
+    /**
+     * When true (prod), only inline PEM via {@code JWT_PRIVATE_KEY}/{@code JWT_PUBLIC_KEY}
+     * is accepted — no classpath/file path fallback (SPEC-038 / D-017).
+     */
+    @Value("${jwt.require-inline-keys:false}")
+    private boolean requireInlineKeys;
 
     private PrivateKey privateKey;
     private PublicKey publicKey;
@@ -88,10 +95,16 @@ public class JwtService {
         if (StringUtils.hasText(inlinePem)) {
             return inlinePem;
         }
+        if (requireInlineKeys) {
+            throw new IllegalStateException(
+                    "JWT " + label + " key must be provided via JWT_" + label.toUpperCase()
+                            + "_KEY (inline PEM); classpath/file fallback is disabled in this profile");
+        }
         if (resource != null && resource.exists()) {
             return new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
         }
-        throw new IllegalStateException("JWT " + label + " key not configured (jwt." + label + "-key or jwt." + label + "-key-path)");
+        throw new IllegalStateException(
+                "JWT " + label + " key not configured (jwt." + label + "-key or jwt." + label + "-key-path)");
     }
 
     private PrivateKey loadPrivateKey(String pem) throws Exception {
