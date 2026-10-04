@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="es">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta name="x-apple-disable-message-reformatting"/>
+    <title>SAPCyTI - Arranque de Prueba Piloto</title>
+    <style type="text/css">
+        @media only screen and (max-width: 600px) {
+            .email-container { width: 100% !important; padding: 16px 12px !important; }
+            .card-content { padding: 24px 18px !important; }
+            .btn-primary, .btn-secondary { width: 100% !important; text-align: center !important; }
+            .stack-on-mobile { display: block !important; width: 100% !important; }
+            .btn-gap { height: 12px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f7f8fa; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0b1c30; -webkit-font-smoothing: antialiased;">
+<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f7f8fa; padding: 32px 12px;">
+    <tr>
+        <td align="center">
+            <!-- Contenedor Principal (Max 600px) -->
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px;" class="email-container">
+
+                <!-- Encabezado / Logo Institucional SAPCyTI -->
+                <tr>
+                    <td align="center" style="padding-bottom: 24px;">
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td align="center">
+                                    <span style="font-size: 24px; font-weight: 700; color: #1e4d7b; letter-spacing: -0.5px; display: block;">
+                                        SAPCyTI
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Tarjeta Principal -->
+                <tr>
+                    <td style="background-color: #ffffff; border: 1px solid #e5e8eb; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); padding: 36px 32px;" class="card-content">
+
+                        <!-- Badge Etapa Piloto -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 12px;">
+                            <tr>
+                                <td style="background-color: #e8f1f8; border-radius: 20px; padding: 4px 12px;">
+                                    <span style="font-size: 11px; font-weight: 600; color: #1e4d7b; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        Fase de Prueba Piloto
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Título -->
+                        <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1e4d7b; line-height: 1.3;">
+                            ¡Bienvenido(a) a la prueba de SAPCyTI!
+                        </h1>
+
+                        <!-- Saludo y Contexto -->
+                        <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.6; color: #0b1c30;">
+                            Hola<span th:if="${userName != null}">, <strong th:text="${userName}">Participante</strong></span>:
+                        </p>
+                        <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #5c6670;">
+                            Has sido seleccionado(a) para participar en el arranque y validación del nuevo sistema <strong>SAPCyTI</strong> del Posgrado en Ciencias y Tecnologías de la Información. Tu participación y retroalimentación son esenciales para asegurar el óptimo funcionamiento de la plataforma.
+                        </p>
+
+                        <!-- Caja de Datos de Acceso (Instrucciones 1 y 2) -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f0f4f8; border: 1px solid #cbd5e1; border-radius: 8px; margin: 20px 0 28px 0;">
+                            <tr>
+                                <td style="padding: 18px 20px;">
+                                    <p style="margin: 0 0 10px 0; font-size: 11px; font-weight: 700; color: #1e4d7b; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        Tus datos de acceso para la prueba:
+                                    </p>
+                                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                                        <tr>
+                                            <td style="font-size: 14px; color: #5c6670; padding: 5px 0; width: 120px;">
+                                                <strong>Aplicación web:</strong>
+                                            </td>
+                                            <td style="font-size: 14px; color: #1e4d7b; padding: 5px 0;">
+                                                <a th:href="${appUrl != null ? appUrl : 'https://sapcyti.site'}" th:text="${appUrl != null ? appUrl : 'https://sapcyti.site'}" href="https://sapcyti.site" target="_blank" style="color: #1e4d7b; text-decoration: underline; font-weight: 500;">https://sapcyti.site</a>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-size: 14px; color: #5c6670; padding: 5px 0;">
+                                                <strong>Usuario:</strong>
+                                            </td>
+                                            <td style="font-size: 14px; color: #0b1c30; padding: 5px 0; font-family: monospace; font-size: 15px; font-weight: 600;">
+                                                <span th:text="${username != null ? username : 'usuario@correo.uam.mx'}">usuario@correo.uam.mx</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Sección de Pasos -->
+                        <h2 style="margin: 0 0 18px 0; font-size: 16px; font-weight: 600; color: #1e4d7b;">
+                            Instrucciones paso a paso para la prueba:
+                        </h2>
+
+                        <!-- Paso 1: Ingreso a la app -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px;">
+                            <tr>
+                                <td valign="top" style="width: 32px;">
+                                    <div style="background-color: #1e4d7b; color: #ffffff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;">1</div>
+                                </td>
+                                <td valign="top" style="font-size: 14px; line-height: 1.5; color: #0b1c30;">
+                                    <strong>Accede a la aplicación web:</strong><br/>
+                                    Ingresa al enlace <a th:href="${appUrl != null ? appUrl : 'https://sapcyti.site'}" th:text="${appUrl != null ? appUrl : 'https://sapcyti.site'}" href="https://sapcyti.site" target="_blank" style="color: #1e4d7b; text-decoration: underline;">https://sapcyti.site</a>.
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Paso 2: Restablecer contraseña -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px;">
+                            <tr>
+                                <td valign="top" style="width: 32px;">
+                                    <div style="background-color: #1e4d7b; color: #ffffff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;">2</div>
+                                </td>
+                                <td valign="top" style="font-size: 14px; line-height: 1.5; color: #0b1c30;">
+                                    <strong>Genera tu contraseña de acceso:</strong><br/>
+                                    En la pantalla de inicio de sesión, haz clic en el enlace <strong>"¿Olvidó su contraseña?"</strong>. Escribe tu usuario (<code th:text="${username != null ? username : 'tu correo'}">tu correo</code>) para recibir el correo de recuperación y definir tu contraseña.
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Paso 3: Encuesta de inscripción -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 16px;">
+                            <tr>
+                                <td valign="top" style="width: 32px;">
+                                    <div style="background-color: #1e4d7b; color: #ffffff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;">3</div>
+                                </td>
+                                <td valign="top" style="font-size: 14px; line-height: 1.5; color: #0b1c30;">
+                                    <strong>Ingresa y completa la encuesta de inscripción:</strong><br/>
+                                    Inicia sesión con tu nueva contraseña, dirígete al módulo de alumnos/posgrado y responde la <strong>Encuesta de Inscripción</strong> de inicio de trimestre.
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Paso 4: Feedback -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 24px;">
+                            <tr>
+                                <td valign="top" style="width: 32px;">
+                                    <div style="background-color: #0f766e; color: #ffffff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;">4</div>
+                                </td>
+                                <td valign="top" style="font-size: 14px; line-height: 1.5; color: #0b1c30;">
+                                    <strong>Llena la encuesta de feedback del sistema:</strong><br/>
+                                    Al terminar tu navegación, por favor contesta la encuesta de retroalimentación para compartirnos tu experiencia, comentarios y cualquier error identificado.
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Botones de Acción -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 24px 0 28px 0;">
+                            <tr>
+                                <td align="center">
+                                    <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <!-- Botón Ir a la Web -->
+                                            <td align="center" class="stack-on-mobile" style="border-radius: 6px; background-color: #1e4d7b; padding-right: 12px;">
+                                                <a th:href="${appUrl != null ? appUrl : 'https://sapcyti.site'}" href="https://sapcyti.site" target="_blank" class="btn-primary" style="display: inline-block; padding: 12px 22px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px; background-color: #1e4d7b;">
+                                                    Ir a la Aplicación Web
+                                                </a>
+                                            </td>
+                                            <td class="stack-on-mobile btn-gap" style="width: 4px;"></td>
+                                            <!-- Botón Encuesta de Feedback -->
+                                            <td align="center" class="stack-on-mobile" style="border-radius: 6px; background-color: #0f766e;">
+                                                <a th:href="${feedbackUrl != null ? feedbackUrl : 'https://forms.gle/feedback-sapcyti'}" href="https://forms.gle/feedback-sapcyti" target="_blank" class="btn-secondary" style="display: inline-block; padding: 12px 22px; font-size: 14px; font-weight: 600; color: #ffffff; text-decoration: none; border-radius: 6px; background-color: #0f766e;">
+                                                    Llenar Encuesta de Feedback
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Enlace directo feedback -->
+                        <p style="margin: 0 0 20px 0; font-size: 12px; color: #5c6670; line-height: 1.5;">
+                            Enlace directo para la encuesta de feedback: <br/>
+                            <a th:href="${feedbackUrl != null ? feedbackUrl : 'https://forms.gle/feedback-sapcyti'}" th:text="${feedbackUrl != null ? feedbackUrl : 'https://forms.gle/feedback-sapcyti'}" href="https://forms.gle/feedback-sapcyti" target="_blank" style="color: #0f766e; text-decoration: underline; word-break: break-all;">https://forms.gle/feedback-sapcyti</a>
+                        </p>
+
+                        <!-- Soporte y Ayuda -->
+                        <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5; border-top: 1px solid #e5e8eb; padding-top: 16px;">
+                            ¿Tienes dudas o detectas alguna incidencia técnica? Contáctanos a <a th:href="'mailto:' + ${supportEmail != null ? supportEmail : 'soporte@sapcyti.site'}" th:text="${supportEmail != null ? supportEmail : 'soporte@sapcyti.site'}" href="mailto:soporte@sapcyti.site" style="color: #1e4d7b; text-decoration: none;">soporte@sapcyti.site</a>.
+                        </p>
+
+                    </td>
+                </tr>
+
+                <!-- Pie de página institucional -->
+                <tr>
+                    <td align="center" style="padding-top: 24px;">
+                        <p style="margin: 0 0 6px 0; font-size: 12px; color: #5c6670;">
+                            Universidad Autónoma Metropolitana - Unidad Iztapalapa
+                        </p>
+                        <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                            Posgrado en Ciencias y Tecnologías de la Información
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

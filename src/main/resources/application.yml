@@ -59,7 +59,7 @@ app:
     provider: ${APP_EMAIL_PROVIDER:smtp}
     resend:
       api-key: ${RESEND_API_KEY:}
-      from: ${RESEND_FROM:SAPCyTI <noreply@uam.mx>}
+      from: ${RESEND_FROM:SAPCyTI <soporte@sapcyti.site>}
       base-url: ${RESEND_BASE_URL:https://api.resend.com}
   password-reset:
     base-url: ${PASSWORD_RESET_BASE_URL:http://localhost:4200}

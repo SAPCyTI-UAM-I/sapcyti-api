@@ -13,7 +13,7 @@ public record ResendProperties(
             baseUrl = "https://api.resend.com";
         }
         if (from == null || from.isBlank()) {
-            from = "SAPCyTI <noreply@uam.mx>";
+            from = "SAPCyTI <soporte@sapcyti.site>";
         }
     }
 }

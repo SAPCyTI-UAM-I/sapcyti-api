@@ -57,7 +57,7 @@ class ResendEmailAdapterTest {
                 resendRestClient,
                 templateEngine,
                 new PasswordResetProperties("https://spa.example.com", 30),
-                new ResendProperties("re_test_key", "SAPCyTI <noreply@uam.mx>", "https://api.resend.com")
+                new ResendProperties("re_test_key", "SAPCyTI <soporte@sapcyti.site>", "https://api.resend.com")
         );
     }
 
@@ -71,7 +71,7 @@ class ResendEmailAdapterTest {
         verify(bodySpec).body(bodyCaptor.capture());
 
         Map<String, Object> body = bodyCaptor.getValue();
-        assertThat(body.get("from")).isEqualTo("SAPCyTI <noreply@uam.mx>");
+        assertThat(body.get("from")).isEqualTo("SAPCyTI <soporte@sapcyti.site>");
         assertThat(body.get("to")).asList().containsExactly("alumno@uam.mx");
         assertThat(body.get("subject")).isEqualTo("SAPCyTI — Recuperación de contraseña");
         assertThat(body.get("html")).isEqualTo("<p>reset</p>");
