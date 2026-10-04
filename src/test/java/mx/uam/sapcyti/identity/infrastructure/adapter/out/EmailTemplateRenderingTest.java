@@ -32,7 +32,6 @@ class EmailTemplateRenderingTest {
     void testPasswordResetEsRendering() {
         Context context = new Context(Locale.forLanguageTag("es"));
         context.setVariable("resetUrl", "https://sapcyti.site/auth/reset-password?token=abc-123");
-        context.setVariable("userName", "Roberto Juárez");
         context.setVariable("expirationMinutes", 30);
 
         String html = templateEngine.process("email/password-reset_es", context);
@@ -40,7 +39,7 @@ class EmailTemplateRenderingTest {
         assertThat(html)
                 .contains("SAPCyTI")
                 .contains("Recuperación de contraseña")
-                .contains("Roberto Juárez")
+                .contains("Estimado(a) usuario(a):")
                 .contains("https://sapcyti.site/auth/reset-password?token=abc-123")
                 .contains("30 minutos")
                 .contains("Posgrado en Ciencias y Tecnologías de la Información")
@@ -77,6 +76,7 @@ class EmailTemplateRenderingTest {
         assertThat(html)
                 .contains("SAPCyTI")
                 .contains("Password recovery")
+                .contains("Dear user:")
                 .contains("https://sapcyti.site/auth/reset-password?token=xyz-789")
                 .doesNotContain("—")
                 .doesNotContain("Graduate Portal")
