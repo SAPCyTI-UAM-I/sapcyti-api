@@ -25,6 +25,14 @@ public class GetStudentDetailUseCase {
     private final GetStudentProgramUseCase getStudentProgramUseCase;
 
     @Transactional(readOnly = true)
+    public StudentDetail executeByUserId(Long userId) {
+        Long graduateProgramId = requireTenant();
+        Student student = studentRepository.findByUserIdAndGraduateProgramId(userId, graduateProgramId)
+                .orElseThrow(StudentNotFoundException::new);
+        return loadStudentDetail(student, graduateProgramId);
+    }
+
+    @Transactional(readOnly = true)
     public StudentDetail execute(Long id) {
         Long graduateProgramId = requireTenant();
 
@@ -35,14 +43,18 @@ public class GetStudentDetailUseCase {
             throw new StudentNotFoundException();
         }
 
+        return loadStudentDetail(student, graduateProgramId);
+    }
+
+    private StudentDetail loadStudentDetail(Student student, Long graduateProgramId) {
         User user = userRepository.findById(student.getUserId()).orElse(null);
         ListStudentsUseCase.StudentListItem studentItem = ListStudentsUseCase.toListItem(student, user);
 
         List<StudentProgram> programs =
-                studentProgramRepository.findByStudentIdAndGraduateProgramId(id, graduateProgramId);
+                studentProgramRepository.findByStudentIdAndGraduateProgramId(student.getId(), graduateProgramId);
         StudentProgramDetail programDetail = programs.isEmpty()
                 ? null
-                : getStudentProgramUseCase.execute(id, programs.getFirst().getId());
+                : getStudentProgramUseCase.execute(student.getId(), programs.getFirst().getId());
 
         return new StudentDetail(studentItem, programDetail);
     }
