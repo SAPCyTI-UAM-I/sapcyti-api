@@ -111,6 +111,7 @@ public class JwtService {
         String privateKeyPEM = pem
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "")
+                .replace("\\n", "")
                 .replaceAll("\\s", "");
 
         byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
@@ -123,6 +124,7 @@ public class JwtService {
         String publicKeyPEM = pem
                 .replace("-----BEGIN PUBLIC KEY-----", "")
                 .replace("-----END PUBLIC KEY-----", "")
+                .replace("\\n", "")
                 .replaceAll("\\s", "");
 
         byte[] encoded = Base64.getDecoder().decode(publicKeyPEM);
