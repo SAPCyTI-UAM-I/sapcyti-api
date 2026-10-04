@@ -61,7 +61,7 @@ def render_html_template(template_str: str, params: dict) -> str:
     html = template_str
 
     app_url = params.get("appUrl", "https://sapcyti.site")
-    feedback_url = params.get("feedbackUrl", "https://forms.gle/feedback-sapcyti")
+    feedback_url = params.get("feedbackUrl", "https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header")
     support_email = params.get("supportEmail", "soporte@sapcyti.site")
     user_name = params.get("userName", "Participante")
     username = params.get("username", "usuario@correo.uam.mx")
@@ -196,7 +196,7 @@ def main():
     parser.add_argument(
         "--feedback-url",
         type=str,
-        default=os.getenv("FEEDBACK_URL", "https://forms.gle/feedback-sapcyti"),
+        default=os.getenv("FEEDBACK_URL", "https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header"),
         help="URL de la encuesta de feedback para los participantes."
     )
     parser.add_argument(

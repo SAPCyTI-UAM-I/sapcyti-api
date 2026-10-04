@@ -178,11 +178,11 @@
                         </h1>
 
                         <!-- Saludo y Contexto conciso -->
-                        <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.5; color: #0b1c30;">
+                        <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.5; color: #0b1c30;">
                             Hola<span th:if="${userName != null}">, <strong th:text="${userName}">${userName}</strong></span>:
                         </p>
-                        <p style="margin: 0 0 18px 0; font-size: 14px; line-height: 1.5; color: #5c6670;">
-                            Te damos la bienvenida a la prueba piloto de <strong>SAPCyTI</strong> en el Posgrado en Ciencias y Tecnologías de la Información. Tu participación es clave para validar el sistema.
+                        <p style="margin: 0 0 16px 0; font-size: 14px; line-height: 1.5; color: #5c6670;">
+                            Te damos la bienvenida a la prueba piloto de <strong>SAPCyTI</strong>. Tu participación es clave para comprobar tus datos y evaluar el sistema antes del próximo trimestre.
                         </p>
 
                         <!-- Caja de Datos de Acceso -->
@@ -216,7 +216,7 @@
 
                         <!-- Instrucciones claras y concisas -->
                         <h2 class="section-heading" style="margin: 0 0 14px 0; font-size: 15px; font-weight: 600; color: #1e4d7b; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;">
-                            Instrucciones de la prueba:
+                            Pasos de la prueba:
                         </h2>
 
                         <!-- Paso 1 -->
@@ -226,7 +226,7 @@
                                     <div style="background-color: #1e4d7b; color: #ffffff; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-size: 12px; font-weight: 600;">1</div>
                                 </td>
                                 <td valign="top" style="font-size: 14px; line-height: 1.45; color: #0b1c30; word-break: break-word;">
-                                    <strong>Define tu contraseña:</strong> Da clic en <em>"¿Olvidó su contraseña?"</em> en la pantalla de inicio e ingresa tu usuario (<code th:text="${username != null ? username : 'tu correo'}" style="font-family: ui-monospace, monospace; font-size: 13px; background-color: #f0f4f8; padding: 1px 5px; border-radius: 4px;">${username}</code>).
+                                    <strong>Genera tu contraseña:</strong> Da clic en <em>"¿Olvidó su contraseña?"</em> en la pantalla de inicio con tu usuario (<code th:text="${username != null ? username : 'tu correo'}" style="font-family: ui-monospace, monospace; font-size: 13px; background-color: #f0f4f8; padding: 1px 5px; border-radius: 4px;">${username}</code>).
                                 </td>
                             </tr>
                         </table>
@@ -238,19 +238,31 @@
                                     <div style="background-color: #1e4d7b; color: #ffffff; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-size: 12px; font-weight: 600;">2</div>
                                 </td>
                                 <td valign="top" style="font-size: 14px; line-height: 1.45; color: #0b1c30; word-break: break-word;">
-                                    <strong>Ingresa al sistema:</strong> Inicia sesión con tu nueva contraseña y completa la <strong>Encuesta de Inscripción</strong>.
+                                    <strong>Comprueba tus datos:</strong> Al ingresar, consulta tu información en <strong>"Perfil"</strong>, ya sea desde el botón <em>"Mi perfil"</em> en la tarjeta de inicio o dando clic en tu avatar en la barra superior &gt; <em>"Perfil"</em>.
                                 </td>
                             </tr>
                         </table>
 
                         <!-- Paso 3 -->
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 10px;">
+                            <tr>
+                                <td valign="top" class="step-num-cell" style="width: 28px; padding-right: 10px;">
+                                    <div style="background-color: #1e4d7b; color: #ffffff; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-size: 12px; font-weight: 600;">3</div>
+                                </td>
+                                <td valign="top" style="font-size: 14px; line-height: 1.45; color: #0b1c30; word-break: break-word;">
+                                    <strong>Llena la encuesta del sistema:</strong> Completa tu <strong>Encuesta de Inscripción</strong> seleccionando tus materias o marcando inscripción en blanco.
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- Paso 4 -->
                         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 18px;">
                             <tr>
                                 <td valign="top" class="step-num-cell" style="width: 28px; padding-right: 10px;">
-                                    <div style="background-color: #0f766e; color: #ffffff; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-size: 12px; font-weight: 600;">3</div>
+                                    <div style="background-color: #0f766e; color: #ffffff; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; font-size: 12px; font-weight: 600;">4</div>
                                 </td>
                                 <td valign="top" style="font-size: 14px; line-height: 1.45; color: #0b1c30; word-break: break-word;">
-                                    <strong>Danos tu opinión:</strong> Responde la <strong>encuesta de feedback del sistema</strong> para reportar tu experiencia o incidencias.
+                                    <strong>Llena la encuesta de Google Forms:</strong> Al terminar, responde la <strong>encuesta de feedback del sistema</strong> para evaluar tu experiencia y reportar si algún dato estaba incorrecto.
                                 </td>
                             </tr>
                         </table>
@@ -275,8 +287,8 @@
                                             <td class="stack-on-mobile btn-gap" style="width: 10px; font-size: 1px; line-height: 1px;">&nbsp;</td>
                                             <!-- Botón Encuesta de Feedback -->
                                             <td align="center" class="stack-on-mobile btn-cell-second" style="border-radius: 8px; background-color: #0f766e;">
-                                                <a th:href="${feedbackUrl != null ? feedbackUrl : 'https://forms.gle/feedback-sapcyti'}" href="https://forms.gle/feedback-sapcyti" target="_blank" class="btn-secondary" style="display: inline-block; padding: 10px 20px; font-size: 14px; font-weight: 600; line-height: 1.4; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #0f766e; text-align: center; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;">
-                                                    Llenar Encuesta de Feedback
+                                                <a th:href="${feedbackUrl != null ? feedbackUrl : 'https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header'}" href="https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header" target="_blank" class="btn-secondary" style="display: inline-block; padding: 10px 20px; font-size: 14px; font-weight: 600; line-height: 1.4; color: #ffffff; text-decoration: none; border-radius: 8px; background-color: #0f766e; text-align: center; font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;">
+                                                    Llenar Encuesta en Google Forms
                                                 </a>
                                             </td>
                                         </tr>
@@ -292,7 +304,7 @@
 
                         <!-- Enlace directo feedback -->
                         <p style="margin: 0 0 16px 0; font-size: 12px; color: #5c6670; line-height: 1.4;">
-                            Enlace directo a la encuesta de feedback: <a th:href="${feedbackUrl != null ? feedbackUrl : 'https://forms.gle/feedback-sapcyti'}" th:text="${feedbackUrl != null ? feedbackUrl : 'https://forms.gle/feedback-sapcyti'}" href="https://forms.gle/feedback-sapcyti" target="_blank" class="url-text" style="color: #0f766e; text-decoration: underline; word-break: break-all; overflow-wrap: anywhere;">https://forms.gle/feedback-sapcyti</a>
+                            Enlace directo a la encuesta de feedback del sistema: <a th:href="${feedbackUrl != null ? feedbackUrl : 'https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header'}" th:text="${feedbackUrl != null ? feedbackUrl : 'https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header'}" href="https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header" target="_blank" class="url-text" style="color: #0f766e; text-decoration: underline; word-break: break-all; overflow-wrap: anywhere;">https://docs.google.com/forms/d/e/1FAIpQLSdigSgd_jUnEUmxAiGG2p9F8wtlgk29pVxpBDa5PBSmker8pg/viewform?usp=header</a>
                         </p>
 
                         <!-- Soporte y Ayuda -->
