@@ -34,6 +34,10 @@ spring:
     mode: HTML
 
 management:
+  health:
+    mail:
+      # ponytail: every env sends via Resend; no SMTP server to probe
+      enabled: false
   endpoints:
     web:
       exposure:

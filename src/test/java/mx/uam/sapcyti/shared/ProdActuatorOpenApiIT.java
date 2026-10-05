@@ -31,8 +31,6 @@ class ProdActuatorOpenApiIT {
         registry.add("jwt.private-key", () -> readPem("jwt/dev-private.pem"));
         registry.add("jwt.public-key", () -> readPem("jwt/dev-public.pem"));
         registry.add("app.email.provider", () -> "smtp");
-        // ponytail: CI has no SMTP; this IT checks the health surface, not mail reachability
-        registry.add("management.health.mail.enabled", () -> "false");
     }
 
     private static String readPem(String classpathLocation) {
