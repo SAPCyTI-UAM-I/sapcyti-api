@@ -18,6 +18,7 @@ import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.StudentDetailRespon
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.StudentResponse;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.UpdateStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.mapper.StudentMapper;
+import mx.uam.sapcyti.identity.infrastructure.security.AuthenticatedUserResolver;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +44,7 @@ public class StudentController {
     private final GetStudentDetailUseCase getStudentDetailUseCase;
     private final UpdateStudentUseCase updateStudentUseCase;
     private final GetEnrollmentHistoryUseCase getEnrollmentHistoryUseCase;
+    private final AuthenticatedUserResolver authenticatedUserResolver;
     private final StudentMapper mapper;
 
     @PostMapping
@@ -76,8 +78,28 @@ public class StudentController {
             @RequestParam(required = false) ProgramType programType,
             @RequestParam(required = false) Boolean active) {
         ListStudentsUseCase.StudentListQuery query = new ListStudentsUseCase.StudentListQuery(
-                search, programType, active, PageRequest.of(page, size));
+            search, programType, active, PageRequest.of(page, size));
         return listStudentsUseCase.execute(query).map(mapper::toResponse);
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(
+            summary = "Get current student detail",
+            description = "Returns student personal data with the embedded academic program for the authenticated student.")
+    public StudentDetailResponse getMyDetail() {
+        Long userId = authenticatedUserResolver.resolve().getUserId();
+        return mapper.toDetailResponse(getStudentDetailUseCase.executeByUserId(userId));
+    }
+
+    @GetMapping("/me/enrollment-history")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Current student enrollment history by trimester (HU-61)")
+    public List<EnrollmentHistoryEntryResponse> getMyEnrollmentHistory() {
+        Long userId = authenticatedUserResolver.resolve().getUserId();
+        return getEnrollmentHistoryUseCase.executeByUserId(userId).stream()
+                .map(EnrollmentHistoryEntryResponse::from)
+                .toList();
     }
 
     @GetMapping("/{id}")

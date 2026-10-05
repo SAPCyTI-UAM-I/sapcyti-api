@@ -20,6 +20,14 @@ public class GetEnrollmentHistoryUseCase {
     private final EnrollmentHistoryPort enrollmentHistoryPort;
 
     @Transactional(readOnly = true)
+    public List<EnrollmentHistoryEntry> executeByUserId(Long userId) {
+        Long graduateProgramId = requireTenant();
+        Student student = studentRepository.findByUserIdAndGraduateProgramId(userId, graduateProgramId)
+                .orElseThrow(StudentNotFoundException::new);
+        return enrollmentHistoryPort.findByStudent(student.getId(), graduateProgramId);
+    }
+
+    @Transactional(readOnly = true)
     public List<EnrollmentHistoryEntry> execute(Long studentId) {
         Long graduateProgramId = requireTenant();
 

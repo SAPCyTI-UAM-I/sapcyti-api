@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolationException;
 import mx.uam.sapcyti.academic.domain.exception.DuplicateEmployeeNumberException;
@@ -585,6 +586,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.FORBIDDEN)
             .body(new ErrorResponse("FORBIDDEN", "Access denied"));
+    }
+
+    /** Unmapped paths (e.g. Actuator endpoints not exposed in prod) → 404, not 500. */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
+        return ResponseEntity
+            .status(HttpStatus.NOT_FOUND)
+            .body(new ErrorResponse("NOT_FOUND", "Resource not found"));
     }
 
     @ExceptionHandler(Exception.class)

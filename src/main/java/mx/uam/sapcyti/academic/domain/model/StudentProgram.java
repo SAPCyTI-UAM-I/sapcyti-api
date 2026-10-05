@@ -104,7 +104,7 @@ public class StudentProgram {
                 enrollmentId,
                 programType,
                 admissionDate,
-                ProgramStatus.ACTIVO);
+                ProgramStatus.EN_INVESTIGACION);
         if (advisorId != null) {
             program.replaceAdvisors(List.of(advisorId));
         }
@@ -202,8 +202,10 @@ public class StudentProgram {
     }
 
     public void validateWithdrawal() {
-        if (status == ProgramStatus.BAJA && (withdrawalReason == null || withdrawalReason.isBlank())) {
-            throw new IllegalArgumentException("Withdrawal reason is required when status is BAJA");
+        if ((status == ProgramStatus.BAJA || status == ProgramStatus.SUSPENSION)
+                && (withdrawalReason == null || withdrawalReason.isBlank())) {
+            throw new IllegalArgumentException(
+                    "Withdrawal reason is required when status is BAJA or SUSPENSION");
         }
     }
 

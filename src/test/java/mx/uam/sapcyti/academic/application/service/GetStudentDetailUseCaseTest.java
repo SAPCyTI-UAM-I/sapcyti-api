@@ -1,11 +1,13 @@
 package mx.uam.sapcyti.academic.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import mx.uam.sapcyti.academic.domain.exception.StudentNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.ProgramStatus;
@@ -88,7 +90,7 @@ class GetStudentDetailUseCaseTest {
                         100L, 50L, 1L, "2123803361", ProgramType.MAESTRIA,
                         LocalDate.of(2023, 9, 1), null,
                         StudentProgram.UNCLASSIFIED, StudentProgram.UNCLASSIFIED,
-                        ProgramStatus.ACTIVO, null, null, null, List.of(), List.of()));
+                        ProgramStatus.EN_INVESTIGACION, null, null, null, List.of(), List.of()));
 
         GetStudentDetailUseCase.StudentDetail detail = useCase.execute(50L);
 
@@ -96,11 +98,40 @@ class GetStudentDetailUseCaseTest {
         assertThat(detail.program().researchArea()).isEqualTo(StudentProgram.UNCLASSIFIED);
     }
 
+    @Test
+    @DisplayName("executeByUserId resolves student and returns detail")
+    void executeByUserIdSuccess() {
+        Student student = sampleStudent();
+        StudentProgram program = sampleProgram();
+        User user = new User("paulina.valencia@uam.mx", "hash", RoleType.STUDENT, 1L);
+        ReflectionTestUtils.setField(user, "id", 500L);
+
+        when(studentRepository.findByUserIdAndGraduateProgramId(500L, 1L)).thenReturn(Optional.of(student));
+        when(userRepository.findById(500L)).thenReturn(Optional.of(user));
+        when(studentProgramRepository.findByStudentIdAndGraduateProgramId(50L, 1L))
+                .thenReturn(List.of(program));
+        when(getStudentProgramUseCase.execute(50L, 100L)).thenReturn(sampleProgramDetail());
+
+        GetStudentDetailUseCase.StudentDetail detail = useCase.executeByUserId(500L);
+
+        assertThat(detail.student().getId()).isEqualTo(50L);
+        assertThat(detail.student().getFirstName()).isEqualTo("Paulina");
+    }
+
+    @Test
+    @DisplayName("executeByUserId throws StudentNotFoundException when student not found")
+    void executeByUserIdNotFound() {
+        when(studentRepository.findByUserIdAndGraduateProgramId(999L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> useCase.executeByUserId(999L))
+                .isInstanceOf(StudentNotFoundException.class);
+    }
+
     private static GetStudentProgramUseCase.StudentProgramDetail sampleProgramDetail() {
         return new GetStudentProgramUseCase.StudentProgramDetail(
                 100L, 50L, 1L, "2123803361", ProgramType.MAESTRIA,
                 LocalDate.of(2023, 9, 1), null, null, null,
-                ProgramStatus.ACTIVO, null, null, null, List.of(), List.of());
+                ProgramStatus.EN_INVESTIGACION, null, null, null, List.of(), List.of());
     }
 
     private static Student sampleStudent() {
@@ -116,7 +147,7 @@ class GetStudentDetailUseCaseTest {
 
     private static StudentProgram sampleProgram() {
         StudentProgram program = new StudentProgram(
-                50L, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.ACTIVO);
+                50L, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION);
         ReflectionTestUtils.setField(program, "id", 100L);
         return program;
     }

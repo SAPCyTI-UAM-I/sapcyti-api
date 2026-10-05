@@ -98,6 +98,23 @@ class UpdateStudentProgramUseCaseTest {
     }
 
     @Test
+    @DisplayName("HU-20: updates program status to EN_INVESTIGACION")
+    void updateToEnInvestigacion() {
+        stubStudentAndProgram();
+        when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(getStudentProgramUseCase.execute(50L, 100L)).thenReturn(sampleDetail(null, List.of()));
+
+        UpdateStudentProgramCommand command =
+                command(null, List.of(), ProgramStatus.EN_INVESTIGACION, null, null, null, null);
+
+        useCase.execute(command);
+
+        ArgumentCaptor<StudentProgram> captor = ArgumentCaptor.forClass(StudentProgram.class);
+        verify(studentProgramRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(ProgramStatus.EN_INVESTIGACION);
+    }
+
+    @Test
     @DisplayName("HU-20: records program withdrawal with reason")
     void recordWithdrawal() {
         stubStudentAndProgram();
@@ -112,6 +129,24 @@ class UpdateStudentProgramUseCaseTest {
         verify(studentProgramRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(ProgramStatus.BAJA);
         assertThat(captor.getValue().getWithdrawalReason()).isEqualTo("Abandono");
+    }
+
+    @Test
+    @DisplayName("HU-20: records program suspension with reason")
+    void recordSuspension() {
+        stubStudentAndProgram();
+        when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(getStudentProgramUseCase.execute(50L, 100L)).thenReturn(sampleDetail(null, List.of()));
+
+        UpdateStudentProgramCommand command =
+                command(null, List.of(), ProgramStatus.SUSPENSION, "Suspensión temporal", null, null, null);
+
+        useCase.execute(command);
+
+        ArgumentCaptor<StudentProgram> captor = ArgumentCaptor.forClass(StudentProgram.class);
+        verify(studentProgramRepository).save(captor.capture());
+        assertThat(captor.getValue().getStatus()).isEqualTo(ProgramStatus.SUSPENSION);
+        assertThat(captor.getValue().getWithdrawalReason()).isEqualTo("Suspensión temporal");
     }
 
     @Test
@@ -194,6 +229,19 @@ class UpdateStudentProgramUseCaseTest {
     }
 
     @Test
+    @DisplayName("HU-20: rejects SUSPENSION without withdrawal reason")
+    void missingSuspensionReason() {
+        stubStudentAndProgram();
+
+        UpdateStudentProgramCommand command =
+                command(null, List.of(), ProgramStatus.SUSPENSION, null, null, null, null);
+
+        assertThatThrownBy(() -> useCase.execute(command))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Withdrawal reason");
+    }
+
+    @Test
     @DisplayName("HU-20: rejects non-existent program")
     void programNotFound() {
         when(studentRepository.findById(50L)).thenReturn(Optional.of(sampleStudent()));
@@ -242,7 +290,7 @@ class UpdateStudentProgramUseCaseTest {
                 graduationDate,
                 null,
                 null,
-                status != null ? status : ProgramStatus.ACTIVO,
+                status != null ? status : ProgramStatus.EN_INVESTIGACION,
                 withdrawalReason,
                 tutorId,
                 advisorIds != null ? advisorIds : List.of());
@@ -261,7 +309,7 @@ class UpdateStudentProgramUseCaseTest {
 
     private static StudentProgram sampleProgram() {
         StudentProgram program = new StudentProgram(
-                50L, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.ACTIVO);
+                50L, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION);
         ReflectionTestUtils.setField(program, "id", 100L);
         return program;
     }
@@ -269,7 +317,7 @@ class UpdateStudentProgramUseCaseTest {
     private static GetStudentProgramUseCase.StudentProgramDetail sampleDetail(Long tutorId, List<Long> advisorIds) {
         return new GetStudentProgramUseCase.StudentProgramDetail(
                 100L, 50L, 1L, "2123803361", ProgramType.MAESTRIA,
-                LocalDate.of(2023, 9, 1), null, null, null, ProgramStatus.ACTIVO, null,
+                LocalDate.of(2023, 9, 1), null, null, null, ProgramStatus.EN_INVESTIGACION, null,
                 tutorId, null, advisorIds, List.of());
     }
 }

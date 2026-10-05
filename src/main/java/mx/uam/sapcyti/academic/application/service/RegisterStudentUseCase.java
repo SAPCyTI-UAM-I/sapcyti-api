@@ -111,7 +111,7 @@ public class RegisterStudentUseCase {
                 null,
                 blankToNull(command.lineOfKnowledge()),
                 blankToNull(command.researchArea()),
-                mx.uam.sapcyti.academic.domain.model.ProgramStatus.ACTIVO,
+                mx.uam.sapcyti.academic.domain.model.ProgramStatus.EN_INVESTIGACION,
                 null,
                 command.tutorId());
         program.replaceAdvisors(advisorIds);

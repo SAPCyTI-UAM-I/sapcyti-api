@@ -1,0 +1,21 @@
+# QA profile
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  password-reset:
+    base-url: ${PASSWORD_RESET_BASE_URL:https://qa.sapcyti.site}
+
+jwt:
+  private-key-path: classpath:jwt/dev-private.pem
+  public-key-path: classpath:jwt/dev-public.pem
+
+logging:
+  level:
+    root: INFO
+    mx.uam.sapcyti: INFO
+
+management:
+  endpoint:
+    health:
+      show-details: when_authorized

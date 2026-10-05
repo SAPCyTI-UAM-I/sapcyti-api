@@ -16,6 +16,7 @@ import static mx.uam.sapcyti.academic.AcademicTestFixtures.internoProfessor;
 import static mx.uam.sapcyti.academic.AcademicTestFixtures.professorPersonalData;
 import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.Professor;
+import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.RegisterStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.in.dto.UpdateStudentRequest;
 import mx.uam.sapcyti.academic.infrastructure.adapter.out.repository.SpringDataProfessorRepository;
@@ -27,7 +28,6 @@ import mx.uam.sapcyti.identity.domain.model.User;
 import mx.uam.sapcyti.identity.infrastructure.adapter.in.dto.LoginRequest;
 import mx.uam.sapcyti.identity.infrastructure.adapter.out.repository.SpringDataUserRepository;
 import mx.uam.sapcyti.shared.tenant.TenantFilter;
-import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -583,6 +583,83 @@ class StudentControllerIT {
                 .andExpect(jsonPath("$.lastDegreeObtained").value("DOCTORADO"));
     }
 
+    @Test
+    @DisplayName("GET /api/students/me returns authenticated student detail")
+    void getMyDetailSuccess() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        JsonNode body = objectMapper.readTree(created.getResponse().getContentAsString());
+        String generatedPassword = body.get("generatedPassword").asText();
+        String studentToken = login("paulina.valencia@uam.mx", generatedPassword);
+
+        mockMvc.perform(get("/api/students/me")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enrollmentId").value("2123803361"))
+                .andExpect(jsonPath("$.email").value("paulina.valencia@uam.mx"))
+                .andExpect(jsonPath("$.admissionTerm").value("23O"))
+                .andExpect(jsonPath("$.program.enrollmentId").value("2123803361"));
+    }
+
+    @Test
+    @DisplayName("GET /api/students/me returns 401 when unauthenticated")
+    void getMyDetailUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/students/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/students/me returns 403 when caller is coordinator")
+    void getMyDetailForbiddenForCoordinator() throws Exception {
+        mockMvc.perform(get("/api/students/me")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("GET /api/students/me/enrollment-history returns history for authenticated student")
+    void getMyEnrollmentHistorySuccess() throws Exception {
+        MvcResult created = mockMvc.perform(post("/api/students")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(sampleRequest())))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        JsonNode body = objectMapper.readTree(created.getResponse().getContentAsString());
+        String generatedPassword = body.get("generatedPassword").asText();
+        String studentToken = login("paulina.valencia@uam.mx", generatedPassword);
+
+        mockMvc.perform(get("/api/students/me/enrollment-history")
+                        .header("Authorization", "Bearer " + studentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+
+    @Test
+    @DisplayName("GET /api/students/me/enrollment-history returns 401 when unauthenticated")
+    void getMyEnrollmentHistoryUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/students/me/enrollment-history"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("GET /api/students/me/enrollment-history returns 403 when caller is coordinator")
+    void getMyEnrollmentHistoryForbiddenForCoordinator() throws Exception {
+        mockMvc.perform(get("/api/students/me/enrollment-history")
+                        .header("Authorization", "Bearer " + coordinatorToken())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, programId))
+                .andExpect(status().isForbidden());
+    }
+
     private RegisterStudentRequest sampleRequest() {
         return sampleRequestBuilder().build();
     }
@@ -616,9 +693,13 @@ class StudentControllerIT {
     }
 
     private String login(String email) throws Exception {
+        return login(email, PASSWORD);
+    }
+
+    private String login(String email, String password) throws Exception {
         LoginRequest request = LoginRequest.builder()
                 .email(email)
-                .password(PASSWORD)
+                .password(password)
                 .rememberMe(false)
                 .build();
 

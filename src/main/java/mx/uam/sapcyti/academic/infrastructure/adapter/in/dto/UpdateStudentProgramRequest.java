@@ -22,10 +22,10 @@ public record UpdateStudentProgramRequest(
         @Size(max = 200) String lineOfKnowledge,
         @Schema(description = "Research area from HU-44 catalog.", example = "Inteligencia artificial", maxLength = 200)
         @Size(max = 200) String researchArea,
-        @Schema(description = "Program lifecycle status.", example = "ACTIVO")
+        @Schema(description = "Program lifecycle status.", example = "EN_INVESTIGACION")
         @NotNull ProgramStatus status,
         @Schema(
-                description = "Reason for withdrawal. Required and non-blank when status is BAJA.",
+                description = "Reason for withdrawal or suspension. Required and non-blank when status is BAJA or SUSPENSION.",
                 example = "Abandono",
                 maxLength = 500)
         @Size(max = 500) String withdrawalReason,

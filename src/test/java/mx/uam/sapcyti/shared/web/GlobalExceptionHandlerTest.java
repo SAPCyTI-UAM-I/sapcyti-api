@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import mx.uam.sapcyti.academic.domain.exception.EmployeeNumberImmutableException;
 import mx.uam.sapcyti.academic.domain.exception.InvalidTypeChangeException;
@@ -31,6 +33,15 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().error()).isEqualTo("NOT_FOUND");
         assertThat(response.getBody().message())
             .isEqualTo("Graduate program not found");
+    }
+
+    @Test
+    void shouldMapNoResourceFoundTo404() {
+        ResponseEntity<ErrorResponse> response = handler.handleNoResourceFound(
+            new NoResourceFoundException(HttpMethod.GET, "actuator/info"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody().error()).isEqualTo("NOT_FOUND");
     }
 
     @Test

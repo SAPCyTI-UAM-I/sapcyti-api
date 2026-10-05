@@ -52,7 +52,7 @@ class StudentProgramJpaAdapterTest {
     @DisplayName("persists program and finds by student")
     void saveAndFindByStudent() {
         StudentProgram program = new StudentProgram(
-                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.ACTIVO);
+                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION);
 
         adapter.save(program);
         entityManager.flush();
@@ -67,13 +67,40 @@ class StudentProgramJpaAdapterTest {
     @DisplayName("rejects duplicate program type for same student")
     void duplicateProgramType() {
         adapter.save(new StudentProgram(
-                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.ACTIVO));
+                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION));
         entityManager.flush();
 
         assertThatThrownBy(() -> {
             adapter.save(new StudentProgram(
-                    studentId, 1L, "2123803362", ProgramType.MAESTRIA, LocalDate.of(2024, 9, 1), ProgramStatus.ACTIVO));
+                    studentId, 1L, "2123803362", ProgramType.MAESTRIA, LocalDate.of(2024, 9, 1), ProgramStatus.EN_INVESTIGACION));
             entityManager.flush();
         }).isInstanceOf(Exception.class);
+    }
+
+    @Test
+    @DisplayName("SPEC-037: detects tutor assignment on EN_INVESTIGACION program")
+    void hasActiveAssignmentForEnInvestigacion() {
+        StudentProgram program = new StudentProgram(
+                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION);
+        program.updateMetadata(
+                LocalDate.of(2023, 9, 1), null, null, null, ProgramStatus.EN_INVESTIGACION, null, 10L);
+        adapter.save(program);
+        entityManager.flush();
+
+        assertThat(adapter.hasActiveAssignmentAsTutorOrAdvisor(10L)).isTrue();
+        assertThat(adapter.hasActiveAssignmentAsTutorOrAdvisor(99L)).isFalse();
+    }
+
+    @Test
+    @DisplayName("SPEC-037: ignores tutor assignment on BAJA program")
+    void ignoresAssignmentOnBaja() {
+        StudentProgram program = new StudentProgram(
+                studentId, 1L, "2123803361", ProgramType.MAESTRIA, LocalDate.of(2023, 9, 1), ProgramStatus.EN_INVESTIGACION);
+        program.updateMetadata(
+                LocalDate.of(2023, 9, 1), null, null, null, ProgramStatus.BAJA, "Abandono", 10L);
+        adapter.save(program);
+        entityManager.flush();
+
+        assertThat(adapter.hasActiveAssignmentAsTutorOrAdvisor(10L)).isFalse();
     }
 }

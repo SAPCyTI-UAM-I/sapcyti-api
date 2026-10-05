@@ -19,6 +19,7 @@ import mx.uam.sapcyti.academic.domain.exception.ProfessorNotFoundException;
 import mx.uam.sapcyti.academic.domain.model.DegreeLevel;
 import mx.uam.sapcyti.academic.domain.model.PersonalData;
 import mx.uam.sapcyti.academic.domain.model.Professor;
+import mx.uam.sapcyti.academic.domain.model.ProgramStatus;
 import mx.uam.sapcyti.academic.domain.model.ProgramType;
 import mx.uam.sapcyti.academic.domain.model.Student;
 import mx.uam.sapcyti.academic.domain.model.StudentProgram;
@@ -110,7 +111,9 @@ class RegisterStudentUseCaseTest {
         assertThat(result.getLastDegreeObtained()).isEqualTo(DegreeLevel.LICENCIATURA);
         verify(userRepository).save(any(User.class));
         verify(studentRepository).save(any(Student.class));
-        verify(studentProgramRepository).save(any(StudentProgram.class));
+        ArgumentCaptor<StudentProgram> programCaptor = ArgumentCaptor.forClass(StudentProgram.class);
+        verify(studentProgramRepository).save(programCaptor.capture());
+        assertThat(programCaptor.getValue().getStatus()).isEqualTo(ProgramStatus.EN_INVESTIGACION);
     }
 
     @Test
