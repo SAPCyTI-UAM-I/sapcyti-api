@@ -1,9 +1,34 @@
+spring:
+  flyway:
+    # Exclude development seeds V7/V8/V18 (classpath:db/migration-dev)
+    locations: classpath:db/migration
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 logging:
   level:
     root: WARN
     mx.uam.sapcyti: INFO
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: health
   endpoint:
     health:
       show-details: never
+
+# JWT: inline PEM only via JWT_PRIVATE_KEY / JWT_PUBLIC_KEY — no classpath fallback (SPEC-038)
+jwt:
+  require-inline-keys: true
+  private-key: ${JWT_PRIVATE_KEY:}
+  public-key: ${JWT_PUBLIC_KEY:}
+
+app:
+  email:
+    provider: resend

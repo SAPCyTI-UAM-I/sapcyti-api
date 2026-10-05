@@ -85,6 +85,10 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     public void setActive(boolean active) {
         this.active = active;
     }

@@ -1,6 +1,8 @@
 package mx.uam.sapcyti.identity.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import io.jsonwebtoken.Claims;
 import java.util.Base64;
 import java.security.KeyPair;
@@ -10,6 +12,8 @@ import mx.uam.sapcyti.identity.domain.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class JwtServiceTest {
 
@@ -80,5 +84,50 @@ class JwtServiceTest {
         
         Claims claims = service.validateToken(token);
         assertThat(claims.getSubject()).isEqualTo("123");
+    }
+
+    @Test
+    @DisplayName("require-inline-keys: fails fast without PEM and does not use classpath")
+    void shouldFailFastWhenInlineKeysRequiredAndMissing() {
+        JwtService service = new JwtService();
+        ReflectionTestUtils.setField(service, "privateKeyPem", "");
+        ReflectionTestUtils.setField(service, "publicKeyPem", "");
+        ReflectionTestUtils.setField(service, "requireInlineKeys", true);
+        ReflectionTestUtils.setField(service, "privateKeyResource", new ClassPathResource("jwt/dev-private.pem"));
+        ReflectionTestUtils.setField(service, "publicKeyResource", new ClassPathResource("jwt/dev-public.pem"));
+
+        assertThatThrownBy(service::init)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("inline PEM")
+                .hasMessageContaining("classpath/file fallback is disabled");
+    }
+
+    @Test
+    @DisplayName("require-inline-keys: accepts inline PEM even when classpath resources exist")
+    void shouldPreferInlinePemWhenRequireInlineKeys() throws Exception {
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+        keyGen.initialize(2048);
+        KeyPair pair = keyGen.generateKeyPair();
+
+        String privateKeyPem = "-----BEGIN PRIVATE KEY-----\n"
+                + Base64.getEncoder().encodeToString(pair.getPrivate().getEncoded())
+                + "\n-----END PRIVATE KEY-----";
+        String publicKeyPem = "-----BEGIN PUBLIC KEY-----\n"
+                + Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())
+                + "\n-----END PUBLIC KEY-----";
+
+        JwtService service = new JwtService();
+        ReflectionTestUtils.setField(service, "privateKeyPem", privateKeyPem);
+        ReflectionTestUtils.setField(service, "publicKeyPem", publicKeyPem);
+        ReflectionTestUtils.setField(service, "requireInlineKeys", true);
+        ReflectionTestUtils.setField(service, "privateKeyResource", new ClassPathResource("jwt/dev-private.pem"));
+        ReflectionTestUtils.setField(service, "publicKeyResource", new ClassPathResource("jwt/dev-public.pem"));
+
+        service.init();
+
+        User user = new User("test@uam.mx", "hash", RoleType.STUDENT, 1L);
+        ReflectionTestUtils.setField(user, "id", 99L);
+        String token = service.generateAccessToken(user);
+        assertThat(service.validateToken(token).getSubject()).isEqualTo("99");
     }
 }

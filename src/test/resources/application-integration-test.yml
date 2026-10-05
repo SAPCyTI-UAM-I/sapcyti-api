@@ -6,8 +6,24 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        globally_quoted_identifiers: true
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:integration-test/data.sql
   flyway:
     enabled: false
+  mail:
+    host: localhost
+    port: 1025
+
+app:
+  password-reset:
+    base-url: http://localhost:4200
+    ttl-minutes: 30
 
 jwt:
   private-key-path: classpath:jwt/dev-private.pem

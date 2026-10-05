@@ -2,6 +2,15 @@
 server:
   port: ${SERVER_PORT:8080}
 
+app:
+  password-reset:
+    base-url: ${PASSWORD_RESET_BASE_URL:http://localhost:4200}
+
+spring:
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+
 jwt:
   private-key-path: classpath:jwt/dev-private.pem
   public-key-path: classpath:jwt/dev-public.pem
