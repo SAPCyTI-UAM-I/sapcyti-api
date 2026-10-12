@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -52,16 +54,21 @@ class PasswordRecoveryIT {
     @Autowired
     private GraduateProgramJpaAdapter programAdapter;
 
+    @Autowired
+    private JdbcTemplate jdbc;
+
     @MockitoBean
     private EmailPort emailPort;
 
     @BeforeEach
     void seedUser() {
+        jdbc.update("UPDATE mail_policy SET updated_by_user_id = NULL");
         userRepository.deleteAll();
 
         GraduateProgram program = programAdapter.save(new GraduateProgram("PCyTI Recovery " + System.nanoTime(), "CBI"));
         String hash = new BCryptPasswordEncoder().encode(PASSWORD);
         userRepository.save(new User(EMAIL, hash, RoleType.STUDENT, program.getId()));
+        storeMode("ENABLED");
     }
 
     @Test
@@ -77,7 +84,34 @@ class PasswordRecoveryIT {
                 .andExpect(jsonPath("$.message").value(
                         "If an account with that email exists, a recovery email has been sent"));
 
-        verify(emailPort).sendPasswordReset(eq(EMAIL), any(), any());
+        verify(emailPort).sendPasswordReset(eq(EMAIL), any(), any(), eq(RoleType.STUDENT));
+    }
+
+    @Test
+    @DisplayName("suppressed and unknown emails return the same generic 200 and no new token hash")
+    void suppressedMailMatchesUnknownEmail() throws Exception {
+        storeMode("DISABLED");
+
+        String unknown = forgotPasswordBody("missing@uam.mx");
+        String known = forgotPasswordBody(EMAIL);
+
+        assertThat(known).isEqualTo(unknown);
+        User user = userRepository.findByEmail(EMAIL).orElseThrow();
+        assertThat(user.getPasswordResetToken()).isNull();
+        verify(emailPort, never()).sendPasswordReset(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("an unreadable policy keeps the generic 200 and does not store a token hash")
+    void unreadablePolicyDoesNotStoreAToken() throws Exception {
+        jdbc.update("DELETE FROM mail_policy");
+
+        String body = forgotPasswordBody(EMAIL);
+
+        assertThat(body).contains("If an account with that email exists, a recovery email has been sent");
+        User user = userRepository.findByEmail(EMAIL).orElseThrow();
+        assertThat(user.getPasswordResetToken()).isNull();
+        verify(emailPort, never()).sendPasswordReset(any(), any(), any(), any());
     }
 
     @Test
@@ -250,7 +284,34 @@ class PasswordRecoveryIT {
 
     private String captureLastSentToken() {
         ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
-        verify(emailPort, atLeastOnce()).sendPasswordReset(eq(EMAIL), tokenCaptor.capture(), any());
+        verify(emailPort, atLeastOnce()).sendPasswordReset(
+                eq(EMAIL), tokenCaptor.capture(), any(), eq(RoleType.STUDENT));
         return tokenCaptor.getAllValues().getLast();
+    }
+
+    private String forgotPasswordBody(String email) throws Exception {
+        ForgotPasswordRequest request = ForgotPasswordRequest.builder().email(email).build();
+        return mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Accept-Language", "en")
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+    }
+
+    private void storeMode(String mode) {
+        int updated = jdbc.update("""
+                UPDATE mail_policy
+                SET mode = ?, version = 0, updated_at = NULL, updated_by_user_id = NULL
+                WHERE id = 1
+                """, mode);
+        if (updated == 0) {
+            jdbc.update("""
+                    INSERT INTO mail_policy (id, mode, version, updated_at, updated_by_user_id)
+                    VALUES (1, ?, 0, NULL, NULL)
+                    """, mode);
+        }
     }
 }

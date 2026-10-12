@@ -26,6 +26,7 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
             AccessDeniedException accessDeniedException) throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        MailPolicyRequestPaths.noStore(request, response);
         objectMapper.writeValue(
                 response.getOutputStream(),
                 new ErrorResponse("FORBIDDEN", "Access denied"));

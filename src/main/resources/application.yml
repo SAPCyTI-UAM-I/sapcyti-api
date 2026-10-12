@@ -68,3 +68,5 @@ app:
   password-reset:
     base-url: ${PASSWORD_RESET_BASE_URL:http://localhost:4200}
     ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:30}
+  mail-dispatch:
+    provider-timeout: ${MAIL_DISPATCH_PROVIDER_TIMEOUT:30s}

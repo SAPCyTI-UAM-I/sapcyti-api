@@ -60,7 +60,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 if (RoleType.SYSTEM_ADMIN.name().equals(role)) {
                     headerProgramId = Optional.empty();
                 } else {
-                    writeForbidden(response, TenantAccessDeniedException.INVALID_HEADER_MESSAGE);
+                    writeForbidden(request, response, TenantAccessDeniedException.INVALID_HEADER_MESSAGE);
                     return;
                 }
             } else {
@@ -84,7 +84,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             filterChain.doFilter(request, response);
         } catch (TenantAccessDeniedException ex) {
-            writeForbidden(response, ex.getMessage());
+            writeForbidden(request, response, ex.getMessage());
         } catch (Exception e) {
             logger.error("Could not set user authentication in security context", e);
             filterChain.doFilter(request, response);
@@ -99,9 +99,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private void writeForbidden(HttpServletResponse response, String message) throws IOException {
+    private void writeForbidden(HttpServletRequest request, HttpServletResponse response, String message)
+            throws IOException {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        MailPolicyRequestPaths.noStore(request, response);
         objectMapper.writeValue(response.getOutputStream(), new ErrorResponse("FORBIDDEN", message));
     }
 }

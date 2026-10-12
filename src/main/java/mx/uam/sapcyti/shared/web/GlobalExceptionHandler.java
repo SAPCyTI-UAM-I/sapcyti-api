@@ -1,7 +1,10 @@
 package mx.uam.sapcyti.shared.web;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -40,6 +43,10 @@ import mx.uam.sapcyti.planning.domain.exception.PlanNotEditableException;
 import mx.uam.sapcyti.configuration.domain.exception.ConfigurationParameterNotFoundException;
 import mx.uam.sapcyti.configuration.domain.exception.DuplicateGraduateProgramNameException;
 import mx.uam.sapcyti.configuration.domain.exception.GraduateProgramNotFoundException;
+import mx.uam.sapcyti.configuration.domain.exception.MailPolicyUnavailableException;
+import mx.uam.sapcyti.configuration.domain.exception.MailPolicyUnsupportedMediaTypeException;
+import mx.uam.sapcyti.configuration.domain.exception.MailPolicyValidationException;
+import mx.uam.sapcyti.configuration.domain.exception.MailPolicyVersionConflictException;
 import mx.uam.sapcyti.identity.domain.exception.ExpiredResetTokenException;
 import mx.uam.sapcyti.identity.domain.exception.IncorrectCurrentPasswordException;
 import mx.uam.sapcyti.identity.domain.exception.InvalidCredentialsException;
@@ -586,6 +593,55 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.FORBIDDEN)
             .body(new ErrorResponse("FORBIDDEN", "Access denied"));
+    }
+
+    @ExceptionHandler(MailPolicyValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMailPolicyValidation(MailPolicyValidationException ex) {
+        List<FieldErrorBody> fieldErrors = ex.fieldErrors().stream()
+                .map(error -> new FieldErrorBody(error.field(), error.code(), error.message()))
+                .toList();
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(
+                        "VALIDATION_ERROR",
+                        ex.getMessage(),
+                        new ErrorDetails(fieldErrors, null)));
+    }
+
+    @ExceptionHandler(MailPolicyVersionConflictException.class)
+    public ResponseEntity<ErrorResponse> handleMailPolicyConflict(MailPolicyVersionConflictException ex) {
+        ErrorDetails details = ex.currentVersion() == null
+                ? null
+                : new ErrorDetails(null, ex.currentVersion());
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(
+                        "VERSION_CONFLICT",
+                        "Mail policy changed; reload before saving",
+                        details));
+    }
+
+    @ExceptionHandler(MailPolicyUnsupportedMediaTypeException.class)
+    public ResponseEntity<ErrorResponse> handleMailPolicyMediaType(
+            MailPolicyUnsupportedMediaTypeException ex) {
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(
+                        "UNSUPPORTED_MEDIA_TYPE",
+                        MailPolicyUnsupportedMediaTypeException.MESSAGE));
+    }
+
+    @ExceptionHandler(MailPolicyUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleMailPolicyUnavailable(MailPolicyUnavailableException ex) {
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(
+                        "MAIL_POLICY_UNAVAILABLE",
+                        MailPolicyUnavailableException.MESSAGE));
     }
 
     /** Unmapped paths (e.g. Actuator endpoints not exposed in prod) → 404, not 500. */
