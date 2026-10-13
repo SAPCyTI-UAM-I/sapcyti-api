@@ -47,6 +47,7 @@ import mx.uam.sapcyti.configuration.domain.exception.MailPolicyUnavailableExcept
 import mx.uam.sapcyti.configuration.domain.exception.MailPolicyUnsupportedMediaTypeException;
 import mx.uam.sapcyti.configuration.domain.exception.MailPolicyValidationException;
 import mx.uam.sapcyti.configuration.domain.exception.MailPolicyVersionConflictException;
+import mx.uam.sapcyti.exam.application.exception.ExamReadException;
 import mx.uam.sapcyti.identity.domain.exception.ExpiredResetTokenException;
 import mx.uam.sapcyti.identity.domain.exception.IncorrectCurrentPasswordException;
 import mx.uam.sapcyti.identity.domain.exception.InvalidCredentialsException;
@@ -593,6 +594,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(HttpStatus.FORBIDDEN)
             .body(new ErrorResponse("FORBIDDEN", "Access denied"));
+    }
+
+    @ExceptionHandler(ExamReadException.class)
+    public ResponseEntity<ErrorResponse> handleExamRead(ExamReadException ex) {
+        ErrorDetails details = ex.code() == ExamReadException.Code.VALIDATION_ERROR
+                ? new ErrorDetails(ex.fieldErrors().stream()
+                        .map(error -> new FieldErrorBody(error.field(), error.code(), error.message()))
+                        .toList(), null)
+                : null;
+        return ResponseEntity
+                .status(examReadStatus(ex.code()))
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(ex.code().name(), ex.getMessage(), details));
+    }
+
+    private static HttpStatus examReadStatus(ExamReadException.Code code) {
+        return switch (code) {
+            case FORBIDDEN, EXAM_TYPE_NOT_ALLOWED -> HttpStatus.FORBIDDEN;
+            case STUDENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
+            case ACADEMIC_PROGRAM_AMBIGUOUS, ACADEMIC_PROGRAM_CHANGED, STUDENT_DATA_INCOMPLETE,
+                    DEGREE_UNSUPPORTED, PROGRAM_STATUS_UNSUPPORTED -> HttpStatus.CONFLICT;
+            case DEPENDENCY_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+        };
     }
 
     @ExceptionHandler(MailPolicyValidationException.class)

@@ -9,7 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.List;
 import mx.uam.sapcyti.academic.domain.exception.EmployeeNumberImmutableException;
+import mx.uam.sapcyti.exam.application.exception.ExamReadException;
+import mx.uam.sapcyti.exam.application.exception.ExamRequestFieldError;
 import mx.uam.sapcyti.academic.domain.exception.InvalidTypeChangeException;
 import mx.uam.sapcyti.academic.domain.exception.ProfessorAlreadyActiveException;
 import mx.uam.sapcyti.configuration.domain.exception.DuplicateGraduateProgramNameException;
@@ -95,5 +98,40 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().error()).isEqualTo("PROFESSOR_ALREADY_ACTIVE");
         assertThat(response.getBody().message())
             .isEqualTo(ProfessorAlreadyActiveException.MESSAGE);
+    }
+
+    @Test
+    void examReadValidationPublishesFieldErrorsAndNoStore() {
+        ResponseEntity<ErrorResponse> response = handler.handleExamRead(ExamReadException.validation(
+                "Invalid exam type",
+                List.of(new ExamRequestFieldError("examType", "INVALID_ENUM", "Use GRADO or PREDOCTORAL"))));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo("no-store");
+        assertThat(response.getBody().error()).isEqualTo("VALIDATION_ERROR");
+        assertThat(response.getBody().details()).isInstanceOf(ErrorDetails.class);
+        ErrorDetails details = (ErrorDetails) response.getBody().details();
+        assertThat(details.fieldErrors()).containsExactly(
+                new FieldErrorBody("examType", "INVALID_ENUM", "Use GRADO or PREDOCTORAL"));
+    }
+
+    @Test
+    void examReadConflictOmitsDetails() {
+        ResponseEntity<ErrorResponse> response = handler.handleExamRead(
+                ExamReadException.academicProgramChanged());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().error()).isEqualTo("ACADEMIC_PROGRAM_CHANGED");
+        assertThat(response.getBody().details()).isNull();
+    }
+
+    @Test
+    void examReadDependencyIs503WithoutDetails() {
+        ResponseEntity<ErrorResponse> response = handler.handleExamRead(
+                ExamReadException.dependencyUnavailable());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+        assertThat(response.getBody().error()).isEqualTo("DEPENDENCY_UNAVAILABLE");
+        assertThat(response.getBody().details()).isNull();
     }
 }

@@ -117,6 +117,62 @@ class RegisterStudentUseCaseTest {
     }
 
     @Test
+    @DisplayName("SPEC-044: registers a specialization student")
+    void registersSpecializationStudent() {
+        RegisterStudentCommand command = new RegisterStudentCommand(
+                "2244556677",
+                "emanuel.lopez@uam.mx",
+                1L,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "Emanuel",
+                "López",
+                "Alba",
+                "Mexicana",
+                LocalDate.of(1996, 4, 12),
+                "5551002000",
+                null,
+                "Computación",
+                DegreeLevel.LICENCIATURA,
+                ProgramType.ESPECIALIZACION,
+                LocalDate.of(2024, 1, 15),
+                "24I");
+        when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));
+        when(userRepository.existsByEmail("emanuel.lopez@uam.mx")).thenReturn(false);
+        when(studentRepository.existsByEnrollmentId("2244556677")).thenReturn(false);
+        when(passwordGenerationService.generatePassword()).thenReturn("Kx9#mP2vLq4!");
+        when(passwordEncoder.encode(any())).thenReturn("hashed");
+
+        User savedUser = new User("emanuel.lopez@uam.mx", "hashed", RoleType.STUDENT, 1L);
+        ReflectionTestUtils.setField(savedUser, "id", 20L);
+        when(userRepository.save(any(User.class))).thenReturn(savedUser);
+
+        ArgumentCaptor<Student> studentCaptor = ArgumentCaptor.forClass(Student.class);
+        when(studentRepository.save(studentCaptor.capture())).thenAnswer(invocation -> {
+            Student student = invocation.getArgument(0);
+            ReflectionTestUtils.setField(student, "id", 52L);
+            return student;
+        });
+        when(studentProgramRepository.save(any(StudentProgram.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RegisterStudentUseCase.RegisterStudentResult result = useCase.execute(command);
+
+        assertThat(result.getLastDegreeObtained()).isEqualTo(DegreeLevel.LICENCIATURA);
+        assertThat(result.getProgramType()).isEqualTo(ProgramType.ESPECIALIZACION);
+        assertThat(studentCaptor.getValue().getAcademicInformation().getProgramType())
+                .isEqualTo(ProgramType.ESPECIALIZACION);
+        assertThat(studentCaptor.getValue().getAcademicInformation().getLastDegreeObtained())
+                .isEqualTo(DegreeLevel.LICENCIATURA);
+        ArgumentCaptor<StudentProgram> programCaptor = ArgumentCaptor.forClass(StudentProgram.class);
+        verify(studentProgramRepository).save(programCaptor.capture());
+        assertThat(programCaptor.getValue().getProgramType()).isEqualTo(ProgramType.ESPECIALIZACION);
+        assertThat(programCaptor.getValue().getStatus()).isEqualTo(ProgramStatus.EN_INVESTIGACION);
+    }
+
+    @Test
     @DisplayName("rejects duplicate email")
     void duplicateEmail() {
         when(programRepository.findById(1L)).thenReturn(Optional.of(new GraduateProgram("PCyTI", "CBI")));

@@ -45,6 +45,10 @@ public class SecurityConfig {
                     // SPEC-041: role is decided before MVC binds the mail-policy body.
                     auth.requestMatchers(HttpMethod.GET, "/api/mail-policy").hasRole("COORDINATOR");
                     auth.requestMatchers(HttpMethod.PUT, "/api/mail-policy").hasRole("COORDINATOR");
+                    // SPEC-047: STUDENT is decided before MVC binds these reads. Do not open the prefix.
+                    auth.requestMatchers(HttpMethod.GET, "/api/exam-requests/me/options").hasRole("STUDENT");
+                    auth.requestMatchers(HttpMethod.GET, "/api/exam-requests/me/*/requirements")
+                            .hasRole("STUDENT");
                     auth.anyRequest().authenticated();
                 })
                 .exceptionHandling(ex -> ex
