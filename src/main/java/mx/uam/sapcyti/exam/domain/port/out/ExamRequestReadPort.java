@@ -6,7 +6,7 @@ import mx.uam.sapcyti.exam.domain.model.ExamType;
 
 /**
  * Reads the dossier already stored for one student and exam type.
- * HU-62 does not insert a row. The production adapter stays empty until HU-65 replaces it.
+ * A miss is empty and does not insert a row. The result has no object key, bucket or hash.
  */
 public interface ExamRequestReadPort {
 
