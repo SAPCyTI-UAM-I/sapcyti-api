@@ -81,6 +81,10 @@ class ExamDocumentEntity {
         return id;
     }
 
+    Long getExamRequestId() {
+        return examRequestId;
+    }
+
     DocumentType getDocumentType() {
         return documentType;
     }

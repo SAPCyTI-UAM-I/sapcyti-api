@@ -49,6 +49,19 @@ public class SecurityConfig {
                     auth.requestMatchers(HttpMethod.GET, "/api/exam-requests/me/options").hasRole("STUDENT");
                     auth.requestMatchers(HttpMethod.GET, "/api/exam-requests/me/*/requirements")
                             .hasRole("STUDENT");
+                    // SPEC-052: STUDENT is decided before MVC reads the draft envelope.
+                    // The panel matcher does not replace options or requirements.
+                    auth.requestMatchers(HttpMethod.POST, "/api/exam-requests/me/*/documents")
+                            .hasRole("STUDENT");
+                    auth.requestMatchers(HttpMethod.PUT, "/api/exam-requests/me/*/documents/*")
+                            .hasRole("STUDENT");
+                    auth.requestMatchers(HttpMethod.DELETE, "/api/exam-requests/me/*/documents/*")
+                            .hasRole("STUDENT");
+                    // SPEC-053: STUDENT is decided before MVC reads this content query.
+                    // Do not widen me/* or documents/*, and do not open /api/exam-requests/**.
+                    auth.requestMatchers(HttpMethod.GET, "/api/exam-requests/me/*/documents/*/content")
+                            .hasRole("STUDENT");
+                    auth.requestMatchers(HttpMethod.GET, "/api/exam-requests/me/*").hasRole("STUDENT");
                     auth.anyRequest().authenticated();
                 })
                 .exceptionHandling(ex -> ex

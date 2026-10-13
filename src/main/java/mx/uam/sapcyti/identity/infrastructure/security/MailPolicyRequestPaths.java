@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 /**
  * Path check for responses written before the controller.
  * SPEC-041 is the mail policy. SPEC-047 is the two student exam reads.
+ * SPEC-052 is the draft panel and its writes. SPEC-053 is the current PDF.
  */
 final class MailPolicyRequestPaths {
 
@@ -23,9 +24,49 @@ final class MailPolicyRequestPaths {
     }
 
     static void noStore(HttpServletRequest request, HttpServletResponse response) {
-        if (isMailPolicy(request) || isExamRead(request)) {
+        if (isExamContent(request)) {
+            response.setHeader(HttpHeaders.CACHE_CONTROL, CacheControl.noStore().getHeaderValue());
+            response.setHeader("X-Content-Type-Options", "nosniff");
+            response.setHeader("Referrer-Policy", "no-referrer");
+            return;
+        }
+        if (isMailPolicy(request) || isExamRead(request) || isExamDraft(request)) {
             response.setHeader(HttpHeaders.CACHE_CONTROL, CacheControl.noStore().getHeaderValue());
         }
+    }
+
+    private static boolean isExamContent(HttpServletRequest request) {
+        String path = path(request);
+        String prefix = EXAM_REQUIREMENTS_PREFIX;
+        if (!path.startsWith(prefix) || !path.endsWith("/content")) {
+            return false;
+        }
+        String rest = path.substring(prefix.length(), path.length() - "/content".length());
+        String[] parts = rest.split("/");
+        return parts.length == 3
+                && !parts[0].isEmpty()
+                && "documents".equals(parts[1])
+                && !parts[2].isEmpty();
+    }
+
+    private static boolean isExamDraft(HttpServletRequest request) {
+        String path = path(request);
+        String prefix = EXAM_REQUIREMENTS_PREFIX;
+        if (!path.startsWith(prefix)) {
+            return false;
+        }
+        String rest = path.substring(prefix.length());
+        if (rest.isEmpty() || "options".equals(rest) || rest.endsWith(EXAM_REQUIREMENTS_SUFFIX)) {
+            return false;
+        }
+        String[] parts = rest.split("/");
+        if (parts.length == 1) {
+            return true;
+        }
+        if (parts.length == 2) {
+            return "documents".equals(parts[1]);
+        }
+        return parts.length == 3 && "documents".equals(parts[1]) && !parts[2].isEmpty();
     }
 
     private static boolean isExamRead(HttpServletRequest request) {

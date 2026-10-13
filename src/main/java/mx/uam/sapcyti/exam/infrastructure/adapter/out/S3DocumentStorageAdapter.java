@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 import mx.uam.sapcyti.exam.domain.exception.ObjectStorageException;
+import mx.uam.sapcyti.exam.domain.model.OpenedObject;
 import mx.uam.sapcyti.exam.domain.model.PrivateObjectPut;
 import mx.uam.sapcyti.exam.domain.model.StoredObjectReceipt;
 import mx.uam.sapcyti.exam.domain.model.UncommittedObjectNotice;
@@ -55,6 +56,24 @@ public final class S3DocumentStorageAdapter implements DocumentStoragePort {
     @Override
     public UncommittedObjectNotice noticeUncommitted(String objectKey, String sha256) {
         return new UncommittedObjectNotice(objectKey, sha256);
+    }
+
+    @Override
+    public OpenedObject open(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            throw new ObjectStorageException("Object could not be opened");
+        }
+        try {
+            OpenedObject opened = client.open(objectKey);
+            if (opened == null || opened.body() == null || opened.sizeBytes() < 1) {
+                throw new ObjectStorageException("Object could not be opened");
+            }
+            return opened;
+        } catch (ObjectStorageException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            throw new ObjectStorageException("Object could not be opened", ex);
+        }
     }
 
     private static DigestedCopy spool(InputStream body, Path spool) throws IOException {

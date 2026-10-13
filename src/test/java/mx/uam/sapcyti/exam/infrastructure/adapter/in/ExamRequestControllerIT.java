@@ -40,6 +40,7 @@ import mx.uam.sapcyti.exam.domain.model.ExamRequestBinding;
 import mx.uam.sapcyti.exam.domain.model.ExamRequestRead;
 import mx.uam.sapcyti.exam.domain.model.ExamRequestStatus;
 import mx.uam.sapcyti.exam.domain.model.ExamType;
+import mx.uam.sapcyti.exam.domain.port.out.ExamRequestDraftPort;
 import mx.uam.sapcyti.exam.domain.port.out.ExamRequestReadPort;
 import mx.uam.sapcyti.identity.domain.model.RoleType;
 import mx.uam.sapcyti.identity.domain.model.User;
@@ -96,6 +97,9 @@ class ExamRequestControllerIT {
 
     @MockitoBean
     private ExamRequestReadPort examRequestReadPort;
+
+    @MockitoBean
+    private ExamRequestDraftPort examRequestDraftPort;
 
     @MockitoSpyBean
     private StudentExamContextPort studentExamContextPort;

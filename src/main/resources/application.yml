@@ -5,6 +5,11 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5433/sapcyti_dev}
     username: ${DB_USER:sapcyti}
     password: ${DB_PASS:sapcyti_dev_pass}
+  servlet:
+    multipart:
+      # Transport ceiling of an upload. Not a 20 MB document rule (SPEC-052).
+      max-file-size: -1
+      max-request-size: -1
   jpa:
     open-in-view: false
     hibernate:

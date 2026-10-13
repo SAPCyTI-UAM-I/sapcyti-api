@@ -29,6 +29,7 @@ import mx.uam.sapcyti.exam.domain.model.ExamObjectKey;
 import mx.uam.sapcyti.exam.domain.model.ExamRequestRead;
 import mx.uam.sapcyti.exam.domain.model.ExamRequestStatus;
 import mx.uam.sapcyti.exam.domain.model.ExamType;
+import mx.uam.sapcyti.exam.domain.model.OpenedObject;
 import mx.uam.sapcyti.exam.domain.model.PrivateObjectPut;
 import mx.uam.sapcyti.exam.domain.model.StoredDocumentReference;
 import mx.uam.sapcyti.exam.domain.model.StoredObjectReceipt;
@@ -630,6 +631,11 @@ class ExamRequestJpaAdapterTest {
             UncommittedObjectNotice notice = new UncommittedObjectNotice(objectKey, sha256);
             notices.add(notice);
             return notice;
+        }
+
+        @Override
+        public OpenedObject open(String objectKey) {
+            throw new ObjectStorageException("Object could not be opened");
         }
 
         private void fail(String objectKey) {

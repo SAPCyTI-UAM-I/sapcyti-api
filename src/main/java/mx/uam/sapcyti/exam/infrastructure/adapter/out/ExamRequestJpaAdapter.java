@@ -60,6 +60,15 @@ public class ExamRequestJpaAdapter implements ExamRequestReadPort, ExamRequestDr
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<StoredDocumentReference> findCurrentReference(
+            Long studentId, ExamType examType, DocumentType documentType) {
+        return requests.findByStudentIdAndExamType(studentId, examType).flatMap(request -> documentRows
+                .findByExamRequestIdAndDocumentType(request.getId(), documentType)
+                .map(ExamRequestJpaAdapter::toReference));
+    }
+
+    @Override
     @Transactional
     public long reserveRequestId() {
         return nextValue(REQUEST_SEQUENCE);
@@ -207,6 +216,21 @@ public class ExamRequestJpaAdapter implements ExamRequestReadPort, ExamRequestDr
                 entity.getId(),
                 entity.getDocumentType(),
                 entity.getKind(),
+                entity.getOriginalName(),
+                entity.getExternalUrl(),
+                entity.getSizeBytes(),
+                entity.getUploadedAt());
+    }
+
+    private static StoredDocumentReference toReference(ExamDocumentEntity entity) {
+        return new StoredDocumentReference(
+                entity.getId(),
+                entity.getExamRequestId(),
+                entity.getDocumentType(),
+                entity.getKind(),
+                entity.getObjectKey(),
+                entity.getSha256(),
+                entity.getContentType(),
                 entity.getOriginalName(),
                 entity.getExternalUrl(),
                 entity.getSizeBytes(),

@@ -3,15 +3,16 @@ package mx.uam.sapcyti.exam.infrastructure.adapter.out;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import mx.uam.sapcyti.exam.domain.exception.ObjectStorageException;
+import mx.uam.sapcyti.exam.domain.model.OpenedObject;
 import mx.uam.sapcyti.exam.domain.model.PrivateObjectPut;
 import mx.uam.sapcyti.exam.domain.model.StoredDocumentReference;
 import mx.uam.sapcyti.exam.domain.model.StoredObjectReceipt;
@@ -84,6 +85,25 @@ class S3DocumentStorageAdapterTest {
         assertThat(S3DocumentStorageAdapter.class.getAnnotation(Repository.class)).isNull();
     }
 
+    @Test
+    @DisplayName("open returns the stored bytes")
+    void openReturnsTheStoredBytes() throws IOException {
+        PrivateObjectPut command = new PrivateObjectPut(
+                KEY, sha256OfZeros(4), StoredDocumentReference.PDF_MEDIA_TYPE, 4);
+        adapter.put(command, zeros(4));
+
+        OpenedObject opened = adapter.open(KEY);
+
+        assertThat(opened.sizeBytes()).isEqualTo(4);
+        assertThat(opened.body().readAllBytes()).containsExactly(0, 0, 0, 0);
+    }
+
+    @Test
+    @DisplayName("a missing object is not opened")
+    void missingObjectIsNotOpened() {
+        assertThatThrownBy(() -> adapter.open(KEY)).isInstanceOf(ObjectStorageException.class);
+    }
+
     private static InputStream zeros(long size) {
         return new InputStream() {
             private long remaining = size;
@@ -142,6 +162,7 @@ class S3DocumentStorageAdapterTest {
     private static final class FakeS3 implements S3ObjectClient {
 
         private final Map<String, Long> objects = new LinkedHashMap<>();
+        private final Map<String, byte[]> bodies = new LinkedHashMap<>();
 
         @Override
         public void putNew(String objectKey, String contentType, InputStream body, long sizeBytes) {
@@ -149,14 +170,24 @@ class S3DocumentStorageAdapterTest {
                 throw new IllegalStateException("object already stored");
             }
             try {
-                long read = body.transferTo(OutputStream.nullOutputStream());
-                if (read != sizeBytes) {
+                byte[] bytes = body.readAllBytes();
+                if (bytes.length != sizeBytes) {
                     throw new IllegalStateException("incomplete object");
                 }
+                bodies.put(objectKey, bytes);
             } catch (IOException ex) {
                 throw new IllegalStateException("object write failed", ex);
             }
             objects.put(objectKey, sizeBytes);
+        }
+
+        @Override
+        public OpenedObject open(String objectKey) {
+            byte[] bytes = bodies.get(objectKey);
+            if (bytes == null) {
+                throw new ObjectStorageException("Object could not be opened");
+            }
+            return new OpenedObject(new ByteArrayInputStream(bytes), bytes.length);
         }
     }
 }

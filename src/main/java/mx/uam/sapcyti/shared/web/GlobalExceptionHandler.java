@@ -4,15 +4,23 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolationException;
@@ -47,6 +55,9 @@ import mx.uam.sapcyti.configuration.domain.exception.MailPolicyUnavailableExcept
 import mx.uam.sapcyti.configuration.domain.exception.MailPolicyUnsupportedMediaTypeException;
 import mx.uam.sapcyti.configuration.domain.exception.MailPolicyValidationException;
 import mx.uam.sapcyti.configuration.domain.exception.MailPolicyVersionConflictException;
+import mx.uam.sapcyti.exam.application.exception.ExamContentException;
+import mx.uam.sapcyti.exam.application.exception.ExamContentStreamAbortedException;
+import mx.uam.sapcyti.exam.application.exception.ExamDraftException;
 import mx.uam.sapcyti.exam.application.exception.ExamReadException;
 import mx.uam.sapcyti.identity.domain.exception.ExpiredResetTokenException;
 import mx.uam.sapcyti.identity.domain.exception.IncorrectCurrentPasswordException;
@@ -669,6 +680,114 @@ public class GlobalExceptionHandler {
                         MailPolicyUnavailableException.MESSAGE));
     }
 
+    @ExceptionHandler(ExamDraftException.class)
+    public ResponseEntity<ErrorResponse> handleExamDraft(ExamDraftException ex) {
+        return ResponseEntity
+                .status(examDraftStatus(ex.code()))
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(ex.code().name(), ex.getMessage(), examDraftDetails(ex)));
+    }
+
+    @ExceptionHandler(ExamContentException.class)
+    public ResponseEntity<ErrorResponse> handleExamContent(
+            ExamContentException ex, HttpServletResponse response) {
+        if (response.isCommitted()) {
+            return null;
+        }
+        ErrorDetails details = ex.code() == ExamContentException.Code.VALIDATION_ERROR
+                ? new ErrorDetails(ex.fieldErrors().stream()
+                        .map(error -> new FieldErrorBody(error.field(), error.code(), error.message()))
+                        .toList(), null)
+                : null;
+        return ResponseEntity
+                .status(examContentStatus(ex.code()))
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.APPLICATION_JSON)
+                .header("X-Content-Type-Options", "nosniff")
+                .header("Referrer-Policy", "no-referrer")
+                .body(new ErrorResponse(ex.code().name(), ex.getMessage(), details));
+    }
+
+    @ExceptionHandler(ExamContentStreamAbortedException.class)
+    public void handleExamContentAborted(ExamContentStreamAbortedException ex) {
+        LOG.warn("Document stream aborted after headers");
+    }
+
+    private static HttpStatus examContentStatus(ExamContentException.Code code) {
+        return switch (code) {
+            case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
+            case UNAUTHORIZED -> HttpStatus.UNAUTHORIZED;
+            case FORBIDDEN -> HttpStatus.FORBIDDEN;
+            case DOCUMENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case DOCUMENT_IS_EXTERNAL_URL -> HttpStatus.CONFLICT;
+            case DOCUMENT_STORAGE_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+        };
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(
+            MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        if (!isExamDraftPath(request)) {
+            return internalError(ex);
+        }
+        return ResponseEntity
+                .status(HttpStatus.PAYLOAD_TOO_LARGE)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse("REQUEST_TOO_LARGE", "The request is too large"));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(
+            MissingServletRequestPartException ex, HttpServletRequest request) {
+        if (!isExamDraftPath(request)) {
+            return internalError(ex);
+        }
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(
+                        "VALIDATION_ERROR",
+                        "Invalid request",
+                        new ErrorDetails(List.of(new FieldErrorBody(
+                                "manifest", "REQUIRED", "A required part is missing")), null)));
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleMultipart(MultipartException ex, HttpServletRequest request) {
+        if (!isExamDraftPath(request)) {
+            return internalError(ex);
+        }
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse(
+                        "VALIDATION_ERROR",
+                        "Invalid request",
+                        new ErrorDetails(List.of(new FieldErrorBody(
+                                "manifest", "INVALID_TYPE", "Multipart body could not be read")), null)));
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMediaType(
+            HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
+        if (!isExamDraftPath(request)) {
+            return internalError(ex);
+        }
+        return ResponseEntity
+                .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .cacheControl(CacheControl.noStore())
+                .body(new ErrorResponse("UNSUPPORTED_MEDIA_TYPE", "Unsupported media type"));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Void> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        if (ex.getSupportedHttpMethods() != null && !ex.getSupportedHttpMethods().isEmpty()) {
+            builder.allow(ex.getSupportedHttpMethods().toArray(org.springframework.http.HttpMethod[]::new));
+        }
+        return builder.build();
+    }
+
     /** Unmapped paths (e.g. Actuator endpoints not exposed in prod) → 404, not 500. */
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex) {
@@ -679,11 +798,50 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex) {
+        return internalError(ex);
+    }
+
+    private ResponseEntity<ErrorResponse> internalError(Exception ex) {
         LOG.error("Unhandled exception", ex);
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(new ErrorResponse(
                 "INTERNAL_ERROR",
                 "An unexpected error occurred"));
+    }
+
+    private static HttpStatus examDraftStatus(ExamDraftException.Code code) {
+        return switch (code) {
+            case FORBIDDEN, PROGRAM_NOT_ELIGIBLE, EXAM_TYPE_NOT_ALLOWED -> HttpStatus.FORBIDDEN;
+            case STUDENT_NOT_FOUND, REQUEST_NOT_FOUND, DOCUMENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case VERSION_CONFLICT, REQUEST_NOT_DRAFT, ACADEMIC_PROGRAM_AMBIGUOUS, ACADEMIC_PROGRAM_CHANGED,
+                    STUDENT_DATA_INCOMPLETE -> HttpStatus.CONFLICT;
+            case VALIDATION_ERROR, UNSAFE_FILE_NAME, INVALID_DOCUMENT_NAME, INVALID_ARTICLE_URL,
+                    DOCUMENT_KIND_NOT_ALLOWED -> HttpStatus.BAD_REQUEST;
+            case REQUEST_TOO_LARGE -> HttpStatus.PAYLOAD_TOO_LARGE;
+            case UNSUPPORTED_MEDIA_TYPE, INVALID_PDF_CONTENT -> HttpStatus.UNSUPPORTED_MEDIA_TYPE;
+            case STORAGE_UNAVAILABLE, DEPENDENCY_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
+        };
+    }
+
+    private static ErrorDetails examDraftDetails(ExamDraftException ex) {
+        return switch (ex.code()) {
+            case VALIDATION_ERROR, INVALID_ARTICLE_URL, VERSION_CONFLICT -> new ErrorDetails(
+                    ex.fieldErrors().stream()
+                            .map(error -> new FieldErrorBody(error.field(), error.code(), error.message()))
+                            .toList(),
+                    null);
+            case INVALID_DOCUMENT_NAME -> new ErrorDetails(null, null, ex.expectedName());
+            default -> null;
+        };
+    }
+
+    private static boolean isExamDraftPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String context = request.getContextPath();
+        if (context != null && !context.isEmpty() && path != null && path.startsWith(context)) {
+            path = path.substring(context.length());
+        }
+        return path != null && path.startsWith("/api/exam-requests/me/");
     }
 }
