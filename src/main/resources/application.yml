@@ -70,3 +70,10 @@ app:
     ttl-minutes: ${PASSWORD_RESET_TTL_MINUTES:30}
   mail-dispatch:
     provider-timeout: ${MAIL_DISPATCH_PROVIDER_TIMEOUT:30s}
+  exam:
+    documents:
+      # UTF-8 byte length of the received PDF name. A longer name is UNSAFE_FILE_NAME.
+      max-original-name-bytes: ${EXAM_MAX_ORIGINAL_NAME_BYTES:255}
+      # UTF-8 byte length of an article URL and of its host. The parser does not fetch the URL.
+      max-url-length: ${EXAM_MAX_URL_LENGTH:2048}
+      max-host-length: ${EXAM_MAX_HOST_LENGTH:253}

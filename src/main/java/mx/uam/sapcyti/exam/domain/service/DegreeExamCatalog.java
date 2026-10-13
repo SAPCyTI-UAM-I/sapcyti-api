@@ -11,6 +11,7 @@ import mx.uam.sapcyti.exam.domain.model.CurrentExamDocument;
 import mx.uam.sapcyti.exam.domain.model.Degree;
 import mx.uam.sapcyti.exam.domain.model.DegreeExamRequirementsResult;
 import mx.uam.sapcyti.exam.domain.model.DocumentKind;
+import mx.uam.sapcyti.exam.domain.model.DocumentKindAdmission;
 import mx.uam.sapcyti.exam.domain.model.DocumentType;
 import mx.uam.sapcyti.exam.domain.model.EligibilityReason;
 import mx.uam.sapcyti.exam.domain.model.ExamOptions;
@@ -110,15 +111,76 @@ public class DegreeExamCatalog {
         };
     }
 
+    /**
+     * Rule of one document type for the resolved degree and exam type.
+     * Does not read the dossier. Empty when that matrix does not list the type,
+     * including a predoctoral exam for a degree other than doctorate.
+     */
+    public Optional<DocumentRule> documentRule(
+            StudentExamContext context, ExamType examType, DocumentType documentType) {
+        StudentExamContext resolved = requireContext(context);
+        Objects.requireNonNull(examType, "examType");
+        Objects.requireNonNull(documentType, "documentType");
+        return documentRules(examType, toDegree(resolved.programType())).stream()
+                .filter(rule -> rule.documentType() == documentType)
+                .findFirst();
+    }
+
+    /**
+     * Whether the matrix admits this type and kind. Does not read the dossier.
+     * A type that belongs to another degree is not admitted.
+     */
+    public DocumentKindAdmission kindAdmission(
+            StudentExamContext context, ExamType examType, DocumentType documentType, DocumentKind kind) {
+        StudentExamContext resolved = requireContext(context);
+        Objects.requireNonNull(examType, "examType");
+        Objects.requireNonNull(documentType, "documentType");
+        Objects.requireNonNull(kind, "kind");
+        Degree degree = toDegree(resolved.programType());
+        boolean admitted = documentRules(examType, degree).stream()
+                .anyMatch(rule -> rule.documentType() == documentType && rule.acceptedKinds().contains(kind));
+        return new DocumentKindAdmission(examType, degree, documentType, kind, admitted);
+    }
+
+    /**
+     * Official file name for one type. {@code ARTICULO} has a null file name.
+     * A missing given name or paternal surname fails and no name is invented.
+     */
+    public OfficialDocumentName officialName(StudentExamContext context, DocumentType documentType) {
+        StudentExamContext resolved = requireContext(context);
+        Objects.requireNonNull(documentType, "documentType");
+        return OfficialDocumentName.of(
+                documentType,
+                toDegree(resolved.programType()),
+                resolved.firstName(),
+                resolved.firstLastName(),
+                resolved.secondLastName());
+    }
+
     private static List<CatalogRule> rules(ExamType examType, Degree degree) {
-        if (examType == ExamType.PREDOCTORAL) {
-            return PredoctoralRequirementRule.doctoral().stream()
-                    .map(rule -> new CatalogRule(rule.documentType(), rule.required(), rule.acceptedKinds()))
-                    .toList();
-        }
-        return GradoRequirementRule.forDegree(degree).stream()
+        return documentRules(examType, degree).stream()
                 .map(rule -> new CatalogRule(rule.documentType(), rule.required(), rule.acceptedKinds()))
                 .toList();
+    }
+
+    private static List<DocumentRule> documentRules(ExamType examType, Degree degree) {
+        if (examType == ExamType.PREDOCTORAL) {
+            if (degree != Degree.DOCTORADO) {
+                return List.of();
+            }
+            return PredoctoralRequirementRule.doctoral().stream().map(DegreeExamCatalog::toRule).toList();
+        }
+        return GradoRequirementRule.forDegree(degree).stream().map(DegreeExamCatalog::toRule).toList();
+    }
+
+    private static DocumentRule toRule(GradoRequirementRule rule) {
+        return new DocumentRule(
+                rule.documentType(), rule.required(), rule.acceptedKinds(), rule.namePrescribed());
+    }
+
+    private static DocumentRule toRule(PredoctoralRequirementRule rule) {
+        return new DocumentRule(
+                rule.documentType(), rule.required(), rule.acceptedKinds(), rule.namePrescribed());
     }
 
     private static ExamRequirement requirement(
@@ -212,5 +274,22 @@ public class DegreeExamCatalog {
     }
 
     private record CatalogRule(DocumentType documentType, boolean required, List<DocumentKind> acceptedKinds) {
+    }
+
+    /**
+     * One catalog row used to admit a document. {@code required} does not change admission.
+     * {@code namePrescribed} is false only for {@code ARTICULO}.
+     */
+    public record DocumentRule(
+            DocumentType documentType,
+            boolean required,
+            List<DocumentKind> acceptedKinds,
+            boolean namePrescribed) {
+
+        public DocumentRule {
+            Objects.requireNonNull(documentType, "documentType");
+            Objects.requireNonNull(acceptedKinds, "acceptedKinds");
+            acceptedKinds = List.copyOf(acceptedKinds);
+        }
     }
 }
