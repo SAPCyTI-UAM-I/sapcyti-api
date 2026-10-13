@@ -21,8 +21,8 @@ import mx.uam.sapcyti.academic.domain.model.StudentExamContextOutcome;
 import mx.uam.sapcyti.academic.domain.model.StudentExamContextResult;
 import mx.uam.sapcyti.academic.domain.port.out.StudentExamContextPort;
 import mx.uam.sapcyti.exam.application.exception.ExamReadException;
-import mx.uam.sapcyti.exam.application.exception.PredoctoralCatalogNotInThisCutException;
 import mx.uam.sapcyti.exam.domain.model.Degree;
+import mx.uam.sapcyti.exam.domain.model.DocumentType;
 import mx.uam.sapcyti.exam.domain.model.ExamRequestBinding;
 import mx.uam.sapcyti.exam.domain.model.ExamRequestRead;
 import mx.uam.sapcyti.exam.domain.model.ExamRequestStatus;
@@ -93,16 +93,31 @@ class ReadExamRequestUseCaseTest {
     }
 
     @Test
-    @DisplayName("A doctorate PREDOCTORAL read does not call the GRADO catalog")
-    void doctoralPredoctoralDoesNotUseGradoCatalog() {
+    @DisplayName("A doctorate PREDOCTORAL read calls the catalog with that type")
+    void doctoralPredoctoralUsesThatCatalog() {
         when(contexts.resolve(USER_ID, PROGRAM_ID))
                 .thenReturn(StudentExamContextResult.resolved(context(ProgramType.DOCTORADO)));
 
-        assertThatThrownBy(() -> useCase.requirements(USER_ID, RoleType.STUDENT, PROGRAM_ID, ExamType.PREDOCTORAL))
-                .isInstanceOf(PredoctoralCatalogNotInThisCutException.class);
+        var requirements = useCase.requirements(USER_ID, RoleType.STUDENT, PROGRAM_ID, ExamType.PREDOCTORAL);
+
+        assertThat(requirements.examType()).isEqualTo(ExamType.PREDOCTORAL);
+        assertThat(requirements.request()).isNull();
+        assertThat(requirements.requirements()).extracting(item -> item.documentType()).containsExactly(
+                DocumentType.TESIS,
+                DocumentType.ARTICULO,
+                DocumentType.SOL_SINODALES,
+                DocumentType.HIST_ACAD,
+                DocumentType.COMP_IDIOMA,
+                DocumentType.DATOS_ALUM);
+        assertThat(requirements.requirements())
+                .filteredOn(item -> item.documentType() == DocumentType.ARTICULO)
+                .singleElement()
+                .extracting(item -> item.required())
+                .isEqualTo(false);
+        verify(catalog).requirements(any(), eq(ExamType.PREDOCTORAL));
         verify(catalog, never()).requirements(any());
+        verify(dossiers).findByStudentAndType(52L, ExamType.PREDOCTORAL);
         verify(dossiers, never()).findByStudentAndType(any(), eq(ExamType.GRADO));
-        verify(dossiers, never()).findByStudentAndType(any(), eq(ExamType.PREDOCTORAL));
     }
 
     @Test

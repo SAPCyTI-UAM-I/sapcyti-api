@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -61,7 +62,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 /**
- * SPEC-047 contract for the two student exam reads.
+ * SPEC-047 and SPEC-049 contract for the student exam reads.
  * The current document and a mismatched binding replace {@link ExamRequestReadPort}; Flyway stays off.
  * Role checks use {@code SecurityConfig} ({@code integration-test}), not {@code TestSecurityConfig}.
  */
@@ -459,6 +460,133 @@ class ExamRequestControllerIT {
                         .header(TenantFilter.HEADER_GRADUATE_ID, specialization.programId()))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error").value("EXAM_TYPE_NOT_ALLOWED"));
+    }
+
+    @Test
+    @DisplayName("Scenario: A doctoral student can choose the predoctoral exam")
+    void doctoralStudentReadsPredoctoralRequirements() throws Exception {
+        Enrolled student = enroll(ProgramType.DOCTORADO, ProgramStatus.EGRESADO, "Ana", "López", "Alba");
+        int rowsBefore = examRequestRows();
+
+        mockMvc.perform(get("/api/exam-requests/me/options")
+                        .header("Authorization", "Bearer " + student.token())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, student.programId()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.degree").value("DOCTORADO"))
+                .andExpect(jsonPath("$.programStatus").value("EGRESADO"))
+                .andExpect(jsonPath("$.examTypes.length()").value(2))
+                .andExpect(jsonPath("$.examTypes[0]").value("GRADO"))
+                .andExpect(jsonPath("$.examTypes[1]").value("PREDOCTORAL"));
+
+        mockMvc.perform(get("/api/exam-requests/me/PREDOCTORAL/requirements")
+                        .header("Authorization", "Bearer " + student.token())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, student.programId()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.examType").value("PREDOCTORAL"))
+                .andExpect(jsonPath("$.degree").value("DOCTORADO"))
+                .andExpect(jsonPath("$.request").value(nullValue()))
+                .andExpect(jsonPath("$.requirements.length()").value(6))
+                .andExpect(jsonPath("$.requirements[0].documentType").value("TESIS"))
+                .andExpect(jsonPath("$.requirements[0].required").value(true))
+                .andExpect(jsonPath("$.requirements[0].acceptedKinds.length()").value(1))
+                .andExpect(jsonPath("$.requirements[0].acceptedKinds[0]").value("PDF"))
+                .andExpect(jsonPath("$.requirements[0].status").value("PENDIENTE"))
+                .andExpect(jsonPath("$.requirements[0].currentDocument").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[0].expectedName").value("Tesis_Docto_Lopez_Alba_Ana.pdf"))
+                .andExpect(jsonPath("$.requirements[0].exampleName").value("Tesis_Docto_Lopez_Alba_Ana.pdf"))
+                .andExpect(jsonPath("$.requirements[1].documentType").value("ARTICULO"))
+                .andExpect(jsonPath("$.requirements[1].required").value(false))
+                .andExpect(jsonPath("$.requirements[1].acceptedKinds[0]").value("PDF"))
+                .andExpect(jsonPath("$.requirements[1].acceptedKinds[1]").value("URL"))
+                .andExpect(jsonPath("$.requirements[1].expectedName").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[1].exampleName").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[1].status").value("PENDIENTE"))
+                .andExpect(jsonPath("$.requirements[1].currentDocument").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[2].documentType").value("SOL_SINODALES"))
+                .andExpect(jsonPath("$.requirements[2].required").value(true))
+                .andExpect(jsonPath("$.requirements[2].exampleName").value("Sol_Sinodales_Lopez_Alba_Ana.pdf"))
+                .andExpect(jsonPath("$.requirements[3].documentType").value("HIST_ACAD"))
+                .andExpect(jsonPath("$.requirements[3].exampleName").value("Hist_Acad_Lopez_Alba_Ana.pdf"))
+                .andExpect(jsonPath("$.requirements[4].documentType").value("COMP_IDIOMA"))
+                .andExpect(jsonPath("$.requirements[4].exampleName").value("Comp_Idioma_Lopez_Alba_Ana.pdf"))
+                .andExpect(jsonPath("$.requirements[5].documentType").value("DATOS_ALUM"))
+                .andExpect(jsonPath("$.requirements[5].exampleName").value("Datos_Alum_Lopez_Alba_Ana.pdf"));
+
+        assertThat(examRequestRows()).isEqualTo(rowsBefore);
+    }
+
+    @Test
+    @DisplayName("Scenario: Specialization cannot read the predoctoral exam")
+    void specializationCannotReadThePredoctoralExam() throws Exception {
+        Enrolled specialization = enroll(
+                ProgramType.ESPECIALIZACION, ProgramStatus.EN_INVESTIGACION, "Ana", "Ruiz", "Paz");
+        int rowsBefore = examRequestRows();
+
+        mockMvc.perform(get("/api/exam-requests/me/PREDOCTORAL/requirements")
+                        .header("Authorization", "Bearer " + specialization.token())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, specialization.programId()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value("EXAM_TYPE_NOT_ALLOWED"))
+                .andExpect(jsonPath("$.details").doesNotExist());
+
+        assertThat(examRequestRows()).isEqualTo(rowsBefore);
+    }
+
+    @Test
+    @DisplayName("Scenario: The degree exam stays a separate request")
+    void degreeExamStaysASeparateRequest() throws Exception {
+        Enrolled student = enroll(ProgramType.DOCTORADO, ProgramStatus.EGRESADO, "Ana", "López", "Alba");
+        Instant uploadedAt = Instant.parse("2026-10-09T15:00:00Z");
+        ExamRequestBinding predoctoral = new ExamRequestBinding(
+                4L,
+                student.studentId(),
+                ExamType.PREDOCTORAL,
+                student.programId(),
+                Degree.DOCTORADO,
+                ExamRequestStatus.ENVIADA,
+                "SEG-482913-075316",
+                2,
+                uploadedAt);
+        when(examRequestReadPort.findByStudentAndType(eq(student.studentId()), any())).thenAnswer(invocation -> {
+            ExamType asked = invocation.getArgument(1);
+            if (asked == ExamType.PREDOCTORAL) {
+                return Optional.of(new ExamRequestRead(
+                        predoctoral,
+                        List.of(new CurrentExamDocument(
+                                501L,
+                                DocumentType.TESIS,
+                                DocumentKind.PDF,
+                                "PredoctoralOnly.pdf",
+                                null,
+                                102400L,
+                                uploadedAt))));
+            }
+            return Optional.empty();
+        });
+
+        MvcResult result = mockMvc.perform(get("/api/exam-requests/me/GRADO/requirements")
+                        .header("Authorization", "Bearer " + student.token())
+                        .header(TenantFilter.HEADER_GRADUATE_ID, student.programId()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.examType").value("GRADO"))
+                .andExpect(jsonPath("$.request").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[1].documentType").value("ARTICULO"))
+                .andExpect(jsonPath("$.requirements[1].required").value(true))
+                .andExpect(jsonPath("$.requirements[0].status").value("PENDIENTE"))
+                .andExpect(jsonPath("$.requirements[0].currentDocument").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[1].currentDocument").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[2].currentDocument").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[3].currentDocument").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[4].currentDocument").value(nullValue()))
+                .andExpect(jsonPath("$.requirements[5].currentDocument").value(nullValue()))
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).doesNotContain("PredoctoralOnly.pdf");
+        assertThat(predoctoral.status()).isEqualTo(ExamRequestStatus.ENVIADA);
+        assertThat(predoctoral.folio()).isEqualTo("SEG-482913-075316");
     }
 
     @Test

@@ -8,6 +8,8 @@ import static mx.uam.sapcyti.academic.domain.model.ProgramType.DOCTORADO;
 import static mx.uam.sapcyti.academic.domain.model.ProgramType.ESPECIALIZACION;
 import static mx.uam.sapcyti.academic.domain.model.ProgramType.MAESTRIA;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -154,6 +156,109 @@ class DegreeExamCatalogTest {
         assertThat(item(requirements, DocumentType.TESIS).expectedName()).startsWith("Tesis_Docto_");
         assertThat(item(requirements, DocumentType.TESIS).exampleName())
                 .isEqualTo(item(requirements, DocumentType.TESIS).expectedName());
+
+        ExamRequirements byType = ready(context, ExamType.GRADO);
+        assertThat(item(byType, DocumentType.ARTICULO).required()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Predoctoral documents match the doctoral list and the article is optional")
+    void predoctoralDocumentsMatchTheDoctoralListAndTheArticleIsOptional() {
+        StudentExamContext context = context(DOCTORADO, EGRESADO, "Ana", "López", "Alba");
+        when(readPort.findByStudentAndType(STUDENT_ID, ExamType.PREDOCTORAL)).thenReturn(Optional.empty());
+
+        ExamRequirements requirements = ready(context, ExamType.PREDOCTORAL);
+
+        assertThat(requirements.examType()).isEqualTo(ExamType.PREDOCTORAL);
+        assertThat(requirements.degree()).isEqualTo(Degree.DOCTORADO);
+        assertThat(requirements.request()).isNull();
+        assertThat(requirements.requirements()).extracting(ExamRequirement::documentType).containsExactly(
+                DocumentType.TESIS,
+                DocumentType.ARTICULO,
+                DocumentType.SOL_SINODALES,
+                DocumentType.HIST_ACAD,
+                DocumentType.COMP_IDIOMA,
+                DocumentType.DATOS_ALUM);
+        assertThat(requirements.requirements()).filteredOn(item -> item.documentType() != DocumentType.ARTICULO)
+                .allSatisfy(item -> {
+                    assertThat(item.required()).isTrue();
+                    assertThat(item.acceptedKinds()).containsExactly(DocumentKind.PDF);
+                    assertThat(item.status()).isEqualTo(RequirementStatus.PENDIENTE);
+                    assertThat(item.currentDocument()).isNull();
+                });
+        ExamRequirement article = item(requirements, DocumentType.ARTICULO);
+        assertThat(article.required()).isFalse();
+        assertThat(article.acceptedKinds()).containsExactly(DocumentKind.PDF, DocumentKind.URL);
+        assertThat(article.expectedName()).isNull();
+        assertThat(article.exampleName()).isNull();
+        assertThat(item(requirements, DocumentType.TESIS).expectedName())
+                .isEqualTo("Tesis_Docto_Lopez_Alba_Ana.pdf");
+        assertThat(item(requirements, DocumentType.TESIS).exampleName())
+                .isEqualTo("Tesis_Docto_Lopez_Alba_Ana.pdf");
+        assertThat(item(requirements, DocumentType.SOL_SINODALES).exampleName())
+                .isEqualTo("Sol_Sinodales_Lopez_Alba_Ana.pdf");
+        assertThat(item(requirements, DocumentType.HIST_ACAD).exampleName())
+                .isEqualTo("Hist_Acad_Lopez_Alba_Ana.pdf");
+        assertThat(item(requirements, DocumentType.COMP_IDIOMA).exampleName())
+                .isEqualTo("Comp_Idioma_Lopez_Alba_Ana.pdf");
+        assertThat(item(requirements, DocumentType.DATOS_ALUM).exampleName())
+                .isEqualTo("Datos_Alum_Lopez_Alba_Ana.pdf");
+        assertThat(requirements.requirements()).allSatisfy(requirement ->
+                assertThat(requirement.exampleName()).isEqualTo(requirement.expectedName()));
+        verify(readPort).findByStudentAndType(STUDENT_ID, ExamType.PREDOCTORAL);
+        verifyNoMoreInteractions(readPort);
+    }
+
+    @ParameterizedTest(name = "{0} cannot read or open a predoctoral request")
+    @MethodSource("nonDoctoralDegrees")
+    @DisplayName("Specialization cannot read the predoctoral exam")
+    void nonDoctoralPredoctoralIsExamTypeNotAllowed(ProgramType programType) {
+        StudentExamContext context = context(programType, EGRESADO, "Ana", "López", "Alba");
+
+        DegreeExamRequirementsResult result = catalog.requirements(context, ExamType.PREDOCTORAL);
+
+        assertThat(result.error()).isEqualTo(DegreeExamRequirementsResult.EXAM_TYPE_NOT_ALLOWED);
+        assertThat(result.requirements()).isNull();
+        verifyNoInteractions(readPort);
+    }
+
+    @Test
+    @DisplayName("The degree exam stays a separate request")
+    void degreeExamStaysASeparateRequest() {
+        StudentExamContext context = context(DOCTORADO, EGRESADO, "Ana", "López", "Alba");
+        CurrentExamDocument thesis = new CurrentExamDocument(
+                8L, DocumentType.TESIS, DocumentKind.PDF, "Tesis_Docto_Lopez_Alba_Ana.pdf", null, 2048L, UPLOADED_AT);
+        ExamRequestBinding predoctoral = new ExamRequestBinding(
+                4L,
+                STUDENT_ID,
+                ExamType.PREDOCTORAL,
+                PROGRAM_ID,
+                Degree.DOCTORADO,
+                ExamRequestStatus.ENVIADA,
+                "SEG-482913-075316",
+                2,
+                UPLOADED_AT);
+        when(readPort.findByStudentAndType(eq(STUDENT_ID), any())).thenAnswer(invocation -> {
+            ExamType asked = invocation.getArgument(1);
+            if (asked == ExamType.PREDOCTORAL) {
+                return Optional.of(new ExamRequestRead(predoctoral, List.of(thesis)));
+            }
+            return Optional.empty();
+        });
+
+        ExamRequirements grado = ready(context, ExamType.GRADO);
+
+        assertThat(grado.request()).isNull();
+        assertThat(grado.requirements()).allSatisfy(item -> {
+            assertThat(item.status()).isEqualTo(RequirementStatus.PENDIENTE);
+            assertThat(item.currentDocument()).isNull();
+        });
+        assertThat(item(grado, DocumentType.ARTICULO).required()).isTrue();
+        assertThat(predoctoral.status()).isEqualTo(ExamRequestStatus.ENVIADA);
+        assertThat(predoctoral.folio()).isEqualTo("SEG-482913-075316");
+        assertThat(predoctoral.version()).isEqualTo(2);
+        verify(readPort).findByStudentAndType(STUDENT_ID, ExamType.GRADO);
+        verifyNoMoreInteractions(readPort);
     }
 
     @Test
@@ -275,6 +380,10 @@ class DegreeExamCatalogTest {
         verifyNoMoreInteractions(readPort);
     }
 
+    private static Stream<ProgramType> nonDoctoralDegrees() {
+        return Stream.of(MAESTRIA, ESPECIALIZACION);
+    }
+
     private static Stream<Arguments> ineligibleStatuses() {
         return Stream.of(
                 Arguments.of(BAJA, EligibilityReason.PROGRAM_BAJA),
@@ -288,7 +397,11 @@ class DegreeExamCatalogTest {
     }
 
     private ExamRequirements ready(StudentExamContext context) {
-        DegreeExamRequirementsResult result = catalog.requirements(context);
+        return ready(context, ExamType.GRADO);
+    }
+
+    private ExamRequirements ready(StudentExamContext context, ExamType examType) {
+        DegreeExamRequirementsResult result = catalog.requirements(context, examType);
         assertThat(result.error()).isNull();
         return result.requirements();
     }

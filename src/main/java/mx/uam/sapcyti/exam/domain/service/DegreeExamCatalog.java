@@ -10,6 +10,7 @@ import mx.uam.sapcyti.academic.domain.model.StudentExamContext;
 import mx.uam.sapcyti.exam.domain.model.CurrentExamDocument;
 import mx.uam.sapcyti.exam.domain.model.Degree;
 import mx.uam.sapcyti.exam.domain.model.DegreeExamRequirementsResult;
+import mx.uam.sapcyti.exam.domain.model.DocumentKind;
 import mx.uam.sapcyti.exam.domain.model.DocumentType;
 import mx.uam.sapcyti.exam.domain.model.EligibilityReason;
 import mx.uam.sapcyti.exam.domain.model.ExamOptions;
@@ -21,17 +22,18 @@ import mx.uam.sapcyti.exam.domain.model.ExamRequirements;
 import mx.uam.sapcyti.exam.domain.model.ExamType;
 import mx.uam.sapcyti.exam.domain.model.GradoRequirementRule;
 import mx.uam.sapcyti.exam.domain.model.OfficialDocumentName;
+import mx.uam.sapcyti.exam.domain.model.PredoctoralRequirementRule;
 import mx.uam.sapcyti.exam.domain.model.ProgramStatus;
 import mx.uam.sapcyti.exam.domain.model.RequirementStatus;
 import mx.uam.sapcyti.exam.domain.port.out.ExamRequestReadPort;
 import org.springframework.stereotype.Service;
 
 /**
- * Derived GRADO catalog for one resolved {@link StudentExamContext} (SPEC-046).
+ * Derived catalog for one resolved {@link StudentExamContext} (SPEC-046, SPEC-048).
  *
  * <p>Options, official names and document status are computed. They are not stored on the request.
- * The read port is not asked to create a dossier. {@code PREDOCTORAL} requirements are HU-63.
- * A context that is not resolved never reaches this service.
+ * The read port is not asked to create a dossier. {@code PREDOCTORAL} uses the doctoral list and
+ * an optional article. A context that is not resolved never reaches this service.
  */
 @Service
 @RequiredArgsConstructor
@@ -58,10 +60,23 @@ public class DegreeExamCatalog {
      * yields {@code ACADEMIC_PROGRAM_CHANGED} and does not open another request of this type.
      */
     public DegreeExamRequirementsResult requirements(StudentExamContext context) {
+        return requirements(context, ExamType.GRADO);
+    }
+
+    /**
+     * Requirements for the requested exam type. Current documents come from that type's binding.
+     * {@code PREDOCTORAL} for a degree other than doctorate is {@code EXAM_TYPE_NOT_ALLOWED}
+     * and does not read or insert a dossier. Official names are not recomputed by a new algorithm.
+     */
+    public DegreeExamRequirementsResult requirements(StudentExamContext context, ExamType examType) {
         StudentExamContext resolved = requireContext(context);
+        Objects.requireNonNull(examType, "examType");
         Degree degree = toDegree(resolved.programType());
+        if (examType == ExamType.PREDOCTORAL && degree != Degree.DOCTORADO) {
+            return DegreeExamRequirementsResult.examTypeNotAllowed();
+        }
         Optional<ExamRequestRead> dossier = examRequestReadPort.findByStudentAndType(
-                resolved.studentId(), ExamType.GRADO);
+                resolved.studentId(), examType);
         if (dossier.isPresent() && mismatched(resolved, degree, dossier.get().binding())) {
             return DegreeExamRequirementsResult.academicProgramChanged();
         }
@@ -69,12 +84,12 @@ public class DegreeExamCatalog {
         Map<DocumentType, CurrentExamDocument> current = dossier.map(ExamRequestRead::documents)
                 .map(DegreeExamCatalog::index)
                 .orElseGet(Map::of);
-        List<ExamRequirement> requirements = GradoRequirementRule.forDegree(degree).stream()
+        List<ExamRequirement> requirements = rules(examType, degree).stream()
                 .map(rule -> requirement(rule, resolved, degree, current))
                 .toList();
         ExamRequestSummary summary = dossier.map(read -> summary(read.binding())).orElse(null);
         return DegreeExamRequirementsResult.ready(new ExamRequirements(
-                ExamType.GRADO,
+                examType,
                 degree,
                 toStatus(resolved.programStatus()),
                 eligibility.eligible(),
@@ -95,8 +110,19 @@ public class DegreeExamCatalog {
         };
     }
 
+    private static List<CatalogRule> rules(ExamType examType, Degree degree) {
+        if (examType == ExamType.PREDOCTORAL) {
+            return PredoctoralRequirementRule.doctoral().stream()
+                    .map(rule -> new CatalogRule(rule.documentType(), rule.required(), rule.acceptedKinds()))
+                    .toList();
+        }
+        return GradoRequirementRule.forDegree(degree).stream()
+                .map(rule -> new CatalogRule(rule.documentType(), rule.required(), rule.acceptedKinds()))
+                .toList();
+    }
+
     private static ExamRequirement requirement(
-            GradoRequirementRule rule,
+            CatalogRule rule,
             StudentExamContext context,
             Degree degree,
             Map<DocumentType, CurrentExamDocument> current) {
@@ -183,5 +209,8 @@ public class DegreeExamCatalog {
     }
 
     private record Eligibility(boolean eligible, EligibilityReason reason) {
+    }
+
+    private record CatalogRule(DocumentType documentType, boolean required, List<DocumentKind> acceptedKinds) {
     }
 }

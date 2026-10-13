@@ -24,8 +24,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Student reads of exam options and degree requirements (SPEC-047).
+ * Student reads of exam options and requirements (SPEC-047, SPEC-049).
  * Role is also enforced in {@code SecurityConfig} before this controller binds the body.
+ * The path exam type is forwarded as parsed. {@code PREDOCTORAL} is not rewritten to {@code GRADO}
+ * and this controller does not assemble the degree matrix.
  */
 @RestController
 @RequestMapping(path = "/api/exam-requests", produces = MediaType.APPLICATION_JSON_VALUE)
