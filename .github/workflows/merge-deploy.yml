@@ -38,6 +38,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7.0.0
 
+      - name: Ensure dev JWT keys
+        run: ./scripts/ensure-dev-jwt-keys.sh
+
       - name: Set up JDK 21
         uses: actions/setup-java@v5.3.0
         with:
@@ -95,6 +98,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            INCLUDE_DEV_JWT=${{ steps.determine-env.outputs.env_name != 'prod' }}
           tags: ghcr.io/${{ steps.determine-env.outputs.image_owner }}/sapcyti-api:${{ steps.determine-env.outputs.image_tag }}
 
   cd-build:

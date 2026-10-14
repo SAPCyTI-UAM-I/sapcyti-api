@@ -11,7 +11,19 @@ RUN sed -i 's/\r$//' mvnw \
     && ./mvnw -B dependency:go-offline -DskipTests
 
 COPY src src
-RUN ./mvnw -B -DskipTests package
+COPY scripts/ensure-dev-jwt-keys.sh scripts/ensure-dev-jwt-keys.sh
+# Prod must not ship the dev keypair. Dev and QA load it from the classpath.
+ARG INCLUDE_DEV_JWT=true
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/* \
+    && chmod +x scripts/ensure-dev-jwt-keys.sh \
+    && if [ "$INCLUDE_DEV_JWT" = "true" ]; then \
+         ./scripts/ensure-dev-jwt-keys.sh; \
+       else \
+         rm -f src/main/resources/jwt/dev-private.pem src/main/resources/jwt/dev-public.pem; \
+       fi \
+    && ./mvnw -B -DskipTests package
 
 FROM eclipse-temurin:21-jre-jammy AS runtime
 

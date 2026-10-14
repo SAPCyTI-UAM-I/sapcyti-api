@@ -17,4 +17,5 @@ npm-debug.log
 *.md
 !README.md
 docker-compose*.yml
-scripts/
+scripts/*
+!scripts/ensure-dev-jwt-keys.sh
